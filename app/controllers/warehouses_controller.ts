@@ -28,7 +28,7 @@ export default class WarehousesController {
         })
       }
 
-      // Gunakan query yang sudah difilter dan di-preload
+      // ✅ Perbaikan: gunakan dataQuery yang sudah difilter
       const perusahaan = await dataQuery.paginate(page, limit)
 
       return response.ok(perusahaan.toJSON())
