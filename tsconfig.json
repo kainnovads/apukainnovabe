@@ -1,0 +1,20 @@
+{
+  "extends": "@adonisjs/tsconfig/tsconfig.app.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./build",
+    "types": ["@adonisjs/auth"],
+    "paths": {
+      "#helper/*": ["./app/helpers/*"],
+      "#models/*": ["./app/models/*"],
+      "#validators/*": ["./app/validators/*"],
+      "#controllers/*": ["./app/controllers/*"],
+      "#services/*": ["./app/services/*"],
+      "#utils/*": ["./app/utils/*"],
+      "#middlewares/*": ["./app/middlewares/*"],
+      "#config/*": ["./config/*"]
+    }
+  },
+  "include": ["**/*"],
+  "exclude": ["build", "node_modules"]
+}

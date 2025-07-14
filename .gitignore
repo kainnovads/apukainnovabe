@@ -1,0 +1,32 @@
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp
+uploads
+
+# Secrets
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Frontend assets compiled code
+public/assets
+
+# Build tools specific
+npm-debug.log
+yarn-error.log
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
+
+ENVIRONMENT_SETUP.md
+PERFORMANCE_OPTIMIZATION.md
+setup-sales-invoice-items.ps1
+setup-sales-invoice-items.sh
+SALES_INVOICE_ITEMS_README.md
