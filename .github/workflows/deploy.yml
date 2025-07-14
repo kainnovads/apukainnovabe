@@ -26,13 +26,6 @@ jobs:
       - name: Build AdonisJS app
         run: node ace build
 
-      - name: Show build folder contents
-        run: |
-        echo "📁 Build folder structure:"
-        ls -R build/
-        echo "📄 Build/server.js content (first 20 lines):"
-        head -n 20 build/server.js
-
       - name: Prepare deployment package
         run: |
           zip -r deploy.zip . \
