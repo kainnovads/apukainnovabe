@@ -24,7 +24,7 @@ jobs:
         run: npm ci
 
       - name: Build AdonisJS app
-        run: npm run build
+        run: node ace build
 
       - name: Prepare deployment package
         run: |
