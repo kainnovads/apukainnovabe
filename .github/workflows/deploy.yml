@@ -1,3 +1,5 @@
+# start
+
 name: Deploy to AWS Elastic Beanstalk
 
 on:
@@ -43,3 +45,5 @@ jobs:
           version_label: 'ver-${{ github.sha }}'
           region: ${{ secrets.AWS_REGION }}
           deployment_package: deploy.zip
+
+          # end
