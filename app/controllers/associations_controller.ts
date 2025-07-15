@@ -2,7 +2,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import FPGrowth, { Itemset } from 'node-fpgrowth'
 
-// Fungsi bantuan untuk mendapatkan semua himpunan bagian (subsets) dari sebuah array
 function getSubsets<T>(array: T[]): T[][] {
   const subsets = [[]] as T[][]
   for (const element of array) {
@@ -11,7 +10,6 @@ function getSubsets<T>(array: T[]): T[][] {
       subsets.push([...subsets[i], element])
     }
   }
-  // Menghapus himpunan kosong dan himpunan itu sendiri
   return subsets.slice(1, subsets.length -1)
 }
 
