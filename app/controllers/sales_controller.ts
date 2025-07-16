@@ -13,20 +13,21 @@ import Mail from '@adonisjs/mail/services/main'
 import SalesOrderCreated from '#mails/sales_order_created'
 import Customer from '#models/customer'
 import Perusahaan from '#models/perusahaan'
+import { DateTime } from 'luxon'; // pastikan sudah install luxon
 
 export default class SalesController {
   async index({ request, response }: HttpContext) {
     try {
-      const page        = request.input('page', 1)
-      const limit       = request.input('rows', 10)
-      const search      = request.input('search', '')
-      const searchValue = search || request.input('search.value', '')
-      const sortField   = request.input('sortField')
-      const sortOrder   = request.input('sortOrder')
-      const customerId  = request.input('customerId')
-      const source      = request.input('source')
-      const status      = request.input('status')
-      const includeItems = request.input('includeItems', false) // ✅ Conditional loading
+      const page         = request.input('page', 1)
+      const limit        = request.input('rows', 10)
+      const search       = request.input('search', '')
+      const searchValue  = search || request.input('search.value', '')
+      const sortField    = request.input('sortField')
+      const sortOrder    = request.input('sortOrder')
+      const customerId   = request.input('customerId')
+      const source       = request.input('source')
+      const status       = request.input('status')
+      const includeItems = request.input('includeItems', false)
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = SalesOrder.query()
@@ -370,8 +371,6 @@ export default class SalesController {
         await Mail.send(new SalesOrderCreated(so, customer, perusahaan, cabang))
       } catch (emailError) {
         console.error('Email sending failed:', emailError)
-        // Jangan gagalkan seluruh proses jika email gagal terkirim
-        // Mungkin tambahkan logging atau notifikasi ke admin di sini
       }
 
       return response.created({
@@ -771,5 +770,31 @@ export default class SalesController {
       const cabang = await Cabang.query()
       .where('perusahaanId', perusahaanId)
       return response.ok(cabang)
+  }
+
+  async countByStatus({ response }: HttpContext) {
+    const total     = await SalesOrder.query().count('* as total')
+    const approved  = await SalesOrder.query().where('status', 'approved').count('* as total')
+    const rejected  = await SalesOrder.query().where('status', 'rejected').count('* as total')
+    const partial   = await SalesOrder.query().where('status', 'partial').count('* as total')
+    const delivered = await SalesOrder.query().where('status', 'delivered').count('* as total')
+
+    // Hitung tanggal 4 bulan lalu
+    const fourMonthsAgo = DateTime.now().minus({ months: 4 }).toISODate();
+
+    // Query delivered 4 bulan terakhir
+    const deliveredLast4Months = await SalesOrder.query()
+      .where('status', 'delivered')
+      .where('created_at', '>=', fourMonthsAgo)
+      .count('* as total');
+
+    return response.ok({
+      total               : Number(total[0].total),
+      approved            : Number(approved[0].total),
+      rejected            : Number(rejected[0].total),
+      partial             : Number(partial[0].total),
+      delivered           : Number(delivered[0].total),
+      deliveredLast4Months: Number(deliveredLast4Months[0].total),
+    })
   }
 }

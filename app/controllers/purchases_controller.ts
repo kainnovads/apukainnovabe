@@ -11,14 +11,16 @@ import { toRoman } from '#helper/bulan_romawi'
 export default class PurchasesController {
     async index({ request, response }: HttpContext) {
         try {
-            const page        = request.input('page', 1)
-            const limit       = request.input('rows', 10)
-            const search      = request.input('search', '')
-            const searchValue = search || request.input('search.value', '')
-            const sortField   = request.input('sortField')
-            const sortOrder   = request.input('sortOrder')
-            const includeItems = request.input('includeItems', false) // ✅ Conditional loading
-            const status      = request.input('status')
+            const page         = request.input('page', 1)
+            const limit        = request.input('rows', 10)
+            const search       = request.input('search', '')
+            const searchValue  = search || request.input('search.value', '')
+            const sortField    = request.input('sortField')
+            const sortOrder    = request.input('sortOrder')
+            const includeItems = request.input('includeItems', false)
+            const vendorId     = request.input('vendorId')
+            const status       = request.input('status')
+            const poType       = request.input('poType')
 
             // ✅ OPTIMASI: Efficient base query dengan minimal preloading
             let dataQuery = PurchaseOrder.query()
@@ -34,6 +36,22 @@ export default class PurchasesController {
               .preload('createdByUser', (query) => {
                 query.select(['id', 'full_name', 'email'])
               })
+              .preload('approvedByUser', (query) => {
+                query.select(['id', 'full_name'])
+              })
+              .preload('receivedByUser', (query) => {
+                query.select(['id', 'full_name'])
+              })
+
+            if (vendorId) {
+              dataQuery.where('vendor_id', vendorId)
+            }
+            if (status) {
+              dataQuery.where('status', status)
+            }
+            if (poType) {
+              dataQuery.where('po_type', poType)
+            }
 
             // ✅ OPTIMASI: Conditional preloading untuk performance
             if (includeItems) {
@@ -41,16 +59,6 @@ export default class PurchasesController {
                 query.preload('product', (productQuery) => {
                   productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku'])
                 })
-              })
-            }
-
-            // ✅ OPTIMASI: Preload users hanya jika diperlukan
-            if (status && ['approved', 'rejected', 'received'].includes(status)) {
-              dataQuery.preload('approvedByUser', (query) => {
-                query.select(['id', 'full_name'])
-              })
-              dataQuery.preload('receivedByUser', (query) => {
-                query.select(['id', 'full_name'])
               })
             }
 

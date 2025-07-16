@@ -42,28 +42,26 @@ export default class PurchaseItemsController {
         .preload('purchaseOrderItems')
         .firstOrFail()
 
-      // Jika user klik checkbox dan statusPartial == true, insert ke 3 tabel sekaligus
+      // Jika user klik checkbox dan statusPartial == true, insert ke stock_in dan stock_in_detail
       if (statusPartial === true || statusPartial === 'true' || statusPartial === 1) {
-        // Ambil item yang sedang diubah saat ini, bukan semua item yang sudah diterima
+        // Ambil item yang sedang diubah saat ini
         const item = purchaseOrderItem
 
-        // 1. Insert atau ambil StockIn yang sudah ada (berdasarkan PO dan gudang)
-        const stockIn = await StockIn.firstOrCreate({
+        // 1. Buat StockIn baru untuk setiap item yang statusPartial == true
+        const stockIn = await StockIn.create({
+          noSi: generateNo(),
           purchaseOrderId: purchaseOrder.id,
           warehouseId: item.warehouseId ?? undefined,
-        }, {
-          noSi: generateNo(),
           postedBy: auth.user?.id,
           date: DateTime.now().toJSDate(),
           status: 'draft',
-          description: `Penerimaan otomatis dari PO #${purchaseOrder.noPo || purchaseOrder.id}`,
+          description: `Penerimaan otomatis dari PO #${purchaseOrder.noPo || purchaseOrder.id} - Item: ${item.id}`,
         })
 
-        // 2. Insert atau Update StockInDetail untuk mencegah duplikasi
-        await StockInDetail.updateOrCreate({
+        // 2. Insert StockInDetail untuk item ini
+        await StockInDetail.create({
           stockInId: stockIn.id,
           productId: item.productId,
-        }, {
           quantity: Number(item.receivedQty ?? item.quantity),
           description: item.description || '',
         })

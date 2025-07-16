@@ -287,7 +287,7 @@ export default class SalesInvoicesController {
 
     // Hitung nomor urut invoice bulan ini dengan mengambil nomor urut tertinggi
     const currentMonthPattern = `-${bulan}${tahun}`
-    
+
     // Ambil nomor invoice tertinggi untuk bulan ini
     const lastInvoice = await SalesInvoice.query()
       .whereRaw(`no_invoice LIKE '%${currentMonthPattern}'`)
@@ -468,4 +468,5 @@ export default class SalesInvoicesController {
       })
     }
   }
+
 }

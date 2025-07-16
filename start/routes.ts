@@ -112,6 +112,7 @@ router
 
   // Sales Order Router
   router.group(() => {
+    router.get('/sales-order/countByStatus', [SalesOrdersController, 'countByStatus'])
     router.patch('/sales-order/approveSalesOrder/:id', [SalesOrdersController, 'approveSalesOrder'])
     router.patch('/sales-order/rejectSalesOrder/:id', [SalesOrdersController, 'rejectSalesOrder'])
     router.post('/sales-order/:id', [SalesOrdersController, 'update'])
