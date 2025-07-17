@@ -117,7 +117,6 @@ router
     router.patch('/sales-order/rejectSalesOrder/:id', [SalesOrdersController, 'rejectSalesOrder'])
     router.post('/sales-order/:id', [SalesOrdersController, 'update'])
     router.get('/sales-order/getSalesOrderDetails/:id', [SalesOrdersController, 'getSalesOrderDetails'])
-
     router.resource('sales-order', SalesOrdersController).except(['update']).apiOnly()
 
     // Sales Order Item Router

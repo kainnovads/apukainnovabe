@@ -160,31 +160,31 @@ export default class PurchasesController {
             // ✅ OPTIMASI: Efficient single record query
             const po = await PurchaseOrder.query()
             .where('id', params.id)
-            .preload('vendor', (query) => {
-              query.select(['id', 'name', 'email', 'phone', 'address'])
+            .preload('vendor', (vendorQuery) => {
+              vendorQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
             })
-            .preload('perusahaan', (query) => {
-              query.select(['id', 'nmPerusahaan'])
+            .preload('perusahaan', (perusahaanQuery) => {
+              perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
             })
-            .preload('cabang', (query) => {
-              query.select(['id', 'nmCabang', 'alamatCabang'])
+            .preload('cabang', (cabangQuery) => {
+              cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
             })
-            .preload('purchaseOrderItems', (query) => {
-                query.preload('product', (productQuery) => {
+            .preload('purchaseOrderItems', (purchaseOrderItemsQuery) => {
+                purchaseOrderItemsQuery.preload('product', (productQuery) => {
                   productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku', 'description'])
                 })
             })
-            .preload('createdByUser', (query) => {
-              query.select(['id', 'full_name', 'email'])
+            .preload('createdByUser', (createdByUserQuery) => {
+              createdByUserQuery.select(['id', 'full_name', 'email'])
             })
-            .preload('approvedByUser', (query) => {
-              query.select(['id', 'full_name', 'email'])
+            .preload('approvedByUser', (approvedByUserQuery) => {
+              approvedByUserQuery.select(['id', 'full_name', 'email'])
             })
-            .preload('receivedByUser', (query) => {
-              query.select(['id', 'full_name', 'email'])
+            .preload('receivedByUser', (receivedByUserQuery) => {
+              receivedByUserQuery.select(['id', 'full_name', 'email'])
             })
-            .preload('rejectedByUser', (query) => {
-              query.select(['id', 'full_name', 'email'])
+            .preload('rejectedByUser', (rejectedByUserQuery) => {
+              rejectedByUserQuery.select(['id', 'full_name', 'email'])
             })
             .firstOrFail()
 
@@ -496,31 +496,31 @@ export default class PurchasesController {
         // ✅ OPTIMASI: Efficient detailed query with select specific fields
         const po = await PurchaseOrder.query()
         .where('id', params.id)
-        .preload('vendor', (query) => {
-          query.select(['id', 'name', 'email', 'phone', 'address'])
+        .preload('vendor', (vendorQuery) => {
+          vendorQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
         })
-        .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan'])
+        .preload('perusahaan', (perusahaanQuery) => {
+          perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
         })
-        .preload('cabang', (query) => {
-          query.select(['id', 'nmCabang', 'alamatCabang'])
+        .preload('cabang', (cabangQuery) => {
+          cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
         })
-        .preload('purchaseOrderItems', (query) => {
-            query.preload('product', (productQuery) => {
+        .preload('purchaseOrderItems', (purchaseOrderItemsQuery) => {
+            purchaseOrderItemsQuery.preload('product', (productQuery) => {
               productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku'])
             })
         })
-        .preload('createdByUser', (query) => {
-          query.select(['id', 'full_name', 'email'])
+        .preload('createdByUser', (createdByUserQuery) => {
+          createdByUserQuery.select(['id', 'full_name', 'email'])
         })
-        .preload('approvedByUser', (query) => {
-          query.select(['id', 'full_name', 'email'])
+        .preload('approvedByUser', (approvedByUserQuery) => {
+          approvedByUserQuery.select(['id', 'full_name', 'email'])
         })
-        .preload('receivedByUser', (query) => {
-          query.select(['id', 'full_name', 'email'])
+        .preload('receivedByUser', (receivedByUserQuery) => {
+          receivedByUserQuery.select(['id', 'full_name', 'email'])
         })
-        .preload('rejectedByUser', (query) => {
-          query.select(['id', 'full_name', 'email'])
+        .preload('rejectedByUser', (rejectedByUserQuery) => {
+          rejectedByUserQuery.select(['id', 'full_name', 'email'])
         })
         .firstOrFail()
 

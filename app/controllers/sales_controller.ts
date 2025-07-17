@@ -578,13 +578,13 @@ export default class SalesController {
           query.select(['id', 'nmCabang', 'alamatCabang'])
         })
         .preload('salesOrderItems', (query) => {
-            query.preload('product', (productQuery) => {
-              productQuery.select(['id', 'name', 'priceSell', 'sku'])
-            }).preload('salesReturnItems', (sriQuery) => {
-              sriQuery.preload('salesReturn', (srQuery) => {
-                srQuery.select(['id', 'status', 'returnDate'])
-              })
+          query.preload('product', (productQuery) => {
+            productQuery.select(['id', 'name', 'priceSell', 'sku'])
+          }).preload('salesReturnItems', (sriQuery) => {
+            sriQuery.preload('salesReturn', (srQuery) => {
+              srQuery.select(['id', 'status', 'returnDate'])
             })
+          })
         })
         .preload('createdByUser', (query) => {
           query.select(['id', 'fullName', 'email'])
