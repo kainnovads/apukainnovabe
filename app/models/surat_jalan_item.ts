@@ -1,9 +1,9 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
-import SalesOrderItem from '#models/sales_order_item.js'
-import SuratJalan from '#models/surat_jalan.js'
-import Product from '#models/product.js'
-import Warehouse from '#models/warehouse.js'
+import SalesOrderItem from '#models/sales_order_item'
+import SuratJalan from '#models/surat_jalan'
+import Product from '#models/product'
+import Warehouse from '#models/warehouse'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'node:crypto'
 

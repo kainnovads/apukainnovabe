@@ -1,11 +1,11 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
-import SalesOrder from '#models/sales_order.js'
-import SuratJalanItem from '#models/surat_jalan_item.js'
-import Customer from '#models/customer.js'
+import SalesOrder from '#models/sales_order'
+import SuratJalanItem from '#models/surat_jalan_item'
+import Customer from '#models/customer'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'node:crypto'
-import User from '#models/auth/user.js'
+import User from '#models/auth/user'
 
 export default class SuratJalan extends BaseModel {
   @column({ isPrimary: true })
