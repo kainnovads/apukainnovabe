@@ -9,7 +9,6 @@ uploads
 .env.local
 .env.production.local
 .env.development.local
-config/cors.ts
 
 # Frontend assets compiled code
 public/assets
