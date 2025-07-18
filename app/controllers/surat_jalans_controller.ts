@@ -36,11 +36,11 @@ export default class SuratJalansController {
             })
           })
         })
-        // Preload direct customer dari SalesInvoice juga
+        // Preload direct customer dari Surat Jalan juga
         .preload('customer', (customerQuery) => {
           customerQuery.select(['id', 'name', 'email', 'phone'])
         })
-        // ✅ PRELOAD: Sales Invoice Items dengan relationships
+        // ✅ PRELOAD: Surat Jalan Items dengan relationships
         .preload('suratJalanItems', (siiQuery) => {
           siiQuery.preload('product', (productQuery) => {
             productQuery.select(['id', 'name', 'priceSell', 'sku'])
@@ -227,6 +227,60 @@ export default class SuratJalansController {
               code   : error.code,
               message: error.message,
           },
+      })
+    }
+  }
+
+  async show({ params, response }: HttpContext) {
+    try {
+      const suratJalan = await SuratJalan.query()
+        .where('id', params.id)
+        .preload('salesOrder', (soQuery) => {
+          soQuery.preload('customer', (customerQuery) => {
+            customerQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
+          })
+          soQuery.preload('perusahaan', (perusahaanQuery) => {
+            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
+          })
+          soQuery.preload('cabang', (cabangQuery) => {
+            cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
+          })
+          soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.preload('product', (productQuery) => {
+              productQuery.preload('unit', (unitQuery) => {
+                unitQuery.select(['id', 'name'])
+              })
+              productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
+            })
+          })
+        })
+        .preload('customer', (customerQuery) => {
+          customerQuery.select(['id', 'name', 'email', 'phone', 'address'])
+        })
+        // ✅ PRELOAD: Surat Jalan Items dengan relationships
+        .preload('suratJalanItems', (siiQuery) => {
+          siiQuery.preload('product', (productQuery) => {
+            productQuery.preload('unit', (unitQuery) => {
+              unitQuery.select(['id', 'name'])
+            })
+            productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
+          })
+          siiQuery.preload('warehouse', (warehouseQuery) => {
+            warehouseQuery.select(['id', 'name'])
+          })
+          siiQuery.preload('salesOrderItem', (soiQuery) => {
+            soiQuery.select(['id', 'quantity', 'price', 'subtotal', 'statusPartial', 'deliveredQty'])
+          })
+        })
+        .firstOrFail()
+
+      return response.ok({
+        data: suratJalan.serialize()
+      })
+    } catch (error) {
+      return response.notFound({
+        message: 'Surat Jalan tidak ditemukan',
+        error: error.message
       })
     }
   }
