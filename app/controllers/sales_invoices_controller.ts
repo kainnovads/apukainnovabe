@@ -35,6 +35,7 @@ export default class SalesInvoicesController {
           })
 
           soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.preload('product', (productQuery) => {
               productQuery.select(['id', 'name', 'priceSell', 'sku'])
             })
@@ -158,6 +159,7 @@ export default class SalesInvoicesController {
             soQuery.select(['id', 'noSo', 'status', 'date', 'dueDate', 'discountPercent', 'taxPercent', 'description'])
             // Minimal preloading untuk salesOrderItems saja
             soQuery.preload('salesOrderItems', (soiQuery) => {
+              soiQuery.where('statusPartial', true)
               soiQuery.preload('product', (productQuery) => {
                 productQuery.select(['id', 'name', 'priceSell', 'sku'])
               })
@@ -240,6 +242,7 @@ export default class SalesInvoicesController {
             cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
           })
           soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.preload('product', (productQuery) => {
               productQuery.preload('unit', (unitQuery) => {
                 unitQuery.select(['id', 'name'])

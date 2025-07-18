@@ -7,10 +7,12 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary()
       table.string('no_surat_jalan').notNullable()
+      table.string('pic_name').notNullable()
       table.uuid('sales_order_id').references('id').inTable('sales_orders').onDelete('SET NULL').onUpdate('CASCADE').nullable()
       table.integer('customer_id').unsigned().references('id').inTable('customers').onDelete('CASCADE').onUpdate('CASCADE')
       table.date('date').notNullable()
       table.text('description').nullable()
+      table.text('alamat_pengiriman').nullable()
       table.integer('created_by').unsigned().references('id').inTable('users').onDelete('CASCADE').onUpdate('CASCADE')
 
       table.timestamp('created_at')

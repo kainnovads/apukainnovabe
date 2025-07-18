@@ -41,6 +41,7 @@ import SalesReturnsController from '#controllers/sales_returns_controller'
 import StockTransfersController from '#controllers/stock_transfers_controller'
 import AssociationsController from '#controllers/associations_controller'
 import SalesInvoicesController from '#controllers/sales_invoices_controller'
+import SuratJalansController from '#controllers/surat_jalans_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -133,6 +134,14 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasPermission(['view_sales_invoice', 'edit_sales_invoice', 'delete_sales_invoice', 'create_sales_invoice', 'approve_sales_invoice', 'reject_sales_invoice', 'show_sales_invoice']))
+
+  // Surat Jalan Router
+  router.group(() => {
+    router.resource('surat-jalan', SuratJalansController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_surat_jalan', 'edit_surat_jalan', 'delete_surat_jalan', 'create_surat_jalan', 'approve_surat_jalan', 'reject_surat_jalan', 'show_surat_jalan']))
 
   // Sales Return Router
   router.group(() => {

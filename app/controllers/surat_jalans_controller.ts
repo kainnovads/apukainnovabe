@@ -1,5 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import SuratJalan from '#models/surat_jalan'
+import db from '@adonisjs/lucid/services/db'
+import { suratJalanValidator, updateSuratJalanValidator } from '#validators/surat_jalan'
+import SuratJalanItem from '#models/surat_jalan_item'
+import { toRoman } from '../helpers/bulan_romawi.js'
+import Customer from '#models/customer'
+import User from '#models/auth/user'
 
 export default class SuratJalansController {
   async index({ request, response }: HttpContext) {
@@ -15,6 +21,7 @@ export default class SuratJalansController {
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = SuratJalan.query()
         .preload('salesOrder', (soQuery) => {
+          soQuery.whereIn('status', ['approved', 'partial', 'delivered'])
           soQuery.select(['id', 'noSo', 'status', 'date', 'dueDate', 'discountPercent', 'taxPercent', 'description', 'customerId', 'perusahaanId', 'cabangId'])
 
           // Safe preloading dengan conditional loading
@@ -26,11 +33,8 @@ export default class SuratJalansController {
             perusahaanQuery.select(['id', 'nmPerusahaan'])
           })
 
-          soQuery.preload('cabang', (cabangQuery) => {
-            cabangQuery.select(['id', 'nmCabang', 'perusahaanId'])
-          })
-
           soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.preload('product', (productQuery) => {
               productQuery.select(['id', 'name', 'priceSell', 'sku'])
             })
@@ -39,6 +43,9 @@ export default class SuratJalansController {
         // Preload direct customer dari Surat Jalan juga
         .preload('customer', (customerQuery) => {
           customerQuery.select(['id', 'name', 'email', 'phone'])
+        })
+        .preload('createdByUser', (userQuery) => {
+          userQuery.select(['id', 'full_name', 'email'])
         })
         // ✅ PRELOAD: Surat Jalan Items dengan relationships
         .preload('suratJalanItems', (siiQuery) => {
@@ -49,6 +56,7 @@ export default class SuratJalansController {
             warehouseQuery.select(['id', 'name'])
           })
           siiQuery.preload('salesOrderItem', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.select(['id', 'quantity', 'price', 'subtotal', 'statusPartial'])
           })
         })
@@ -101,7 +109,6 @@ export default class SuratJalansController {
             customer: { table: 'customers', foreignKey: 'surat_jalans.customer_id', primaryKey: 'customers.id' },
             salesOrder: { table: 'sales_orders', foreignKey: 'surat_jalans.sales_order_id', primaryKey: 'sales_orders.id' },
             createdByUser: { table: 'users as created_users', foreignKey: 'surat_jalans.created_by', primaryKey: 'created_users.id' },
-            updatedByUser: { table: 'users as updated_users', foreignKey: 'surat_jalans.updated_by', primaryKey: 'updated_users.id' },
           }
 
           if (relation in relationJoinInfo) {
@@ -150,6 +157,7 @@ export default class SuratJalansController {
             soQuery.select(['id', 'noSo', 'status', 'date', 'dueDate', 'discountPercent', 'taxPercent', 'description'])
             // Minimal preloading untuk salesOrderItems saja
             soQuery.preload('salesOrderItems', (soiQuery) => {
+              soiQuery.where('statusPartial', true)
               soiQuery.preload('product', (productQuery) => {
                 productQuery.select(['id', 'name', 'priceSell', 'sku'])
               })
@@ -236,16 +244,18 @@ export default class SuratJalansController {
       const suratJalan = await SuratJalan.query()
         .where('id', params.id)
         .preload('salesOrder', (soQuery) => {
+          soQuery.whereIn('status', ['approved', 'partial', 'delivered'])
           soQuery.preload('customer', (customerQuery) => {
             customerQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
           })
           soQuery.preload('perusahaan', (perusahaanQuery) => {
-            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
+            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan', 'npwpPerusahaan', 'kodePerusahaan'])
           })
           soQuery.preload('cabang', (cabangQuery) => {
             cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
           })
           soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.preload('product', (productQuery) => {
               productQuery.preload('unit', (unitQuery) => {
                 unitQuery.select(['id', 'name'])
@@ -256,6 +266,9 @@ export default class SuratJalansController {
         })
         .preload('customer', (customerQuery) => {
           customerQuery.select(['id', 'name', 'email', 'phone', 'address'])
+        })
+        .preload('createdByUser', (userQuery) => {
+          userQuery.select(['id', 'full_name', 'email'])
         })
         // ✅ PRELOAD: Surat Jalan Items dengan relationships
         .preload('suratJalanItems', (siiQuery) => {
@@ -269,6 +282,7 @@ export default class SuratJalansController {
             warehouseQuery.select(['id', 'name'])
           })
           siiQuery.preload('salesOrderItem', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.select(['id', 'quantity', 'price', 'subtotal', 'statusPartial', 'deliveredQty'])
           })
         })
@@ -281,6 +295,196 @@ export default class SuratJalansController {
       return response.notFound({
         message: 'Surat Jalan tidak ditemukan',
         error: error.message
+      })
+    }
+  }
+
+  async store({ auth, request, response }: HttpContext) {
+    const user    = await User.findOrFail(auth.user!.id)
+    const payload = await request.validateUsing(suratJalanValidator)
+    const items   = payload.suratJalanItems || []
+
+    // Ambil bulan dan tahun saat ini
+    const now         = new Date()
+    const bulan       = now.getMonth() + 1
+    const tahun       = String(now.getFullYear()).slice(-2)
+    const bulanRomawi = toRoman(bulan)
+
+    // Ambil customer untuk mendapatkan abbreviation
+    const customer = await Customer.find(payload.customerId)
+    if (!customer) {
+      return response.badRequest({
+        message: 'Customer tidak ditemukan'
+      })
+    }
+
+    // Generate customer abbreviation (ambil 3 huruf pertama dari nama customer)
+    const customerAbbreviation = customer.name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .substring(0, 3)
+      .padEnd(3, 'X')
+
+    // Hitung nomor urut surat jalan bulan ini
+    const currentMonthPattern = `/${bulanRomawi}/${tahun}`
+
+    // Ambil nomor surat jalan tertinggi untuk bulan ini
+    const lastNumber = await SuratJalan.query()
+      .whereRaw(`no_surat_jalan LIKE '%${currentMonthPattern}'`)
+      .orderByRaw(`CAST(SUBSTRING(no_surat_jalan, 1, 4) AS INTEGER) DESC`)
+      .first()
+
+    let nextNumber = 1
+    if (lastNumber && lastNumber.noSuratJalan) {
+      // Extract nomor urut dari format 0001/SJ/ABC/VI/24
+      const match = lastNumber.noSuratJalan.match(/^(\d{4})\//)
+      if (match) {
+        nextNumber = parseInt(match[1], 10) + 1
+      }
+    }
+
+    const noUrut = String(nextNumber).padStart(4, '0')
+    const noSuratJalan = `${noUrut}/SJ/${customerAbbreviation}/${bulanRomawi}/${tahun}`
+
+    const trx = await db.transaction()
+
+    try {
+      const suratJalan = await SuratJalan.create({
+          salesOrderId    : payload.salesOrderId,
+          customerId      : payload.customerId,
+          noSuratJalan    : noSuratJalan,
+          picName         : payload.picName,
+          date            : payload.date,
+          description     : payload.description || '',
+          alamatPengiriman: payload.alamatPengiriman || '',
+          createdBy       : user.id,
+      }, { client: trx })
+
+      // ✅ BUAT SURAT JALAN ITEMS
+      for (const item of items) {
+        await SuratJalanItem.create({
+          suratJalanId    : suratJalan.id,
+          salesOrderItemId: item.salesOrderItemId,
+          productId       : Number(item.productId),
+          warehouseId     : Number(item.warehouseId),
+          quantity        : Number(item.quantity),
+          description     : item.description,
+        }, { client: trx })
+      }
+
+      await trx.commit()
+
+      return response.created({
+          message: 'Surat Jalan berhasil dibuat',
+          data: suratJalan,
+      })
+      } catch (error) {
+      await trx.rollback()
+      console.error('Surat Jalan Error:', error)
+      return response.internalServerError({
+            message: 'Gagal membuat Surat Jalan',
+      })
+    }
+  }
+
+  async update({ params, request, response }: HttpContext) {
+    const trx = await db.transaction()
+
+    try {
+      const suratJalan = await SuratJalan.findOrFail(params.id)
+      const payload = await request.validateUsing(updateSuratJalanValidator)
+      const items = payload.suratJalanItems || []
+
+      // Update surat jalan
+      const updateData: any = {}
+
+      if (payload.salesOrderId !== undefined) updateData.salesOrderId = payload.salesOrderId
+      if (payload.customerId !== undefined) updateData.customerId = payload.customerId
+      if (payload.picName !== undefined) updateData.picName = payload.picName
+      if (payload.date !== undefined) updateData.date = payload.date
+      if (payload.description !== undefined) updateData.description = payload.description
+      if (payload.alamatPengiriman !== undefined) updateData.alamatPengiriman = payload.alamatPengiriman
+
+      suratJalan.merge(updateData)
+      await suratJalan.save()
+
+      // ✅ UPDATE SURAT JALAN ITEMS jika ada
+      if (items.length > 0) {
+        // Hapus item lama
+        await SuratJalanItem.query({ client: trx })
+          .where('suratJalanId', suratJalan.id)
+          .delete()
+
+        // Buat item baru
+        for (const item of items) {
+          await SuratJalanItem.create({
+            suratJalanId: suratJalan.id,
+            salesOrderItemId: item.salesOrderItemId,
+            productId: Number(item.productId),
+            warehouseId: Number(item.warehouseId),
+            quantity: Number(item.quantity),
+            description: item.description,
+          }, { client: trx })
+        }
+      }
+
+      await trx.commit()
+
+      return response.ok({
+        message: 'Surat Jalan berhasil diperbarui',
+        data: suratJalan,
+      })
+    } catch (error) {
+      console.log('🔍 Update Error:', error)
+      await trx.rollback()
+      console.error('Update Surat Jalan Error:', error)
+
+      if (error.status === 404) {
+        return response.notFound({
+          message: 'Surat Jalan tidak ditemukan',
+        })
+      }
+
+      return response.internalServerError({
+        message: 'Gagal memperbarui Surat Jalan',
+        error: error.message,
+      })
+    }
+  }
+
+  async destroy({ params, response }: HttpContext) {
+    const trx = await db.transaction()
+
+    try {
+      const suratJalan = await SuratJalan.findOrFail(params.id)
+
+      // Hapus surat jalan items terlebih dahulu
+      await SuratJalanItem.query({ client: trx })
+        .where('suratJalanId', suratJalan.id)
+        .delete()
+
+      // Hapus surat jalan
+      await suratJalan.delete()
+
+      await trx.commit()
+
+      return response.ok({
+        message: 'Surat Jalan berhasil dihapus',
+      })
+    } catch (error) {
+      await trx.rollback()
+      console.error('Delete Surat Jalan Error:', error)
+
+      if (error.status === 404) {
+        return response.notFound({
+          message: 'Surat Jalan tidak ditemukan',
+        })
+      }
+
+      return response.internalServerError({
+        message: 'Gagal menghapus Surat Jalan',
+        error: error.message,
       })
     }
   }

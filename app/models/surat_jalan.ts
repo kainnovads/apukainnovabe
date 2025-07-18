@@ -35,6 +35,9 @@ export default class SuratJalan extends BaseModel {
   declare date: Date
 
   @column()
+  declare picName: string
+
+  @column()
   declare createdBy: number
 
   @column()
@@ -42,6 +45,9 @@ export default class SuratJalan extends BaseModel {
 
   @column()
   declare description: string
+
+  @column()
+  declare alamatPengiriman: string
 
    @belongsTo(() => User, {
     foreignKey: 'createdBy',

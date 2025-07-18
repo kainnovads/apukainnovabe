@@ -551,6 +551,7 @@ export default class SalesReturnsController {
         .preload('perusahaan')
         .preload('cabang')
         .preload('salesOrderItems', (query) => {
+          query.where('statusPartial', true)
           query.preload('product')
           query.preload('warehouse')
         })

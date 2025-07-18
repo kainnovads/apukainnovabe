@@ -78,6 +78,7 @@ export default class StockOutsController {
         .preload('salesOrder', (soQuery) => {
           soQuery.preload('deliveredByUser')
           soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.preload('product')
           })
         })
@@ -103,6 +104,7 @@ export default class StockOutsController {
         .preload('postedByUser')
         .preload('salesOrder', (soQuery) => {
           soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
             soiQuery.preload('product')
           })
         })

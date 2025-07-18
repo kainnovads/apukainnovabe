@@ -12,7 +12,7 @@ const corsConfig = defineConfig({
   // Development
   // origin: ['http://localhost:3000'],
 
-  // Production (development.kainnovadigital.com)
+  // Production
   origin: ['http://development.kainnovadigital.com', 'https://development.kainnovadigital.com'],
 
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
