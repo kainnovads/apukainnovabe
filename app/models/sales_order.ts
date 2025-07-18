@@ -1,13 +1,14 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { randomUUID } from 'node:crypto'
 import SalesOrderItem from '#models/sales_order_item'
 import Customer from '#models/customer'
 import User from '#models/auth/user'
 import Cabang from '#models/cabang'
 import Perusahaan from '#models/perusahaan'
-import { randomUUID } from 'node:crypto'
 import SalesReturn from '#models/sales_return'
+import SuratJalan from '#models/surat_jalan'
 
 export default class SalesOrder extends BaseModel {
   public static table = 'sales_orders'
@@ -129,5 +130,8 @@ export default class SalesOrder extends BaseModel {
     foreignKey: 'deliveredBy',
   })
   declare deliveredByUser: BelongsTo<typeof User>
+
+  @hasMany(() => SuratJalan)
+  declare suratJalans: HasMany<typeof SuratJalan>
 
 }

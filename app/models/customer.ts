@@ -4,6 +4,7 @@ import type { HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import SalesInvoice from '#models/sales_invoice'
 import Product from '#models/product'
 import SalesReturn from '#models/sales_return'
+import SuratJalan from '#models/surat_jalan'
 
 export default class Customer extends BaseModel {
   @column({ isPrimary: true })
@@ -44,5 +45,8 @@ export default class Customer extends BaseModel {
     pivotColumns: ['price_sell'],
   })
   declare products: ManyToMany<typeof Product>
+
+  @hasMany(() => SuratJalan)
+  declare suratJalans: HasMany<typeof SuratJalan>
 
 }
