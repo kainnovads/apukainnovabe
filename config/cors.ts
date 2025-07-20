@@ -10,10 +10,10 @@ const corsConfig = defineConfig({
   enabled: true,
 
   // Development
-  origin: ['http://localhost:3000'],
+  // origin: ['http://localhost:3000'],
 
   // Production
-  // origin: ['http://development.kainnovadigital.com', 'https://development.kainnovadigital.com'],
+  origin: ['http://development.kainnovadigital.com', 'https://development.kainnovadigital.com'],
 
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   headers: true,
