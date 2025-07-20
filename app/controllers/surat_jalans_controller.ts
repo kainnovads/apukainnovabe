@@ -30,7 +30,7 @@ export default class SuratJalansController {
           })
 
           soQuery.preload('perusahaan', (perusahaanQuery) => {
-            perusahaanQuery.select(['id', 'nmPerusahaan'])
+            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'npwpPerusahaan', 'kodePerusahaan', 'logoPerusahaan'])
           })
 
           soQuery.preload('salesOrderItems', (soiQuery) => {

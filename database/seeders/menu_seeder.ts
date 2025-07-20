@@ -100,6 +100,13 @@ export default class extends BaseSeeder {
         menuGroupId: salesMenuGroup.id,
       },
       {
+        name: 'Sales Report',
+        route: '/sales/sales-report',
+        status: 1,
+        order: 6,
+        menuGroupId: salesMenuGroup.id,
+      },
+      {
         name: 'Customer',
         route: '/sales/customer',
         status: 1,

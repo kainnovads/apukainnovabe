@@ -20,11 +20,12 @@ export default class MenuGroupsController {
       const searchValue = search || request.input('search.value', '')
       const sortField = request.input('sortField')
       const sortOrder = request.input('sortOrder')
-      const allMenu = request.input('all', false)
+      const allMenu = request.input('all', false) === 'true' || request.input('all', false) === true
 
       let dataQuery = MenuGroup.query()
 
-      if (!allMenu) {
+      // Jika parameter all=true atau user adalah superadmin, tampilkan semua menu groups tanpa filter permission
+      if (!allMenu && !user.roles.some(role => role.name === 'superadmin')) {
         dataQuery.where((builder) => {
           builder
             .whereHas('permissions', (query) => {
@@ -68,6 +69,7 @@ export default class MenuGroupsController {
 
       const menuGroups = await dataQuery
         .preload('menuDetails', (detailsQuery) => {
+          // Jika parameter all=true, load semua menu details tanpa filter
           if (!allMenu) {
             detailsQuery.whereHas('permissions', (query) => {
               query.whereIn('permissions.id', userPermissions)
@@ -75,6 +77,8 @@ export default class MenuGroupsController {
           }
         })
         .paginate(page, limit)
+
+
 
       return response.ok(menuGroups.toJSON())
     } catch (error) {
@@ -128,6 +132,58 @@ export default class MenuGroupsController {
       return response.ok({ message: 'Menu Group berhasil dihapus' })
     } catch (error) {
       return response.internalServerError({ message: 'Gagal hapus menu group', error })
+    }
+  }
+
+  // Method baru untuk menampilkan semua menu groups tanpa filter permission
+  async getAll({ request, response }: HttpContext) {
+    try {
+      const page = request.input('page', 1)
+      const limit = request.input('rows', 10)
+      const search = request.input('search', '')
+      const searchValue = search || request.input('search.value', '')
+      const sortField = request.input('sortField')
+      const sortOrder = request.input('sortOrder')
+
+      let dataQuery = MenuGroup.query()
+
+      if (searchValue) {
+        const lowerSearch = searchValue.toLowerCase()
+        dataQuery = dataQuery.where((query) => {
+          query.whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+        })
+      }
+
+      if (sortField && sortOrder) {
+        const actualSortOrder = sortOrder === '1' ? 'asc' : 'desc'
+        const toSnakeCase = (str: string) => str.replace(/([A-Z])/g, '_$1').toLowerCase()
+
+        if (sortField.includes('.')) {
+          const [relation, column] = sortField.split('.')
+          const dbColumn = toSnakeCase(column)
+
+          if (relation === 'menuDetails') {
+            dataQuery
+              .leftJoin('menu_details', 'menu_groups.id', 'menu_details.menu_group_id')
+              .orderBy(`menu_details.${dbColumn}`, actualSortOrder)
+              .select('menu_groups.*')
+          }
+        } else {
+          const dbColumn = toSnakeCase(sortField)
+          dataQuery.orderBy(dbColumn, actualSortOrder)
+        }
+      }
+
+      const menuGroups = await dataQuery
+        .preload('menuDetails')
+        .paginate(page, limit)
+
+      return response.ok(menuGroups.toJSON())
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Terjadi kesalahan saat mengambil data menu groups',
+        error,
+      })
     }
   }
 }

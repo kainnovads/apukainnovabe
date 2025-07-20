@@ -42,6 +42,7 @@ import StockTransfersController from '#controllers/stock_transfers_controller'
 import AssociationsController from '#controllers/associations_controller'
 import SalesInvoicesController from '#controllers/sales_invoices_controller'
 import SuratJalansController from '#controllers/surat_jalans_controller'
+import SalesReportsController from '#controllers/sales_reports_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -127,6 +128,14 @@ router
   .use(middleware.auth())
   .use(middleware.hasPermission(['approve_sales_order', 'reject_sales_order', 'edit_sales_order', 'delete_sales_order', 'view_sales_order', 'approve_sales_order_item', 'reject_sales_order_item', 'edit_sales_order_item', 'delete_sales_order_item', 'view_sales_order_item', 'show_sales_order']))
 
+  // Sales Report Router
+  router.group(() => {
+    router.get('/sales-report', [SalesReportsController, 'index'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_sales_report', 'edit_sales_report', 'delete_sales_report', 'create_sales_report', 'approve_sales_report', 'reject_sales_report', 'show_sales_report']))
+
   // Sales Invoice Router
   router.group(() => {
     router.resource('sales-invoices', SalesInvoicesController).apiOnly()
@@ -171,11 +180,12 @@ router
   // Menu Router
   router.group(() => {
     router.resource('menu-groups', MenuGroupsController).apiOnly()
+    router.get('/menu-groups-all', [MenuGroupsController, 'getAll']) // Route untuk menampilkan semua menu groups tanpa filter
     router.resource('menu-details', MenuDetailsController).apiOnly()
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_menu_group', 'view_menu_detail', 'edit_menu_group', 'edit_menu_detail', 'delete_menu_group', 'delete_menu_detail', 'create_menu_group', 'create_menu_detail', 'approve_menu_group', 'approve_menu_detail', 'reject_menu_group', 'reject_menu_detail', 'show_menu_group', 'show_menu_detail']))
+  .use(middleware.hasRole(['superadmin', 'admin'])) // Gunakan hasRole untuk admin dan superadmin
 
   // Jabatan Router
   router.group(() => {

@@ -13,7 +13,7 @@ import Mail from '@adonisjs/mail/services/main'
 import SalesOrderCreated from '#mails/sales_order_created'
 import Customer from '#models/customer'
 import Perusahaan from '#models/perusahaan'
-import { DateTime } from 'luxon'; // pastikan sudah install luxon
+import { DateTime } from 'luxon';
 
 export default class SalesController {
   async index({ request, response }: HttpContext) {
@@ -27,6 +27,8 @@ export default class SalesController {
       const customerId   = request.input('customerId')
       const source       = request.input('source')
       const status       = request.input('status')
+      const startDate    = request.input('startDate')
+      const endDate      = request.input('endDate')
       const includeItems = request.input('includeItems', false)
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
@@ -35,7 +37,7 @@ export default class SalesController {
           query.select(['id', 'name', 'email', 'phone']) // ✅ Select only needed fields
         })
         .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan']) // ✅ Perbaikan kolom sesuai model
+          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'npwpPerusahaan', 'kodePerusahaan', 'logoPerusahaan']) // ✅ Select semua field yang diperlukan
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'perusahaanId']) // ✅ Perbaikan kolom sesuai model
@@ -72,6 +74,31 @@ export default class SalesController {
       }
       if (status) {
         dataQuery.where('status', status)
+      }
+      // Debug: Log filter tanggal
+      console.log('🔍 Date Filter Debug:', { startDate, endDate });
+      
+      if (startDate && startDate.trim() !== '') {
+        console.log('🔍 Adding startDate filter:', startDate);
+        // Validasi format tanggal
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(startDate)) {
+          console.log('🔍 Invalid startDate format, skipping filter');
+        } else {
+          console.log('🔍 Valid startDate format:', startDate);
+          dataQuery.where('date', '>=', startDate)
+        }
+      }
+      if (endDate && endDate.trim() !== '') {
+        console.log('🔍 Adding endDate filter:', endDate);
+        // Validasi format tanggal
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(endDate)) {
+          console.log('🔍 Invalid endDate format, skipping filter');
+        } else {
+          console.log('🔍 Valid endDate format:', endDate);
+          dataQuery.where('date', '<=', endDate)
+        }
       }
 
       if (searchValue) {
@@ -116,6 +143,7 @@ export default class SalesController {
             createdByUser: { table: 'users as created_users', foreignKey: 'sales_orders.created_by', primaryKey: 'created_users.id' },
             approvedByUser: { table: 'users as approved_users', foreignKey: 'sales_orders.approved_by', primaryKey: 'approved_users.id' },
             deliveredByUser: { table: 'users as delivered_users', foreignKey: 'sales_orders.delivered_by', primaryKey: 'delivered_users.id' },
+            date: { table: 'sales_orders', foreignKey: 'sales_orders.id', primaryKey: 'sales_orders.id' },
           }
 
           if (relation in relationJoinInfo) {
@@ -138,6 +166,33 @@ export default class SalesController {
 
       // ✅ OPTIMASI: Add query performance monitoring
       const startTime   = Date.now()
+      
+      // Debug: Log query SQL
+      console.log('🔍 Final Query Debug:', dataQuery.toQuery());
+      
+      // Debug: Cek data yang ada di database
+      const allData = await SalesOrder.query().select('id', 'noSo', 'date', 'status').limit(5);
+      console.log('🔍 Sample Data in DB:', allData.map(item => ({
+        id: item.id,
+        noSo: item.noSo,
+        date: item.date,
+        status: item.status
+      })));
+      
+      // Debug: Cek data dalam rentang tanggal jika ada filter
+      if (startDate || endDate) {
+        const rangeQuery = SalesOrder.query().select('id', 'noSo', 'date', 'status');
+        if (startDate) rangeQuery.where('date', '>=', startDate);
+        if (endDate) rangeQuery.where('date', '<=', endDate);
+        const rangeData = await rangeQuery.limit(5);
+        console.log('🔍 Data in Date Range:', rangeData.map(item => ({
+          id: item.id,
+          noSo: item.noSo,
+          date: item.date,
+          status: item.status
+        })));
+      }
+      
       const salesOrders = await dataQuery.paginate(page, limit)
       const queryTime   = Date.now() - startTime
 
@@ -145,6 +200,9 @@ export default class SalesController {
       if (queryTime > 1000) {
         console.warn(`🐌 Slow Query Alert: Sales Orders took ${queryTime}ms`)
       }
+      
+      // Debug: Log hasil
+      console.log('🔍 Query Result Count:', salesOrders.all().length);
 
       return response.ok({
         ...salesOrders.toJSON(),
@@ -178,7 +236,7 @@ export default class SalesController {
           query.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
         })
         .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan'])
+          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'npwpPerusahaan', 'kodePerusahaan', 'logoPerusahaan'])
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'alamatCabang'])
@@ -572,7 +630,7 @@ export default class SalesController {
           query.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
         })
         .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan'])
+          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'npwpPerusahaan', 'kodePerusahaan', 'logoPerusahaan'])
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'alamatCabang'])

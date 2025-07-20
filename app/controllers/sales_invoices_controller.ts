@@ -27,7 +27,7 @@ export default class SalesInvoicesController {
           })
 
           soQuery.preload('perusahaan', (perusahaanQuery) => {
-            perusahaanQuery.select(['id', 'nmPerusahaan'])
+            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'npwpPerusahaan', 'kodePerusahaan', 'logoPerusahaan'])
           })
 
           soQuery.preload('cabang', (cabangQuery) => {
@@ -236,7 +236,7 @@ export default class SalesInvoicesController {
             customerQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
           })
           soQuery.preload('perusahaan', (perusahaanQuery) => {
-            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
+            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'npwpPerusahaan', 'kodePerusahaan', 'logoPerusahaan'])
           })
           soQuery.preload('cabang', (cabangQuery) => {
             cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
