@@ -42,7 +42,6 @@ import StockTransfersController from '#controllers/stock_transfers_controller'
 import AssociationsController from '#controllers/associations_controller'
 import SalesInvoicesController from '#controllers/sales_invoices_controller'
 import SuratJalansController from '#controllers/surat_jalans_controller'
-import SalesReportsController from '#controllers/sales_reports_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -127,14 +126,6 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasPermission(['approve_sales_order', 'reject_sales_order', 'edit_sales_order', 'delete_sales_order', 'view_sales_order', 'approve_sales_order_item', 'reject_sales_order_item', 'edit_sales_order_item', 'delete_sales_order_item', 'view_sales_order_item', 'show_sales_order']))
-
-  // Sales Report Router
-  router.group(() => {
-    router.get('/sales-report', [SalesReportsController, 'index'])
-  })
-  .prefix('/api')
-  .use(middleware.auth())
-  .use(middleware.hasPermission(['view_sales_report', 'edit_sales_report', 'delete_sales_report', 'create_sales_report', 'approve_sales_report', 'reject_sales_report', 'show_sales_report']))
 
   // Sales Invoice Router
   router.group(() => {

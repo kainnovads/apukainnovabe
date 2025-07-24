@@ -14,6 +14,13 @@ export default class ProductsController {
       const sortOrder   = request.input('sortOrder')
       const warehouseId = request.input('warehouseId')
       const includeStocks = request.input('includeStocks', false) // ✅ Conditional loading
+      
+      // 🔍 DEBUG: Log untuk debugging
+      console.log('🔍 Products Controller Debug:', {
+        warehouseId,
+        includeStocks,
+        searchValue
+      })
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = Product.query()
@@ -35,23 +42,31 @@ export default class ProductsController {
       }
 
       // ✅ OPTIMASI: Conditional warehouse filtering dengan efficient preload
-      if (warehouseId) {
-        if (includeStocks) {
-          dataQuery.preload('stocks', (stockQuery) => {
-            stockQuery
-              .select(['id', 'product_id', 'warehouse_id', 'quantity'])
-              .where('warehouse_id', warehouseId)
-          })
-        }
+             if (warehouseId) {
+         if (includeStocks) {
+           console.log('🔍 Preloading stocks with warehouse filter:', warehouseId)
+           dataQuery.preload('stocks', (stockQuery) => {
+             stockQuery
+               .select(['id', 'product_id', 'warehouse_id', 'quantity'])
+               .where('warehouse_id', warehouseId)
+           })
+         }
 
-        dataQuery.whereExists((stockQuery) => {
-          stockQuery
-            .from('stocks')
-            .whereColumn('stocks.product_id', 'products.id')
-            .where('warehouse_id', warehouseId)
-            .where('quantity', '>', 0)
-        })
-      }
+                 // ✅ Filter produk hanya yang ada di warehouse tertentu dan ada stok
+         dataQuery.whereExists((stockQuery) => {
+           stockQuery
+             .from('stocks')
+             .whereColumn('stocks.product_id', 'products.id')
+             .where('warehouse_id', warehouseId)
+             .where('quantity', '>', 0)
+         })
+             } else if (includeStocks) {
+         // ✅ TAMBAHAN: Preload stocks untuk semua warehouse jika includeStocks=true tanpa warehouseId
+         console.log('🔍 Preloading stocks without warehouse filter')
+         dataQuery.preload('stocks', (stockQuery) => {
+           stockQuery.select(['id', 'product_id', 'warehouse_id', 'quantity'])
+         })
+       }
 
       // ✅ OPTIMASI: Efficient sorting dengan proper indexing
       if (sortField && sortOrder) {
@@ -83,15 +98,27 @@ export default class ProductsController {
         dataQuery.orderBy('id', 'desc')
       }
 
-      // ✅ OPTIMASI: Add query performance monitoring
-      const startTime = Date.now()
-      const product = await dataQuery.paginate(page, limit)
-      const queryTime = Date.now() - startTime
+             // ✅ OPTIMASI: Add query performance monitoring
+       const startTime = Date.now()
+       const product = await dataQuery.paginate(page, limit)
+       const queryTime = Date.now() - startTime
 
-      // ✅ Log slow queries untuk monitoring
-      if (queryTime > 500) {
-        console.warn(`🐌 Slow Query Alert: Products took ${queryTime}ms`)
-      }
+       // 🔍 DEBUG: Log hasil query untuk debugging
+       const productData = product.toJSON()
+       console.log('🔍 Products Controller - Query Result Debug:', {
+         totalProducts: productData.data?.length || 0,
+         firstProduct: productData.data?.length > 0 ? {
+           id: productData.data[0]?.id,
+           name: productData.data[0]?.name,
+           stocks: productData.data[0]?.stocks,
+           stocksCount: productData.data[0]?.stocks?.length || 0
+         } : null
+       })
+
+       // ✅ Log slow queries untuk monitoring
+       if (queryTime > 500) {
+         console.warn(`🐌 Slow Query Alert: Products took ${queryTime}ms`)
+       }
 
       return response.ok({
         ...product.toJSON(),
