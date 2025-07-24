@@ -75,28 +75,20 @@ export default class SalesController {
       if (status) {
         dataQuery.where('status', status)
       }
-      // Debug: Log filter tanggal
-      console.log('🔍 Date Filter Debug:', { startDate, endDate });
-      
+
       if (startDate && startDate.trim() !== '') {
-        console.log('🔍 Adding startDate filter:', startDate);
         // Validasi format tanggal
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(startDate)) {
-          console.log('🔍 Invalid startDate format, skipping filter');
         } else {
-          console.log('🔍 Valid startDate format:', startDate);
           dataQuery.where('date', '>=', startDate)
         }
       }
       if (endDate && endDate.trim() !== '') {
-        console.log('🔍 Adding endDate filter:', endDate);
         // Validasi format tanggal
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(endDate)) {
-          console.log('🔍 Invalid endDate format, skipping filter');
         } else {
-          console.log('🔍 Valid endDate format:', endDate);
           dataQuery.where('date', '<=', endDate)
         }
       }
@@ -166,33 +158,7 @@ export default class SalesController {
 
       // ✅ OPTIMASI: Add query performance monitoring
       const startTime   = Date.now()
-      
-      // Debug: Log query SQL
-      console.log('🔍 Final Query Debug:', dataQuery.toQuery());
-      
-      // Debug: Cek data yang ada di database
-      const allData = await SalesOrder.query().select('id', 'noSo', 'date', 'status').limit(5);
-      console.log('🔍 Sample Data in DB:', allData.map(item => ({
-        id: item.id,
-        noSo: item.noSo,
-        date: item.date,
-        status: item.status
-      })));
-      
-      // Debug: Cek data dalam rentang tanggal jika ada filter
-      if (startDate || endDate) {
-        const rangeQuery = SalesOrder.query().select('id', 'noSo', 'date', 'status');
-        if (startDate) rangeQuery.where('date', '>=', startDate);
-        if (endDate) rangeQuery.where('date', '<=', endDate);
-        const rangeData = await rangeQuery.limit(5);
-        console.log('🔍 Data in Date Range:', rangeData.map(item => ({
-          id: item.id,
-          noSo: item.noSo,
-          date: item.date,
-          status: item.status
-        })));
-      }
-      
+
       const salesOrders = await dataQuery.paginate(page, limit)
       const queryTime   = Date.now() - startTime
 
@@ -200,9 +166,6 @@ export default class SalesController {
       if (queryTime > 1000) {
         console.warn(`🐌 Slow Query Alert: Sales Orders took ${queryTime}ms`)
       }
-      
-      // Debug: Log hasil
-      console.log('🔍 Query Result Count:', salesOrders.all().length);
 
       return response.ok({
         ...salesOrders.toJSON(),
@@ -226,9 +189,6 @@ export default class SalesController {
 
   async show({ params, response }: HttpContext) {
     try {
-        console.log('🔍 Controller Debug - show called with ID:', params.id);
-        console.log('🔍 Controller Debug - ID type:', typeof params.id);
-
         // ✅ OPTIMASI: Efficient single record query
         const so = await SalesOrder.query()
         .where('id', params.id)
@@ -274,8 +234,6 @@ export default class SalesController {
             }
           });
         }
-
-        console.log('✅ Controller Debug - Sales Order found:', so.id);
 
         return response.ok({
         message: 'Sales Order ditemukan',

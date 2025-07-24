@@ -5,6 +5,22 @@ const dbConfig = defineConfig({
   connection: 'postgres',
   connections: {
     postgres: {
+
+      // ✅ OPTIMASI: Database configuration yang kompatibel dengan tarn.js terbaru
+      // AWS RDS
+      // client: 'pg',
+      // connection: {
+      //   host: process.env.PG_HOST || 'awseb-e-vt5ag4hpbm-stack-awsebrdsdatabase-o9lpm8hazq2t.cqvyg0uik35c.us-east-1.rds.amazonaws.com',
+      //   port: Number(process.env.PG_PORT) || 5432,
+      //   user: process.env.PG_USER || 'superadmin',
+      //   password: process.env.PG_PASSWORD || 'KainnovaDS#2139725',
+      //   database: process.env.PG_DB_NAME || 'ebdb',
+      //   ssl: {
+      //     rejectUnauthorized: false
+      //   }
+      // },
+
+      // Localhost
       client: 'pg',
       connection: {
         host: env.get('DB_HOST'),
