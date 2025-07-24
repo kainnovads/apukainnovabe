@@ -13,14 +13,7 @@ export default class ProductsController {
       const sortField   = request.input('sortField')
       const sortOrder   = request.input('sortOrder')
       const warehouseId = request.input('warehouseId')
-      const includeStocks = request.input('includeStocks', false) // ✅ Conditional loading
-      
-      // 🔍 DEBUG: Log untuk debugging
-      console.log('🔍 Products Controller Debug:', {
-        warehouseId,
-        includeStocks,
-        searchValue
-      })
+      const includeStocks = request.input('includeStocks', false)
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = Product.query()
@@ -44,7 +37,6 @@ export default class ProductsController {
       // ✅ OPTIMASI: Conditional warehouse filtering dengan efficient preload
              if (warehouseId) {
          if (includeStocks) {
-           console.log('🔍 Preloading stocks with warehouse filter:', warehouseId)
            dataQuery.preload('stocks', (stockQuery) => {
              stockQuery
                .select(['id', 'product_id', 'warehouse_id', 'quantity'])
@@ -62,7 +54,6 @@ export default class ProductsController {
          })
              } else if (includeStocks) {
          // ✅ TAMBAHAN: Preload stocks untuk semua warehouse jika includeStocks=true tanpa warehouseId
-         console.log('🔍 Preloading stocks without warehouse filter')
          dataQuery.preload('stocks', (stockQuery) => {
            stockQuery.select(['id', 'product_id', 'warehouse_id', 'quantity'])
          })
@@ -102,18 +93,6 @@ export default class ProductsController {
        const startTime = Date.now()
        const product = await dataQuery.paginate(page, limit)
        const queryTime = Date.now() - startTime
-
-       // 🔍 DEBUG: Log hasil query untuk debugging
-       const productData = product.toJSON()
-       console.log('🔍 Products Controller - Query Result Debug:', {
-         totalProducts: productData.data?.length || 0,
-         firstProduct: productData.data?.length > 0 ? {
-           id: productData.data[0]?.id,
-           name: productData.data[0]?.name,
-           stocks: productData.data[0]?.stocks,
-           stocksCount: productData.data[0]?.stocks?.length || 0
-         } : null
-       })
 
        // ✅ Log slow queries untuk monitoring
        if (queryTime > 500) {
