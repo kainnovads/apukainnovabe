@@ -42,6 +42,7 @@ import StockTransfersController from '#controllers/stock_transfers_controller'
 import AssociationsController from '#controllers/associations_controller'
 import SalesInvoicesController from '#controllers/sales_invoices_controller'
 import SuratJalansController from '#controllers/surat_jalans_controller'
+import QuotationsController from '#controllers/quotations_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -127,7 +128,6 @@ router
   .use(middleware.auth())
   .use(middleware.hasPermission(['approve_sales_order', 'reject_sales_order', 'edit_sales_order', 'delete_sales_order', 'view_sales_order', 'approve_sales_order_item', 'reject_sales_order_item', 'edit_sales_order_item', 'delete_sales_order_item', 'view_sales_order_item', 'show_sales_order']))
 
-
   // Sales Invoice Router
   router.group(() => {
     router.resource('sales-invoices', SalesInvoicesController).apiOnly()
@@ -155,6 +155,21 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasPermission(['approve_sales_return', 'reject_sales_return', 'edit_sales_return', 'delete_sales_return', 'view_sales_return', 'show_sales_return']))
+
+  // Quotation Router
+  router.group(() => {
+    router.get('/quotation', [QuotationsController, 'index'])
+    router.post('/quotation', [QuotationsController, 'store'])
+    router.get('/quotation/:id', [QuotationsController, 'show'])
+    router.post('/quotation/:id', [QuotationsController, 'update'])
+    router.delete('/quotation/:id', [QuotationsController, 'destroy'])
+    router.patch('/quotation/approveQuotation/:id', [QuotationsController, 'approveQuotation'])
+    router.patch('/quotation/rejectQuotation/:id', [QuotationsController, 'rejectQuotation'])
+    router.get('/quotation/getQuotationDetails/:id', [QuotationsController, 'getQuotationDetails'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_quotation', 'edit_quotation', 'delete_quotation', 'create_quotation', 'approve_quotation', 'reject_quotation', 'show_quotation']))
 
   // Pegawai Router
   router.group(() => {

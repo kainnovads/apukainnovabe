@@ -15,6 +15,7 @@ import StockOut from '#models/stock_out'
 import StockTransfer from '#models/stock_transfer'
 import SalesReturn from '#models/sales_return'
 import SuratJalan from '#models/surat_jalan'
+import Quotation from '#models/quotation'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email'],
@@ -148,6 +149,21 @@ export default class User extends compose(BaseModel, AuthFinder) {
     foreignKey: 'createdBy',
   })
   declare createdSuratJalans: HasMany<typeof SuratJalan>
+
+  @hasMany(() => Quotation, {
+    foreignKey: 'createdBy',
+  })
+  declare createdQuotations: HasMany<typeof Quotation>
+
+  @hasMany(() => Quotation, {
+    foreignKey: 'approvedBy',
+  })
+  declare approvedQuotations: HasMany<typeof Quotation>
+
+  @hasMany(() => Quotation, {
+    foreignKey: 'rejectedBy',
+  })
+  declare rejectedQuotations: HasMany<typeof Quotation>
 
   static accessTokens = DbAccessTokensProvider.forModel(User)
 }
