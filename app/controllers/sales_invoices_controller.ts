@@ -319,6 +319,7 @@ export default class SalesInvoicesController {
           salesOrderId   : payload.salesOrderId,
           customerId     : payload.customerId,
           noInvoice      : noInvoice,
+          up             : payload.up || '',
           date           : payload.date,
           dueDate        : payload.dueDate,
           status         : payload.status || 'unpaid',
@@ -375,6 +376,7 @@ export default class SalesInvoicesController {
 
       if (payload.salesOrderId !== undefined) updateData.salesOrderId = payload.salesOrderId
       if (payload.customerId !== undefined) updateData.customerId = payload.customerId
+      if (payload.up !== undefined) updateData.up = payload.up
       if (payload.date !== undefined) updateData.date = payload.date
       if (payload.dueDate !== undefined) updateData.dueDate = payload.dueDate
       if (payload.status !== undefined) updateData.status = payload.status

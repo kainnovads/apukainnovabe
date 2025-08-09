@@ -25,6 +25,9 @@ export default class SalesInvoice extends BaseModel {
   declare noInvoice: string
 
   @column()
+  declare up: string
+
+  @column()
   declare salesOrderId: string
 
   @column()

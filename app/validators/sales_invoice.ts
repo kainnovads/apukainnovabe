@@ -3,6 +3,7 @@ import vine from '@vinejs/vine'
 export const salesInvoiceValidator = vine.compile(
   vine.object({
     noInvoice        : vine.string().unique({ table: 'sales_invoices', column: 'no_invoice' }).optional(),
+    up               : vine.string().optional(),
     customerId       : vine.number(),
     perusahaanId     : vine.number().optional(),
     cabangId         : vine.number().optional(),
@@ -34,6 +35,7 @@ export const salesInvoiceValidator = vine.compile(
 export const updateSalesInvoiceValidator = vine.compile(
   vine.object({
     noInvoice        : vine.string().unique({ table: 'sales_invoices', column: 'no_invoice' }).optional(),
+    up               : vine.string(),
     customerId       : vine.number().optional(),
     perusahaanId     : vine.number().optional(),
     cabangId         : vine.number().optional(),
