@@ -434,7 +434,9 @@ export default class SuratJalansController {
         picName: suratJalan.picName
       })
 
-      await suratJalan.save({ client: trx })
+      // Use transaction for model instance then save without args
+      suratJalan.useTransaction(trx)
+      await suratJalan.save()
 
                   // ✅ PERBAIKAN: Also use direct query builder as fallback
       if (Object.keys(updateData).length > 0) {
@@ -471,7 +473,8 @@ export default class SuratJalansController {
         for (const item of items) {
           await SuratJalanItem.create({
             suratJalanId: suratJalan.id,
-            salesOrderItemId: item.salesOrderItemId,
+            // Ensure undefined instead of null to satisfy typings
+            salesOrderItemId: item.salesOrderItemId || undefined,
             productId: Number(item.productId),
             warehouseId: Number(item.warehouseId),
             quantity: Number(item.quantity),
