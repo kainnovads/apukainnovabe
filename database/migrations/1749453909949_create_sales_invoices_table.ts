@@ -13,6 +13,7 @@ export default class extends BaseSchema {
       table.date('due_date').notNullable()
       table.decimal('discount_percent', 5, 2).defaultTo(0)
       table.decimal('tax_percent', 5, 2).defaultTo(0)
+      table.decimal('dpp', 14, 2).defaultTo(0)
       table.decimal('total', 14, 2).notNullable()
       table.decimal('paid_amount', 14, 2).defaultTo(0)
       table.decimal('remaining_amount', 14, 2).defaultTo(0)

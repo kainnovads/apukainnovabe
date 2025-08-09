@@ -324,6 +324,7 @@ export default class SalesInvoicesController {
           status         : payload.status || 'unpaid',
           discountPercent: payload.discountPercent || 0,
           taxPercent     : payload.taxPercent || 0,
+          dpp            : payload.dpp || 0,
           total          : payload.total, // Sudah grand total dari frontend
           paidAmount     : payload.paidAmount || 0,
           remainingAmount: payload.remainingAmount || (payload.total - (payload.paidAmount || 0)),
@@ -379,6 +380,7 @@ export default class SalesInvoicesController {
       if (payload.status !== undefined) updateData.status = payload.status
       if (payload.discountPercent !== undefined) updateData.discountPercent = payload.discountPercent
       if (payload.taxPercent !== undefined) updateData.taxPercent = payload.taxPercent
+      if (payload.dpp !== undefined) updateData.dpp = payload.dpp
       if (payload.total !== undefined) updateData.total = payload.total
       if (payload.paidAmount !== undefined) updateData.paidAmount = payload.paidAmount
       if (payload.remainingAmount !== undefined) updateData.remainingAmount = payload.remainingAmount

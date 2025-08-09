@@ -43,6 +43,9 @@ export default class SalesInvoice extends BaseModel {
   declare taxPercent: number
 
   @column()
+  declare dpp: number
+
+  @column()
   declare total: number
 
   @column()
