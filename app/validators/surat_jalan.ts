@@ -23,18 +23,18 @@ export const suratJalanValidator = vine.compile(
 export const updateSuratJalanValidator = vine.compile(
   vine.object({
     picName: vine.string().optional(),
-    salesOrderId: vine.string().optional(),
+    salesOrderId: vine.string().optional().nullable(),
     customerId: vine.number().optional(),
     date: vine.date().optional(),
-    description: vine.string().optional(),
-    alamatPengiriman: vine.string().optional(),
+    description: vine.string().optional().nullable(),
+    alamatPengiriman: vine.string().optional().nullable(),
     suratJalanItems: vine.array(
       vine.object({
-        salesOrderItemId: vine.string().optional(),
+        salesOrderItemId: vine.string().optional().nullable(),
         productId: vine.number(),
         warehouseId: vine.number(),
         quantity: vine.number(),
-        description: vine.string().optional(),
+        description: vine.string().optional().nullable(),
       })
     ).optional(),
   })

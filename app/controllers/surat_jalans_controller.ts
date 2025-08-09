@@ -392,9 +392,15 @@ export default class SuratJalansController {
     const trx = await db.transaction()
 
     try {
-      const suratJalan = await SuratJalan.findOrFail(params.id)
+      const suratJalan = await SuratJalan.findOrFail(params.id, { client: trx })
       const payload = await request.validateUsing(updateSuratJalanValidator)
       const items = payload.suratJalanItems || []
+
+      console.log('🔍 Update payload received:', JSON.stringify(payload, null, 2))
+      console.log('🔍 Items count:', items.length)
+      console.log('🔍 Payload description value:', `"${payload.description}"`)
+      console.log('🔍 Payload description type:', typeof payload.description)
+      console.log('🔍 Payload description length:', payload.description?.length)
 
       // Update surat jalan
       const updateData: any = {}
@@ -403,20 +409,65 @@ export default class SuratJalansController {
       if (payload.customerId !== undefined) updateData.customerId = payload.customerId
       if (payload.picName !== undefined) updateData.picName = payload.picName
       if (payload.date !== undefined) updateData.date = payload.date
-      if (payload.description !== undefined) updateData.description = payload.description
-      if (payload.alamatPengiriman !== undefined) updateData.alamatPengiriman = payload.alamatPengiriman
+
+      // ✅ PERBAIKAN: Always update these fields if they exist in payload, even if empty
+      if ('description' in payload) {
+        updateData.description = payload.description || ''
+      }
+      if ('alamatPengiriman' in payload) {
+        updateData.alamatPengiriman = payload.alamatPengiriman || ''
+      }
+
+      console.log('🔍 Update data to be saved:', updateData)
+
+      console.log('🔍 Before merge - current data:', {
+        description: suratJalan.description,
+        alamatPengiriman: suratJalan.alamatPengiriman,
+        picName: suratJalan.picName
+      })
 
       suratJalan.merge(updateData)
-      await suratJalan.save()
 
-      // ✅ UPDATE SURAT JALAN ITEMS jika ada
+      console.log('🔍 After merge - updated data:', {
+        description: suratJalan.description,
+        alamatPengiriman: suratJalan.alamatPengiriman,
+        picName: suratJalan.picName
+      })
+
+      await suratJalan.save({ client: trx })
+
+                  // ✅ PERBAIKAN: Also use direct query builder as fallback
+      if (Object.keys(updateData).length > 0) {
+        // Convert camelCase to snake_case for database columns
+        const dbUpdateData: any = {}
+        if ('salesOrderId' in updateData) dbUpdateData.sales_order_id = updateData.salesOrderId
+        if ('customerId' in updateData) dbUpdateData.customer_id = updateData.customerId
+        if ('picName' in updateData) dbUpdateData.pic_name = updateData.picName
+        if ('date' in updateData) dbUpdateData.date = updateData.date
+        if ('description' in updateData) dbUpdateData.description = updateData.description
+        if ('alamatPengiriman' in updateData) dbUpdateData.alamat_pengiriman = updateData.alamatPengiriman
+
+        await trx.from('surat_jalans')
+          .where('id', suratJalan.id)
+          .update(dbUpdateData)
+
+        console.log('🔍 Direct query update executed with data:', dbUpdateData)
+      }
+
+      console.log('🔍 After save - final data:', {
+        description: suratJalan.description,
+        alamatPengiriman: suratJalan.alamatPengiriman,
+        picName: suratJalan.picName
+      })
+
+      // ✅ UPDATE SURAT JALAN ITEMS - Always update items, even if empty array
+      // Hapus item lama terlebih dahulu
+      await SuratJalanItem.query({ client: trx })
+        .where('suratJalanId', suratJalan.id)
+        .delete()
+
+      // Buat item baru jika ada
       if (items.length > 0) {
-        // Hapus item lama
-        await SuratJalanItem.query({ client: trx })
-          .where('suratJalanId', suratJalan.id)
-          .delete()
-
-        // Buat item baru
         for (const item of items) {
           await SuratJalanItem.create({
             suratJalanId: suratJalan.id,
@@ -431,9 +482,18 @@ export default class SuratJalansController {
 
       await trx.commit()
 
+      // ✅ PERBAIKAN: Verify data was actually saved by re-fetching
+      const verifyData = await SuratJalan.find(suratJalan.id)
+      console.log('🔍 Verification - Data in database after commit:', {
+        id: verifyData?.id,
+        description: verifyData?.description,
+        alamatPengiriman: verifyData?.alamatPengiriman,
+        picName: verifyData?.picName
+      })
+
       return response.ok({
         message: 'Surat Jalan berhasil diperbarui',
-        data: suratJalan,
+        data: verifyData || suratJalan,
       })
     } catch (error) {
       console.log('🔍 Update Error:', error)
