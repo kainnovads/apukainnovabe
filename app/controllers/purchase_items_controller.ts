@@ -16,24 +16,36 @@ export default class PurchaseItemsController {
 
     try {
       const itemId = params.id
-      const { statusPartial, receivedQty } = request.only(['statusPartial', 'receivedQty'])
+      const { receivedQty } = request.only(['receivedQty'])
 
       const purchaseOrderItem = await PurchaseOrderItem.query()
         .where('id', itemId)
         .firstOrFail()
 
-      // Validasi: receivedQty tidak boleh melebihi quantity
-      if (receivedQty !== undefined && Number(receivedQty) > purchaseOrderItem.quantity) {
-        return response.badRequest({
-          message: `Kuantitas diterima (${receivedQty}) tidak boleh melebihi kuantitas yang dipesan (${purchaseOrderItem.quantity}).`
-        })
+      // Validasi: receivedQty tidak boleh melebihi quantity dan tidak boleh negatif
+      if (receivedQty !== undefined) {
+        const numReceivedQty = Number(receivedQty)
+        if (numReceivedQty < 0) {
+          return response.badRequest({
+            message: `Kuantitas diterima tidak boleh negatif.`
+          })
+        }
+        if (numReceivedQty > purchaseOrderItem.quantity) {
+          return response.badRequest({
+            message: `Kuantitas diterima (${receivedQty}) tidak boleh melebihi kuantitas yang dipesan (${purchaseOrderItem.quantity}).`
+          })
+        }
       }
 
-      // Update status_partial dan received_qty item PO tersebut
-      purchaseOrderItem.statusPartial = statusPartial
+      // Update received_qty item PO
       if (receivedQty !== undefined) {
-        purchaseOrderItem.receivedQty = receivedQty
+        purchaseOrderItem.receivedQty = Number(receivedQty)
       }
+
+      // Auto-set statusPartial berdasarkan receivedQty
+      const currentReceivedQty = Number(receivedQty) || 0
+      purchaseOrderItem.statusPartial = currentReceivedQty > 0
+
       await purchaseOrderItem.save()
 
       // Ambil Purchase Order terkait beserta semua itemnya
@@ -42,8 +54,15 @@ export default class PurchaseItemsController {
         .preload('purchaseOrderItems')
         .firstOrFail()
 
-      // Jika user klik checkbox dan statusPartial == true, insert ke stock_in dan stock_in_detail
-      if (statusPartial === true || statusPartial === 'true' || statusPartial === 1) {
+      // ✅ PERBAIKAN: Update item yang baru saja diubah di memori untuk logika status yang tepat
+      const updatedItem = purchaseOrder.purchaseOrderItems.find(item => item.id === purchaseOrderItem.id)
+      if (updatedItem) {
+        updatedItem.statusPartial = purchaseOrderItem.statusPartial
+        updatedItem.receivedQty = purchaseOrderItem.receivedQty
+      }
+
+      // Jika receivedQty > 0, maka statusPartial otomatis true, insert ke stock_in dan stock_in_detail
+      if (purchaseOrderItem.statusPartial === true) {
         // Ambil item yang sedang diubah saat ini
         const item = purchaseOrderItem
 
@@ -67,35 +86,63 @@ export default class PurchaseItemsController {
         })
       }
 
-      // Logika untuk menentukan status Purchase Order
+      // Logika untuk menentukan status Purchase Order berdasarkan receivedQty, bukan statusPartial
       let newPurchaseOrderStatus = purchaseOrder.status
 
-      // Jika hanya ada 1 item di purchaseOrder, langsung set ke 'received'
-      if (purchaseOrder.purchaseOrderItems.length === 1) {
+      // Cek apakah ada item yang memiliki receivedQty > 0
+      const hasAnyItemWithReceivedQty = purchaseOrder.purchaseOrderItems.some(item => 
+        Number(item.receivedQty || 0) > 0
+      )
+      
+      // Cek apakah semua item sudah received penuh (receivedQty = quantity)
+      const allItemsFullyReceived = purchaseOrder.purchaseOrderItems.every(item => 
+        Number(item.receivedQty || 0) === Number(item.quantity || 0)
+      )
+
+      // Debug logging
+      console.log('🔍 Status Debug:', {
+        currentStatus: purchaseOrder.status,
+        hasAnyItemWithReceivedQty,
+        allItemsFullyReceived,
+        approvedBy: purchaseOrder.approvedBy,
+        approvedAt: purchaseOrder.approvedAt,
+        itemsStatus: purchaseOrder.purchaseOrderItems.map(item => ({
+          id: item.id,
+          statusPartial: item.statusPartial,
+          receivedQty: item.receivedQty,
+          quantity: item.quantity,
+          isFullyReceived: Number(item.receivedQty || 0) === Number(item.quantity || 0)
+        }))
+      })
+
+      if (allItemsFullyReceived && hasAnyItemWithReceivedQty) {
+        // Jika semua item sudah received penuh
         newPurchaseOrderStatus = 'received'
+      } else if (hasAnyItemWithReceivedQty) {
+        // Jika ada item yang sudah sebagian received (partial)
+        newPurchaseOrderStatus = 'partial'
       } else {
-        // Cek apakah ada satu saja item yang statusPartial-nya TRUE
-        const hasAnyItemPartialTrue = purchaseOrder.purchaseOrderItems.some(item => item.statusPartial === true)
-
-        // Cek apakah semua item statusPartial-nya TRUE
-        const allItemsAreDone = purchaseOrder.purchaseOrderItems.every(item => item.statusPartial === true)
-
-        if (allItemsAreDone) {
-          newPurchaseOrderStatus = 'received'
-        } else if (hasAnyItemPartialTrue) {
-          newPurchaseOrderStatus = 'partial'
+        // Jika tidak ada item yang received, kembali ke status sebelumnya
+        // Prioritas: approved -> draft
+        if (purchaseOrder.approvedBy && purchaseOrder.approvedAt) {
+          newPurchaseOrderStatus = 'approved'
         } else {
           newPurchaseOrderStatus = 'draft'
         }
       }
 
+      console.log('🔍 Status Update:', {
+        oldStatus: purchaseOrder.status,
+        newStatus: newPurchaseOrderStatus,
+        willUpdate: purchaseOrder.status !== newPurchaseOrderStatus
+      })
+
       // Update status Purchase Order jika ada perubahan
       if (purchaseOrder.status !== newPurchaseOrderStatus) {
         purchaseOrder.status = newPurchaseOrderStatus
 
-        // Jika status baru adalah 'received' dan semua item statusPartial == true
-        const allItemsAreDone = purchaseOrder.purchaseOrderItems.every(item => item.statusPartial === true)
-        if (newPurchaseOrderStatus === 'received' && allItemsAreDone) {
+        // Jika status baru adalah 'received' dan semua item sudah received penuh
+        if (newPurchaseOrderStatus === 'received' && allItemsFullyReceived) {
           // Set received_at ke tanggal sekarang
           purchaseOrder.receivedAt = new Date()
 
@@ -104,46 +151,18 @@ export default class PurchaseItemsController {
             purchaseOrder.receivedBy = auth.user.id
           }
 
-          // Update received_qty pada semua item menjadi sama dengan quantity
+          // Pastikan semua item memiliki statusPartial = true jika receivedQty penuh
           for (const item of purchaseOrder.purchaseOrderItems) {
-            // Hanya update jika received_qty belum sama dengan quantity
-            if (item.receivedQty !== item.quantity) {
-                item.receivedQty = item.quantity
-            }
-            // Pastikan status partial juga true
-            if (item.statusPartial !== true) {
+            // Jika receivedQty = quantity, pastikan statusPartial = true
+            if (Number(item.receivedQty || 0) === Number(item.quantity || 0)) {
                 item.statusPartial = true
+                await item.save()
             }
-            await item.save()
           }
         }
+        
+        // Simpan perubahan purchase order
         await purchaseOrder.save()
-      } else {
-        // Jika status sudah 'received' dan semua item statusPartial == true, tetap update received_at & received_qty
-        const allItemsAreDone = purchaseOrder.purchaseOrderItems.every(item => item.statusPartial === true)
-        if (purchaseOrder.status === 'received' && allItemsAreDone) {
-          // Set received_at ke tanggal sekarang
-          purchaseOrder.receivedAt = new Date()
-
-          // Set received_by ke user yang sedang login
-          if (auth && auth.user && auth.user.id) {
-            purchaseOrder.receivedBy = auth.user.id
-          }
-
-          // Update received_qty pada semua item menjadi sama dengan quantity
-          for (const item of purchaseOrder.purchaseOrderItems) {
-            // Hanya update jika received_qty belum sama dengan quantity
-            if (item.receivedQty !== item.quantity) {
-                item.receivedQty = item.quantity
-            }
-            // Pastikan status partial juga true
-            if (item.statusPartial !== true) {
-                item.statusPartial = true
-            }
-            await item.save()
-          }
-          await purchaseOrder.save()
-        }
       }
 
       return response.ok({

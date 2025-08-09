@@ -211,24 +211,36 @@ export default class SalesItemsController {
 
     try {
       const itemId = params.id
-      const { statusPartial, deliveredQty } = request.only(['statusPartial', 'deliveredQty'])
+      const { deliveredQty } = request.only(['deliveredQty'])
 
       const salesOrderItem = await SalesOrderItem.query()
         .where('id', itemId)
         .firstOrFail()
 
-      // Validasi: deliveredQty tidak boleh melebihi quantity
-      if (deliveredQty !== undefined && Number(deliveredQty) > salesOrderItem.quantity) {
-        return response.badRequest({
-          message: `Kuantitas diterima (${deliveredQty}) tidak boleh melebihi kuantitas yang dipesan (${salesOrderItem.quantity}).`
-        })
+      // Validasi: deliveredQty tidak boleh melebihi quantity dan tidak boleh negatif
+      if (deliveredQty !== undefined) {
+        const numDeliveredQty = Number(deliveredQty)
+        if (numDeliveredQty < 0) {
+          return response.badRequest({
+            message: `Kuantitas diterima tidak boleh negatif.`
+          })
+        }
+        if (numDeliveredQty > salesOrderItem.quantity) {
+          return response.badRequest({
+            message: `Kuantitas diterima (${deliveredQty}) tidak boleh melebihi kuantitas yang dipesan (${salesOrderItem.quantity}).`
+          })
+        }
       }
 
-      // Update status_partial dan delivered_qty item SO tersebut
-      salesOrderItem.statusPartial = statusPartial
+      // Update delivered_qty item SO
       if (deliveredQty !== undefined) {
-        salesOrderItem.deliveredQty = deliveredQty
+        salesOrderItem.deliveredQty = Number(deliveredQty)
       }
+
+      // Auto-set statusPartial berdasarkan deliveredQty
+      const currentDeliveredQty = Number(deliveredQty) || 0
+      salesOrderItem.statusPartial = currentDeliveredQty > 0
+
       await salesOrderItem.save()
 
       // Ambil Sales Order terkait beserta semua itemnya
@@ -240,12 +252,12 @@ export default class SalesItemsController {
       // ✅ PERBAIKAN: Update item yang baru saja diubah di memori untuk logika status yang tepat
       const updatedItem = salesOrder.salesOrderItems.find(item => item.id === salesOrderItem.id)
       if (updatedItem) {
-        updatedItem.statusPartial = statusPartial
-        updatedItem.deliveredQty = deliveredQty
+        updatedItem.statusPartial = salesOrderItem.statusPartial
+        updatedItem.deliveredQty = salesOrderItem.deliveredQty
       }
 
-      // Jika user klik checkbox dan statusPartial == true, insert ke 3 tabel sekaligus
-      if (statusPartial === true || statusPartial === 'true' || statusPartial === 1) {
+      // Jika deliveredQty > 0, maka statusPartial otomatis true, insert ke 3 tabel sekaligus
+      if (salesOrderItem.statusPartial === true) {
         // Ambil item yang sedang diubah saat ini, bukan semua item yang sudah diterima
         const item = salesOrderItem
 
@@ -314,35 +326,40 @@ export default class SalesItemsController {
         }
       }
 
-      // Logika untuk menentukan status Sales Order
+      // Logika untuk menentukan status Sales Order berdasarkan deliveredQty, bukan statusPartial
       let newSalesOrderStatus = salesOrder.status
 
-      // Cek apakah ada satu saja item yang statusPartial-nya TRUE
-      const hasAnyItemPartialTrue = salesOrder.salesOrderItems.some(item => item.statusPartial === true)
+      // Cek apakah ada item yang memiliki deliveredQty > 0
+      const hasAnyItemWithDeliveredQty = salesOrder.salesOrderItems.some(item => 
+        Number(item.deliveredQty || 0) > 0
+      )
       
-      // Cek apakah semua item statusPartial-nya TRUE
-      const allItemsAreDone = salesOrder.salesOrderItems.every(item => item.statusPartial === true)
+      // Cek apakah semua item sudah delivered penuh (deliveredQty = quantity)
+      const allItemsFullyDelivered = salesOrder.salesOrderItems.every(item => 
+        Number(item.deliveredQty || 0) === Number(item.quantity || 0)
+      )
 
       // Debug logging
       console.log('🔍 Status Debug:', {
         currentStatus: salesOrder.status,
-        hasAnyItemPartialTrue,
-        allItemsAreDone,
+        hasAnyItemWithDeliveredQty,
+        allItemsFullyDelivered,
         approvedBy: salesOrder.approvedBy,
         approvedAt: salesOrder.approvedAt,
         itemsStatus: salesOrder.salesOrderItems.map(item => ({
           id: item.id,
           statusPartial: item.statusPartial,
           deliveredQty: item.deliveredQty,
-          quantity: item.quantity
+          quantity: item.quantity,
+          isFullyDelivered: Number(item.deliveredQty || 0) === Number(item.quantity || 0)
         }))
       })
 
-      if (allItemsAreDone) {
-        // Jika semua item sudah delivered
+      if (allItemsFullyDelivered && hasAnyItemWithDeliveredQty) {
+        // Jika semua item sudah delivered penuh
         newSalesOrderStatus = 'delivered'
-      } else if (hasAnyItemPartialTrue) {
-        // Jika ada beberapa item yang sudah delivered (partial)
+      } else if (hasAnyItemWithDeliveredQty) {
+        // Jika ada item yang sudah sebagian delivered (partial)
         newSalesOrderStatus = 'partial'
       } else {
         // Jika tidak ada item yang delivered, kembali ke status sebelumnya
@@ -361,11 +378,11 @@ export default class SalesItemsController {
       })
 
       // ✅ BUAT INVOICE OTOMATIS hanya jika:
-      // 1. Status partial berubah dari false ke true untuk item individual
+      // 1. Item memiliki deliveredQty > 0 dan status menjadi partial
       // 2. Status sales order berubah ke 'delivered'
       let createdInvoice = null
-      if (statusPartial === true && newSalesOrderStatus === 'partial') {
-        // Hanya buat invoice untuk item yang baru di-deliver (statusPartial berubah ke true)
+      if (salesOrderItem.statusPartial === true && newSalesOrderStatus === 'partial') {
+        // Hanya buat invoice untuk item yang baru di-deliver (deliveredQty > 0)
         createdInvoice = await this.createInvoiceForNewDelivery(salesOrder, salesOrderItem.id, newSalesOrderStatus)
       } else if (newSalesOrderStatus === 'delivered' && salesOrder.status !== 'delivered') {
         // Buat invoice untuk semua item jika status berubah ke delivered
@@ -376,8 +393,8 @@ export default class SalesItemsController {
       if (salesOrder.status !== newSalesOrderStatus) {
         salesOrder.status = newSalesOrderStatus
 
-        // Jika status baru adalah 'delivered' dan semua item statusPartial == true
-        if (newSalesOrderStatus === 'delivered' && allItemsAreDone) {
+        // Jika status baru adalah 'delivered' dan semua item sudah delivered penuh
+        if (newSalesOrderStatus === 'delivered' && allItemsFullyDelivered) {
           // Set delivered_at ke tanggal sekarang
           salesOrder.deliveredAt = new Date()
 
@@ -386,17 +403,13 @@ export default class SalesItemsController {
             salesOrder.deliveredBy = auth.user.id
           }
 
-          // Update delivered_qty pada semua item menjadi sama dengan quantity
+          // Pastikan semua item memiliki statusPartial = true jika deliveredQty penuh
           for (const item of salesOrder.salesOrderItems) {
-            // Hanya update jika delivered_qty belum sama dengan quantity
-            if (item.deliveredQty !== item.quantity) {
-                item.deliveredQty = item.quantity
-            }
-            // Pastikan status partial juga true
-            if (item.statusPartial !== true) {
+            // Jika deliveredQty = quantity, pastikan statusPartial = true
+            if (Number(item.deliveredQty || 0) === Number(item.quantity || 0)) {
                 item.statusPartial = true
+                await item.save()
             }
-            await item.save()
           }
         }
         
