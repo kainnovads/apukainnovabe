@@ -9,11 +9,7 @@ import { defineConfig } from '@adonisjs/cors'
 const corsConfig = defineConfig({
   enabled: true,
 
-  // Development
-  // origin: ['http://localhost:3000'],
-
-  // Productions
-  origin: ['http://development.kainnovadigital.com', 'https://development.kainnovadigital.com'],
+  origin: ['http://development.kainnovadigital.com', 'https://development.kainnovadigital.com', 'http://localhost:3000'],
 
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   headers: true,
