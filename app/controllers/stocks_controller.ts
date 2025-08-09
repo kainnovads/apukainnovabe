@@ -25,16 +25,21 @@ export default class StocksController {
       }
 
       if (searchValue) {
-        // Untuk pencarian tidak case sensitive, gunakan LOWER di query
+        // Pencarian tidak case sensitive di kolom terkait product & warehouse
         const lowerSearch = searchValue.toLowerCase()
-        dataQuery = dataQuery.where((query) => {
+        dataQuery.where((query) => {
           query
-            .whereRaw('LOWER(product_id) LIKE ?', [`%${lowerSearch}%`])
-            .orWhereHas('warehouse', (wQuery) => {
-              wQuery.whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+            // cari di product: name atau sku
+            .orWhereHas('product', (pQuery) => {
+              pQuery
+                .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                .orWhereRaw('LOWER(sku) LIKE ?', [`%${lowerSearch}%`])
             })
+            // cari di warehouse: name atau code
             .orWhereHas('warehouse', (wQuery) => {
-              wQuery.whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+              wQuery
+                .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                .orWhereRaw('LOWER(code) LIKE ?', [`%${lowerSearch}%`])
             })
         })
       }

@@ -34,7 +34,7 @@ export default class AssociationsController {
     const transactions = Object.values(grouped) // array of array of product_id
 
     // Step 3: Jalankan FP-Growth
-    const fpgrowth = new FPGrowth.FPGrowth<number>(0.3)
+    const fpgrowth = new FPGrowth.FPGrowth<number>(0.25)
 
     const frequentItemsets: Itemset<number>[] = await fpgrowth.exec(transactions)
 

@@ -43,7 +43,7 @@ export default class StockTransfersController {
       if (includeDetails) {
         dataQuery.preload('stockTransferDetails', (stQuery) => {
           stQuery.preload('product', (productQuery) => {
-            productQuery.select(['id', 'name', 'sku', 'price'])
+            productQuery.select(['id', 'name', 'sku'])
           })
         })
       }
@@ -189,7 +189,7 @@ export default class StockTransfersController {
         })
         .preload('stockTransferDetails', (stQuery) => {
           stQuery.preload('product', (productQuery) => {
-            productQuery.select(['id', 'name', 'sku', 'price', 'description'])
+            productQuery.select(['id', 'name', 'sku', 'kondisi'])
           })
         })
         .first()
