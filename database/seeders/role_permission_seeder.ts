@@ -58,6 +58,13 @@ export default class RolePermissionSeeder extends BaseSeeder {
       { name: 'edit_permission' },
       { name: 'delete_permission' },
       { name: 'show_permission' },
+      // Permission khusus untuk akses data tanpa menu
+      { name: 'access_perusahaan_data' },
+      { name: 'access_cabang_data' },
+      { name: 'access_warehouse_data' },
+      { name: 'access_product_data' },
+      { name: 'access_customer_data' },
+      { name: 'access_vendor_data' },
     ]
 
     const dynamicallyGeneratedPermissions = new Set(permissionsToCreate.map((p) => p.name))

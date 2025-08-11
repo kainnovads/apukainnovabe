@@ -1,6 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import FPGrowth, { Itemset } from 'node-fpgrowth'
+import Perusahaan from '#models/perusahaan'
+import Cabang from '#models/cabang'
+import Warehouse from '#models/warehouse'
+import Product from '#models/product'
+import Customer from '#models/customer'
+import Vendor from '#models/vendor'
 
 function getSubsets<T>(array: T[]): T[][] {
   const subsets = [[]] as T[][]
@@ -98,5 +104,108 @@ export default class AssociationsController {
     }))
 
     return response.ok(result)
+  }
+
+  // Endpoint untuk mengambil data perusahaan tanpa permission menu
+  public async getPerusahaanData({ response }: HttpContext) {
+    try {
+      const perusahaans = await Perusahaan.query()
+        .select(['id', 'nmPerusahaan'])
+        .orderBy('nmPerusahaan', 'asc')
+
+      return response.ok(perusahaans)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data perusahaan',
+        error: error.message,
+      })
+    }
+  }
+
+  // Endpoint untuk mengambil data cabang tanpa permission menu
+  public async getCabangData({ response, request }: HttpContext) {
+    try {
+      const perusahaanId = request.input('perusahaanId')
+
+      let query = Cabang.query()
+        .select(['id', 'nmCabang', 'perusahaanId'])
+        .orderBy('nmCabang', 'asc')
+
+      if (perusahaanId) {
+        query = query.where('perusahaanId', perusahaanId)
+      }
+
+      const cabangs = await query
+      return response.ok(cabangs)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data cabang',
+        error: error.message,
+      })
+    }
+  }
+
+  // Endpoint untuk mengambil data warehouse tanpa permission menu
+  public async getWarehouseData({ response }: HttpContext) {
+    try {
+      const warehouses = await Warehouse.query()
+        .select(['id', 'name', 'address'])
+        .orderBy('name', 'asc')
+
+      return response.ok(warehouses)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data warehouse',
+        error: error.message,
+      })
+    }
+  }
+
+  // Endpoint untuk mengambil data product tanpa permission menu
+  public async getProductData({ response }: HttpContext) {
+    try {
+      const products = await Product.query()
+        .select(['id', 'name', 'sku'])
+        .orderBy('name', 'asc')
+
+      return response.ok(products)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data product',
+        error: error.message,
+      })
+    }
+  }
+
+  // Endpoint untuk mengambil data customer tanpa permission menu
+  public async getCustomerData({ response }: HttpContext) {
+    try {
+      const customers = await Customer.query()
+        .select(['id', 'name', 'email'])
+        .orderBy('name', 'asc')
+
+      return response.ok(customers)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data customer',
+        error: error.message,
+      })
+    }
+  }
+
+  // Endpoint untuk mengambil data vendor tanpa permission menu
+  public async getVendorData({ response }: HttpContext) {
+    try {
+      const vendors = await Vendor.query()
+        .select(['id', 'name', 'email'])
+        .orderBy('name', 'asc')
+
+      return response.ok(vendors)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data vendor',
+        error: error.message,
+      })
+    }
   }
 }

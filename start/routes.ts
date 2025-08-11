@@ -354,3 +354,16 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
+
+  // Data Access Router - untuk akses data tanpa permission menu
+  router.group(() => {
+    router.get('/data/perusahaan', [AssociationsController, 'getPerusahaanData'])
+    router.get('/data/cabang', [AssociationsController, 'getCabangData'])
+    router.get('/data/warehouse', [AssociationsController, 'getWarehouseData'])
+    router.get('/data/product', [AssociationsController, 'getProductData'])
+    router.get('/data/customer', [AssociationsController, 'getCustomerData'])
+    router.get('/data/vendor', [AssociationsController, 'getVendorData'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['access_perusahaan', 'access_cabang', 'access_warehouse', 'access_product', 'access_customer', 'access_vendor']))
