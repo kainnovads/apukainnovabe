@@ -8,6 +8,7 @@ export default class extends BaseSchema {
       table.uuid('id').primary()
       table.string('no_surat_jalan').notNullable()
       table.string('pic_name').notNullable()
+      table.string('penerima').notNullable()
       table.uuid('sales_order_id').references('id').inTable('sales_orders').onDelete('SET NULL').onUpdate('CASCADE').nullable()
       table.integer('customer_id').unsigned().references('id').inTable('customers').onDelete('CASCADE').onUpdate('CASCADE')
       table.date('date').notNullable()

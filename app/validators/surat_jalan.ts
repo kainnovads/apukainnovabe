@@ -3,6 +3,7 @@ import vine from '@vinejs/vine'
 export const suratJalanValidator = vine.compile(
   vine.object({
     picName: vine.string(),
+    penerima: vine.string(),
     salesOrderId: vine.string().optional(),
     customerId: vine.number(),
     date: vine.date(),
@@ -23,6 +24,7 @@ export const suratJalanValidator = vine.compile(
 export const updateSuratJalanValidator = vine.compile(
   vine.object({
     picName: vine.string().optional(),
+    penerima: vine.string().optional(),
     salesOrderId: vine.string().optional().nullable(),
     customerId: vine.number().optional(),
     date: vine.date().optional(),

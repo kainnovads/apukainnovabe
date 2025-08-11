@@ -52,6 +52,14 @@ router.get('/auth/api/csrf-token', async ({ response, request }) => {
   return response.ok({ token: request.csrfToken })
 })
 
+// All Route untuk semua role
+router
+.group(() => {
+  router.get('/sales-order/countByStatus', [SalesOrdersController, 'countByStatus'])
+})
+.prefix('/api')
+.use(middleware.auth())
+
 // Auth routes
 router
   .group(() => {
@@ -62,6 +70,7 @@ router
     router.post('/logout', [AuthController, 'logout']).use(middleware.auth())
   })
   .prefix('/auth/api')
+
 
 // ------------------ Route untuk Superadmin ------------------ //
 
@@ -114,7 +123,6 @@ router
 
   // Sales Order Router
   router.group(() => {
-    router.get('/sales-order/countByStatus', [SalesOrdersController, 'countByStatus'])
     router.patch('/sales-order/approveSalesOrder/:id', [SalesOrdersController, 'approveSalesOrder'])
     router.patch('/sales-order/rejectSalesOrder/:id', [SalesOrdersController, 'rejectSalesOrder'])
     router.post('/sales-order/:id', [SalesOrdersController, 'update'])
@@ -187,12 +195,11 @@ router
   // Menu Router
   router.group(() => {
     router.resource('menu-groups', MenuGroupsController).apiOnly()
-    router.get('/menu-groups-all', [MenuGroupsController, 'getAll']) // Route untuk menampilkan semua menu groups tanpa filter
+    router.get('/menu-groups-all', [MenuGroupsController, 'getAll'])
     router.resource('menu-details', MenuDetailsController).apiOnly()
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasRole(['superadmin', 'admin'])) // Gunakan hasRole untuk admin dan superadmin
 
   // Jabatan Router
   router.group(() => {

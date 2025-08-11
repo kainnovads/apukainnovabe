@@ -38,6 +38,9 @@ export default class SuratJalan extends BaseModel {
   declare picName: string
 
   @column()
+  declare penerima: string
+
+  @column()
   declare createdBy: number
 
   @column()

@@ -355,6 +355,7 @@ export default class SuratJalansController {
           customerId      : payload.customerId,
           noSuratJalan    : noSuratJalan,
           picName         : payload.picName,
+          penerima        : payload.penerima,
           date            : payload.date,
           description     : payload.description || '',
           alamatPengiriman: payload.alamatPengiriman || '',
@@ -408,6 +409,7 @@ export default class SuratJalansController {
       if (payload.salesOrderId !== undefined) updateData.salesOrderId = payload.salesOrderId
       if (payload.customerId !== undefined) updateData.customerId = payload.customerId
       if (payload.picName !== undefined) updateData.picName = payload.picName
+      if (payload.penerima !== undefined) updateData.penerima = payload.penerima
       if (payload.date !== undefined) updateData.date = payload.date
 
       // ✅ PERBAIKAN: Always update these fields if they exist in payload, even if empty
@@ -445,6 +447,7 @@ export default class SuratJalansController {
         if ('salesOrderId' in updateData) dbUpdateData.sales_order_id = updateData.salesOrderId
         if ('customerId' in updateData) dbUpdateData.customer_id = updateData.customerId
         if ('picName' in updateData) dbUpdateData.pic_name = updateData.picName
+        if ('penerima' in updateData) dbUpdateData.penerima = updateData.penerima
         if ('date' in updateData) dbUpdateData.date = updateData.date
         if ('description' in updateData) dbUpdateData.description = updateData.description
         if ('alamatPengiriman' in updateData) dbUpdateData.alamat_pengiriman = updateData.alamatPengiriman
