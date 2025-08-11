@@ -7,6 +7,7 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary()
       table.string('no_transfer').unique()
+      table.string('penerima').notNullable()
       table.integer('perusahaan_id').unsigned().references('id').inTable('perusahaan').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('cabang_id').unsigned().references('id').inTable('cabang').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('from_warehouse_id').unsigned().references('id').inTable('warehouses').onDelete('CASCADE').onUpdate('CASCADE')

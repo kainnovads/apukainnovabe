@@ -21,6 +21,9 @@ export default class StockTransfer extends BaseModel {
   declare noTransfer: string
 
   @column()
+  declare penerima: string
+
+  @column()
   declare perusahaanId: number
 
   @column()

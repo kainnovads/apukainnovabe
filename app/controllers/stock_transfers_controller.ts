@@ -286,6 +286,7 @@ export default class StockTransfersController {
         fromWarehouseId: payload.fromWarehouseId,
         toWarehouseId  : payload.toWarehouseId,
         date           : payload.date,
+        penerima       : payload.penerima,
         transferBy     : payload.transferBy,
         description    : payload.description,
         status         : payload.status,
@@ -335,6 +336,7 @@ export default class StockTransfersController {
       transfer.toWarehouseId   = payload.toWarehouseId || transfer.toWarehouseId
       transfer.date            = payload.date || transfer.date
       transfer.description     = payload.description || ''
+      transfer.penerima        = payload.penerima || ''
 
       await transfer.save()
 
