@@ -40,6 +40,24 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
+  | Variables for configuring AWS S3 storage
+  |----------------------------------------------------------
+  */
+AWS_ACCESS_KEY_ID: Env.schema.string.optional(),
+AWS_SECRET_ACCESS_KEY: Env.schema.string.optional(),
+AWS_REGION: Env.schema.string.optional(),
+AWS_S3_BUCKET_NAME: Env.schema.string.optional(),
+AWS_S3_ENDPOINT: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring storage configuration
+  |----------------------------------------------------------
+  */
+  STORAGE_DRIVER: Env.schema.enum(['local', 's3'] as const),
+
+  /*
+  |----------------------------------------------------------
   | Variables for configuring session package
   |----------------------------------------------------------
   */

@@ -1,12 +1,18 @@
 import { customerValidator } from '#validators/customer'
 import type { HttpContext } from '@adonisjs/core/http'
 import Customer from '#models/customer'
-import app from '@adonisjs/core/services/app'
 import { MultipartFile } from "@adonisjs/core/bodyparser"
 import db from '@adonisjs/lucid/services/db'
 import ProductCustomer from '#models/product_customer'
+import StorageService from '#services/storage_service'
 
 export default class CustomersController {
+  private storageService: StorageService
+
+  constructor() {
+    this.storageService = new StorageService()
+  }
+
   async index({ request, response }: HttpContext) {
     try {
       const page        = request.input('page', 1)
@@ -102,134 +108,133 @@ export default class CustomersController {
 
     // Upload file jika ada
     if (payload.logo && payload.logo instanceof MultipartFile) {
-        try {
-            const fileName = `${Date.now()}_${payload.logo.clientName}`
-            await payload.logo.move(app.publicPath('uploads/customers'), {
-                name: fileName,
-                overwrite: true,
-            })
-
-            if (!payload.logo.isValid) {
-                return response.badRequest({
-                    message: 'Gagal upload file logo',
-                    error: payload.logo.errors.map(error => error.message),
-                })
-            }
-
-            logoPath = `uploads/customers/${fileName}`
-        } catch (err) {
-            return response.internalServerError({
-            message: 'Gagal menyimpan file logo',
-            error: err.message,
-            })
-        }
+      try {
+        const uploadResult = await this.storageService.uploadFile(
+          payload.logo,
+          'customers',
+          true // public
+        )
+        
+        logoPath = uploadResult.path
+        console.log('🔗 Logo uploaded:', uploadResult.url)
+      } catch (err) {
+        return response.internalServerError({
+          message: 'Gagal menyimpan file logo',
+          error: err.message,
+        })
+      }
     }
 
     const trx = await db.transaction()
 
     try {
+      const customer = await Customer.create({
+        name           : payload.name,
+        email          : payload.email,
+        phone          : payload.phone,
+        address        : payload.address,
+        npwp           : payload.npwp,
+        logo           : logoPath || undefined,
+      })
 
-        const customer = await Customer.create({
-            name           : payload.name,
-            email          : payload.email,
-            phone          : payload.phone,
-            address        : payload.address,
-            npwp           : payload.npwp,
-            logo           : logoPath || undefined,
-        })
+      for (const item of items) {
+        await ProductCustomer.create({
+          customerId: customer.id,
+          productId: item.productId,
+          priceSell: item.priceSell,
+        }, { client: trx })
+      }
 
-        for (const item of items) {
-            await ProductCustomer.create({
-                customerId: customer.id,
-                productId: item.productId,
-                priceSell: item.priceSell,
-            }, { client: trx })
-        }
+      await trx.commit()
 
-        await trx.commit()
-
-        return response.created({
-            message: 'Customer berhasil dibuat',
-            data: customer,
-        })
-        } catch (error) {
-        await trx.rollback()
-        console.error('Customer Error:', error)
-        return response.internalServerError({
-            message: 'Gagal membuat Customer',
-        })
+      return response.created({
+        message: 'Customer berhasil dibuat',
+        data: customer,
+      })
+    } catch (error) {
+      await trx.rollback()
+      console.error('Customer Error:', error)
+      return response.internalServerError({
+        message: 'Gagal membuat Customer',
+      })
     }
   }
 
   async update({ params, request, response }: HttpContext) {
-      const payload = await request.validateUsing(customerValidator)
-      const items = payload.customerProducts || []
+    const payload = await request.validateUsing(customerValidator)
+    const items = payload.customerProducts || []
 
-      const trx = await db.transaction()
+    const trx = await db.transaction()
 
-      if (!Array.isArray(items) || items.length === 0) {
-          await trx.rollback()
-          return response.badRequest({ message: 'Items tidak boleh kosong' })
-      }
+    if (!Array.isArray(items) || items.length === 0) {
+      await trx.rollback()
+      return response.badRequest({ message: 'Items tidak boleh kosong' })
+    }
 
-      try {
-          const customer = await Customer.findOrFail(params.id, { client: trx })
+    try {
+      const customer = await Customer.findOrFail(params.id, { client: trx })
 
-          // Optional: delete old file
-          let logoPath = customer.logo
-          if (payload.logo && payload.logo instanceof MultipartFile) {
-              const fileName = `${Date.now()}_${payload.logo.clientName}`
-              await payload.logo.move(app.publicPath('uploads/customers'), {
-                  name: fileName,
-                  overwrite: true,
-              })
-
-              if (!payload.logo.isValid) {
-                  await trx.rollback()
-                  return response.badRequest({
-                  message: 'Gagal upload file logo',
-                  error: payload.logo.errors.map(e => e.message),
-                  })
-              }
-
-              logoPath = `uploads/customers/${fileName}`
+      // Handle file upload
+      let logoPath = customer.logo
+      if (payload.logo && payload.logo instanceof MultipartFile) {
+        try {
+          // Delete old file if exists
+          if (customer.logo) {
+            await this.storageService.deleteFile(customer.logo)
           }
 
-          // Update Customer utama
-          customer.merge({
-          name           : payload.name,
-          email          : payload.email,
-          phone          : payload.phone,
-          address        : payload.address,
-          npwp           : payload.npwp,
-          logo           : logoPath || undefined,
-          })
-          await customer.save()
-
-          // Hapus item lama lalu insert ulang
-          await ProductCustomer.query({ client: trx })
-          .where('customer_id', customer.id)
-          .delete()
-
-          for (const item of items) {
-          await ProductCustomer.create({
-                  customerId: customer.id,
-                  productId: item.productId,
-                  priceSell: item.priceSell,
-              }, { client: trx })
-          }
-
-          await trx.commit()
-
-          return response.ok({
-          message: 'Customer berhasil diperbarui',
-          data: customer,
-          })
-      } catch (error) {
+          const uploadResult = await this.storageService.uploadFile(
+            payload.logo,
+            'customers',
+            true
+          )
+          
+          logoPath = uploadResult.path
+          console.log('🔗 Logo updated:', uploadResult.url)
+        } catch (err) {
           await trx.rollback()
-          console.error('Customer Update Error:', error)
-          return response.internalServerError({ message: 'Gagal memperbarui Customer' })
+          return response.badRequest({
+            message: 'Gagal upload file logo',
+            error: err.message,
+          })
+        }
       }
+
+      // Update Customer utama
+      customer.merge({
+        name           : payload.name,
+        email          : payload.email,
+        phone          : payload.phone,
+        address        : payload.address,
+        npwp           : payload.npwp,
+        logo           : logoPath || undefined,
+      })
+      await customer.save()
+
+      // Hapus item lama lalu insert ulang
+      await ProductCustomer.query({ client: trx })
+        .where('customer_id', customer.id)
+        .delete()
+
+      for (const item of items) {
+        await ProductCustomer.create({
+          customerId: customer.id,
+          productId: item.productId,
+          priceSell: item.priceSell,
+        }, { client: trx })
+      }
+
+      await trx.commit()
+
+      return response.ok({
+        message: 'Customer berhasil diperbarui',
+        data: customer,
+      })
+    } catch (error) {
+      await trx.rollback()
+      console.error('Customer Update Error:', error)
+      return response.internalServerError({ message: 'Gagal memperbarui Customer' })
+    }
   }
 
   async destroy({ params, response }: HttpContext) {
