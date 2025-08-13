@@ -141,8 +141,34 @@ export default class S3Service {
       console.log('  - Folder:', folder)
       console.log('  - Key:', key)
       
-      // Baca file content
-      const fileContent = await multipartFile.buffer
+      // ✅ VALIDASI: Pastikan file ada dan tidak kosong
+      if (!multipartFile.size || multipartFile.size === 0) {
+        throw new Error('File kosong atau tidak valid')
+      }
+      
+      // ✅ Baca file content dengan validasi
+      let fileContent: Buffer
+      try {
+        fileContent = await multipartFile.buffer
+        console.log('  - Buffer Size:', fileContent.length)
+        
+        // ✅ VALIDASI: Pastikan buffer tidak kosong
+        if (!fileContent || fileContent.length === 0) {
+          throw new Error('File buffer kosong')
+        }
+        
+        // ✅ VALIDASI: Pastikan buffer size sesuai dengan file size
+        if (fileContent.length !== multipartFile.size) {
+          console.warn('⚠️ Buffer size tidak sesuai dengan file size:', {
+            bufferSize: fileContent.length,
+            fileSize: multipartFile.size
+          })
+        }
+        
+      } catch (bufferError) {
+        console.error('❌ Error reading file buffer:', bufferError)
+        throw new Error(`Gagal membaca file content: ${bufferError.message}`)
+      }
       
       const url = await this.uploadFile(
         fileContent,

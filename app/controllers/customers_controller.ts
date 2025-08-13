@@ -108,8 +108,31 @@ export default class CustomersController {
     let logoPath: string | null = null
 
     // Upload file jika ada
+        // Upload file jika ada
     if (payload.logo && payload.logo instanceof MultipartFile) {
       try {
+        console.log('🔍 Debug - Starting logo upload:')
+        console.log('  - File Name:', payload.logo.clientName)
+        console.log('  - File Size:', payload.logo.size)
+        console.log('  - File Type:', payload.logo.type)
+        
+        // ✅ VALIDASI: Pastikan file tidak kosong
+        if (!payload.logo.size || payload.logo.size === 0) {
+          throw new Error('File logo kosong atau tidak valid')
+        }
+        
+        // ✅ VALIDASI: Pastikan file adalah image
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        if (!allowedTypes.includes(payload.logo.type || '')) {
+          throw new Error('File harus berupa gambar (JPEG, PNG, GIF, WebP)')
+        }
+        
+        // ✅ VALIDASI: Pastikan file size tidak terlalu besar (max 5MB)
+        const maxSize = 5 * 1024 * 1024 // 5MB
+        if (payload.logo.size > maxSize) {
+          throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
+        }
+        
         const uploadResult = await this.storageService.uploadFile(
           payload.logo,
           'customers',
@@ -117,8 +140,23 @@ export default class CustomersController {
         )
         
         logoPath = uploadResult.path
-        console.log('🔗 Logo uploaded:', uploadResult.url)
+        console.log('✅ Logo upload successful:')
+        console.log('  - Path:', uploadResult.path)
+        console.log('  - URL:', uploadResult.url)
+        
+        // ✅ VERIFIKASI: Test URL accessibility
+        try {
+          const response = await fetch(uploadResult.url, { method: 'HEAD' })
+          console.log('✅ URL accessibility test:', response.status)
+          if (response.status !== 200) {
+            console.warn('⚠️ URL accessibility test failed:', response.status)
+          }
+        } catch (urlError) {
+          console.warn('⚠️ URL accessibility test failed:', urlError.message)
+        }
+        
       } catch (err) {
+        console.error('❌ Logo upload failed:', err)
         return response.internalServerError({
           message: 'Gagal menyimpan file logo',
           error: err.message,
@@ -177,25 +215,58 @@ export default class CustomersController {
 
       // Handle file upload
       let logoPath = customer.logo
+
+      // Upload file jika ada
       if (payload.logo && payload.logo instanceof MultipartFile) {
         try {
-          // Delete old file if exists
-          if (customer.logo) {
-            await this.storageService.deleteFile(customer.logo)
+          console.log('🔍 Debug - Starting logo upload:')
+          console.log('  - File Name:', payload.logo.clientName)
+          console.log('  - File Size:', payload.logo.size)
+          console.log('  - File Type:', payload.logo.type)
+          
+          // ✅ VALIDASI: Pastikan file tidak kosong
+          if (!payload.logo.size || payload.logo.size === 0) {
+            throw new Error('File logo kosong atau tidak valid')
           }
-
+          
+          // ✅ VALIDASI: Pastikan file adalah image
+          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+          if (!allowedTypes.includes(payload.logo.type || '')) {
+            throw new Error('File harus berupa gambar (JPEG, PNG, GIF, WebP)')
+          }
+          
+          // ✅ VALIDASI: Pastikan file size tidak terlalu besar (max 5MB)
+          const maxSize = 5 * 1024 * 1024 // 5MB
+          if (payload.logo.size > maxSize) {
+            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
+          }
+          
           const uploadResult = await this.storageService.uploadFile(
             payload.logo,
             'customers',
-            true
+            true // public
           )
           
           logoPath = uploadResult.path
-          console.log('🔗 Logo updated:', uploadResult.url)
+          console.log('✅ Logo upload successful:')
+          console.log('  - Path:', uploadResult.path)
+          console.log('  - URL:', uploadResult.url)
+          
+          // ✅ VERIFIKASI: Test URL accessibility
+          try {
+            const response = await fetch(uploadResult.url, { method: 'HEAD' })
+            console.log('✅ URL accessibility test:', response.status)
+            if (response.status !== 200) {
+              console.warn('⚠️ URL accessibility test failed:', response.status)
+            }
+          } catch (urlError) {
+            console.warn('⚠️ URL accessibility test failed:', urlError.message)
+          }
+          
         } catch (err) {
-          await trx.rollback()
-          return response.badRequest({
-            message: 'Gagal upload file logo',
+          console.error('❌ Logo upload failed:', err)
+          return response.internalServerError({
+            message: 'Gagal menyimpan file logo',
             error: err.message,
           })
         }
