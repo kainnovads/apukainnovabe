@@ -231,6 +231,7 @@ export default class ProductsController {
         priceSell : payload.priceSell ?? product.priceSell,
         isService : payload.isService ?? product.isService,
         kondisi   : payload.kondisi ?? product.kondisi,
+        berat     : payload.berat ?? product.berat,
       }
 
       // Proses upload image jika ada file image baru

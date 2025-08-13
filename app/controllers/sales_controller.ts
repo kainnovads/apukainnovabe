@@ -13,6 +13,7 @@ import Mail from '@adonisjs/mail/services/main'
 import SalesOrderCreated from '#mails/sales_order_created'
 import Customer from '#models/customer'
 import Perusahaan from '#models/perusahaan'
+import Quotation from '#models/quotation'
 import { DateTime } from 'luxon';
 
 export default class SalesController {
@@ -45,7 +46,9 @@ export default class SalesController {
         .preload('createdByUser', (query) => {
           query.select(['id', 'fullName', 'email'])
         })
-
+        .preload('quotation', (query) => {
+          query.select(['id', 'noQuotation', 'description'])
+        })
       // ✅ OPTIMASI: Conditional preloading untuk performance
       if (includeItems) {
         dataQuery.preload('salesOrderItems', (query) => {
@@ -132,6 +135,7 @@ export default class SalesController {
             customer: { table: 'customers', foreignKey: 'sales_orders.customer_id', primaryKey: 'customers.id' },
             perusahaan: { table: 'perusahaan', foreignKey: 'sales_orders.perusahaan_id', primaryKey: 'perusahaan.id' },
             cabang: { table: 'cabang', foreignKey: 'sales_orders.cabang_id', primaryKey: 'cabang.id' },
+            quotation: { table: 'quotations', foreignKey: 'sales_orders.quotation_id', primaryKey: 'quotations.id' },
             createdByUser: { table: 'users as created_users', foreignKey: 'sales_orders.created_by', primaryKey: 'created_users.id' },
             approvedByUser: { table: 'users as approved_users', foreignKey: 'sales_orders.approved_by', primaryKey: 'approved_users.id' },
             deliveredByUser: { table: 'users as delivered_users', foreignKey: 'sales_orders.delivered_by', primaryKey: 'delivered_users.id' },
@@ -200,6 +204,9 @@ export default class SalesController {
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'alamatCabang'])
+        })
+        .preload('quotation', (query) => {
+          query.select(['id', 'noQuotation', 'description'])
         })
         .preload('salesOrderItems', (query) => {
             query.preload('product', (productQuery) => {
@@ -339,6 +346,7 @@ export default class SalesController {
           customerId     : payload.customerId,
           perusahaanId   : payload.perusahaanId,
           cabangId       : payload.cabangId,
+          quotationId    : payload.quotationId,
           noPo           : payload.noPo,
           noSo           : payload.noSo || await generateNo(),
           up             : payload.up,
@@ -449,6 +457,7 @@ export default class SalesController {
         customerId     : payload.customerId,
         perusahaanId   : payload.perusahaanId,
         cabangId       : payload.cabangId,
+        quotationId    : payload.quotationId,
         noPo           : payload.noPo,
         noSo           : payload.noSo,
         up             : payload.up,
@@ -592,6 +601,9 @@ export default class SalesController {
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'alamatCabang'])
+        })
+        .preload('quotation', (query) => {
+          query.select(['id', 'noQuotation', 'description'])
         })
         .preload('salesOrderItems', (query) => {
           query.preload('product', (productQuery) => {

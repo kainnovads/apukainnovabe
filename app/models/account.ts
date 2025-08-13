@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
-import JournalLine from './journal_line.js'
-import CashTransaction from './cash_transaction.js'
+import JournalLine from '#models/journal_line'
+import CashTransaction from '#models/cash_transaction'
 
 export default class Account extends BaseModel {
   public static table = 'accounts'

@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
-import Vendor from './vendor.js'
+import Vendor from '#models/vendor'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import PurchaseOrder from './purchase_order.js'
+import PurchaseOrder from '#models/purchase_order'
 
 export default class PurchaseInvoice extends BaseModel {
   @column({ isPrimary: true })
@@ -37,11 +37,11 @@ export default class PurchaseInvoice extends BaseModel {
 
   @column()
   declare description: string
-  
+
   @belongsTo(() => Vendor)
   declare vendor: BelongsTo<typeof Vendor>
 
   @belongsTo(() => PurchaseOrder)
   declare purchaseOrder: BelongsTo<typeof PurchaseOrder>
-  
+
 }

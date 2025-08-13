@@ -7,6 +7,7 @@ import Cabang from '#models/cabang'
 import QuotationItem from '#models/quotation_item'
 import User from '#models/auth/user'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import SalesOrder from '#models/sales_order'
 
 export default class Quotation extends BaseModel {
   public static table = 'quotations'
@@ -99,6 +100,9 @@ export default class Quotation extends BaseModel {
 
   @hasMany(() => QuotationItem)
   declare quotationItems: HasMany<typeof QuotationItem>
+
+  @hasMany(() => SalesOrder)
+  declare salesOrders: HasMany<typeof SalesOrder>
 
   @belongsTo(() => User, {
     foreignKey: 'createdBy',

@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
 import { randomUUID } from 'node:crypto'
-import StockTransfer from './stock_transfer.js'
-import Product from './product.js'
+import StockTransfer from '#models/stock_transfer'
+import Product from '#models/product'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export default class StockTransferDetail extends BaseModel {

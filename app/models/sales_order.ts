@@ -9,6 +9,7 @@ import Cabang from '#models/cabang'
 import Perusahaan from '#models/perusahaan'
 import SalesReturn from '#models/sales_return'
 import SuratJalan from '#models/surat_jalan'
+import Quotation from '#models/quotation'
 
 export default class SalesOrder extends BaseModel {
   public static table = 'sales_orders'
@@ -44,6 +45,9 @@ export default class SalesOrder extends BaseModel {
 
   @column()
   declare cabangId: number | null
+
+  @column()
+  declare quotationId: string | null
 
   @column()
   declare date: Date
@@ -110,6 +114,9 @@ export default class SalesOrder extends BaseModel {
 
   @belongsTo(() => Perusahaan)
   declare perusahaan: BelongsTo<typeof Perusahaan>
+
+  @belongsTo(() => Quotation)
+  declare quotation: BelongsTo<typeof Quotation>
 
   @belongsTo(() => User, {
     foreignKey: 'createdBy',

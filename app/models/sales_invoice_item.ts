@@ -1,9 +1,9 @@
 import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
-import SalesInvoice from './sales_invoice.js'
-import SalesOrderItem from './sales_order_item.js'
-import Product from './product.js'
-import Warehouse from './warehouse.js'
+import SalesInvoice from '#models/sales_invoice'
+import SalesOrderItem from '#models/sales_order_item'
+import Product from '#models/product'
+import Warehouse from '#models/warehouse'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'node:crypto'
 
@@ -64,4 +64,4 @@ export default class SalesInvoiceItem extends BaseModel {
 
   @belongsTo(() => Warehouse)
   declare warehouse: BelongsTo<typeof Warehouse>
-} 
+}

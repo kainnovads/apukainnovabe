@@ -3,7 +3,7 @@ import SuratJalan from '#models/surat_jalan'
 import db from '@adonisjs/lucid/services/db'
 import { suratJalanValidator, updateSuratJalanValidator } from '#validators/surat_jalan'
 import SuratJalanItem from '#models/surat_jalan_item'
-import { toRoman } from '../helpers/bulan_romawi.js'
+import { toRoman } from '#helper/bulan_romawi'
 import Customer from '#models/customer'
 import User from '#models/auth/user'
 

@@ -9,6 +9,7 @@ export default class extends BaseSchema {
       table.integer('customer_id').unsigned().references('id').inTable('customers').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('perusahaan_id').unsigned().references('id').inTable('perusahaan').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('cabang_id').unsigned().references('id').inTable('cabang').onDelete('CASCADE').onUpdate('CASCADE')
+      table.integer('quotation_id').unsigned().references('id').inTable('quotations').onDelete('CASCADE').onUpdate('CASCADE')
       table.string('no_po').nullable()
       table.string('no_so').notNullable()
       table.string('up').notNullable()

@@ -12,6 +12,7 @@ export const productValidator = vine.compile(
       size: '2mb',
       extnames: ['jpg', 'png', 'pdf', 'docs']
     }).optional(),
+    berat     : vine.number().optional(),
     kondisi   : vine.enum(['baru', 'bekas', 'rusak', 'servis']),
     unitId   : vine.number(),
     categoryId: vine.number(),

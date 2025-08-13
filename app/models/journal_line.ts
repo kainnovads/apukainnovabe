@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import Account from './account.js'
-import Journal from './journal.js'
+import Account from '#models/account'
+import Journal from '#models/journal'
 
 export default class JournalLine extends BaseModel {
   @column({ isPrimary: true })

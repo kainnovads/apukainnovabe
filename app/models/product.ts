@@ -6,7 +6,7 @@ import Category from '#models/category'
 import StockInDetail from '#models/stock_in_detail'
 import StockOutDetail from '#models/stock_out_detail'
 import Customer from '#models/customer'
-import Stock from './stock.js'
+import Stock from '#models/stock'
 
 export default class Product extends BaseModel {
   @column({ isPrimary: true })
@@ -44,6 +44,9 @@ export default class Product extends BaseModel {
 
   @column()
   declare image: string
+
+  @column()
+  declare berat: number
 
   @column()
   declare kondisi: string
