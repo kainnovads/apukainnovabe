@@ -146,10 +146,27 @@ export default class S3Service {
         throw new Error('File kosong atau tidak valid')
       }
       
-      // ✅ Baca file content dengan validasi
+      // ✅ Baca file content dengan validasi yang lebih robust
       let fileContent: Buffer
       try {
-        fileContent = await multipartFile.buffer
+        // ✅ Coba beberapa cara untuk membaca file content
+        if (multipartFile.buffer) {
+          fileContent = await multipartFile.buffer
+        } else if (multipartFile.tmpPath) {
+          // Jika menggunakan tmpPath, baca file dari disk
+          const fs = await import('fs/promises')
+          fileContent = await fs.readFile(multipartFile.tmpPath)
+        } else if (multipartFile.stream) {
+          // Jika menggunakan stream, convert ke buffer
+          const chunks: Buffer[] = []
+          for await (const chunk of multipartFile.stream()) {
+            chunks.push(chunk)
+          }
+          fileContent = Buffer.concat(chunks)
+        } else {
+          throw new Error('Tidak dapat membaca file content')
+        }
+        
         console.log('  - Buffer Size:', fileContent.length)
         
         // ✅ VALIDASI: Pastikan buffer tidak kosong
@@ -167,13 +184,44 @@ export default class S3Service {
         
       } catch (bufferError) {
         console.error('❌ Error reading file buffer:', bufferError)
+        console.error('❌ MultipartFile properties:', {
+          hasBuffer: !!multipartFile.buffer,
+          hasTmpPath: !!multipartFile.tmpPath,
+          hasStream: !!multipartFile.stream,
+          size: multipartFile.size,
+          type: multipartFile.type
+        })
         throw new Error(`Gagal membaca file content: ${bufferError.message}`)
+      }
+      
+      // ✅ Fix MIME type jika tidak lengkap
+      let contentType = multipartFile.type
+      if (!contentType || contentType === 'image') {
+        const extension = multipartFile.clientName?.split('.').pop()?.toLowerCase()
+        switch (extension) {
+          case 'png':
+            contentType = 'image/png'
+            break
+          case 'jpg':
+          case 'jpeg':
+            contentType = 'image/jpeg'
+            break
+          case 'gif':
+            contentType = 'image/gif'
+            break
+          case 'webp':
+            contentType = 'image/webp'
+            break
+          default:
+            contentType = 'application/octet-stream'
+        }
+        console.log('  - Fixed Content Type:', contentType)
       }
       
       const url = await this.uploadFile(
         fileContent,
         key,
-        multipartFile.type,
+        contentType,
         isPublic
       )
 

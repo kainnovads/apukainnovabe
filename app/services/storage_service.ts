@@ -69,7 +69,24 @@ export default class StorageService {
     })
 
     const path = `uploads/${folder}/${fileName}`
-    const url = `${env.get('HOST')}/${path}`
+    
+    // ✅ Fix URL generation untuk production
+    const host = env.get('HOST')
+    let url: string
+    
+    if (host === '0.0.0.0' || host === 'localhost') {
+      // Untuk production, gunakan domain yang sebenarnya
+      const apiBase = env.get('APP_URL') || 'https://api.kainnovadigital.com'
+      url = `${apiBase}/${path}`
+    } else {
+      url = `${host}/${path}`
+    }
+
+    console.log('🔍 Debug - Local upload URL:', {
+      host,
+      path,
+      finalUrl: url
+    })
 
     return {
       url,

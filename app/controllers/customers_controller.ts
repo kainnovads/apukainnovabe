@@ -172,6 +172,7 @@ export default class CustomersController {
         
         // ✅ VERIFIKASI: Test URL accessibility
         try {
+          console.log('🔍 Debug - Testing URL accessibility:', uploadResult.url)
           const response = await fetch(uploadResult.url, { method: 'HEAD' })
           console.log('✅ URL accessibility test:', response.status)
           if (response.status !== 200) {
@@ -179,6 +180,7 @@ export default class CustomersController {
           }
         } catch (urlError) {
           console.warn('⚠️ URL accessibility test failed:', urlError.message)
+          console.log('🔍 Debug - URL that failed:', uploadResult.url)
         }
         
       } catch (err) {
