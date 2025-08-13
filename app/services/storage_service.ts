@@ -21,7 +21,17 @@ export default class StorageService {
     isPublic: boolean = true
   ): Promise<{ url: string; path: string }> {
     if (this.storageDriver === 's3') {
-      return await this.uploadToS3(file, folder, isPublic)
+      try {
+        console.log(' Debug - Attempting S3 upload...')
+        const result = await this.uploadToS3(file, folder, isPublic)
+        console.log('✅ S3 upload successful')
+        return result
+      } catch (error) {
+        console.warn('⚠️ S3 upload failed, fallback to local:', error.message)
+        console.log('🔍 Debug - S3 Config:', this.s3Service.getConfigInfo())
+        // ✅ FALLBACK: Jika S3 gagal, gunakan local
+        return await this.uploadToLocal(file, folder)
+      }
     } else {
       return await this.uploadToLocal(file, folder)
     }
@@ -72,7 +82,12 @@ export default class StorageService {
    */
   async deleteFile(path: string): Promise<boolean> {
     if (this.storageDriver === 's3') {
-      return await this.s3Service.deleteFile(path)
+      try {
+        return await this.s3Service.deleteFile(path)
+      } catch (error) {
+        console.warn('⚠️ S3 delete failed:', error.message)
+        return false
+      }
     } else {
       // Local file deletion logic
       const fs = await import('fs/promises')
@@ -93,9 +108,37 @@ export default class StorageService {
    */
   getFileUrl(path: string): string {
     if (this.storageDriver === 's3') {
-      return this.s3Service.getPublicUrl(path)
+      try {
+        return this.s3Service.getPublicUrl(path)
+      } catch (error) {
+        console.warn('⚠️ S3 URL generation failed, fallback to local:', error.message)
+        return `${env.get('HOST')}/${path}`
+      }
     } else {
       return `${env.get('HOST')}/${path}`
+    }
+  }
+
+  /**
+   * Test storage service
+   */
+  async testStorage(): Promise<{ s3: boolean; local: boolean }> {
+    const s3Test = await this.s3Service.testConnection()
+    
+    // Test local storage
+    let localTest = false
+    try {
+      const fs = await import('fs/promises')
+      const testPath = app.publicPath('uploads/test')
+      await fs.access(testPath).catch(() => fs.mkdir(testPath, { recursive: true }))
+      localTest = true
+    } catch (error) {
+      console.error('❌ Local storage test failed:', error)
+    }
+
+    return {
+      s3: s3Test,
+      local: localTest
     }
   }
 }
