@@ -9,11 +9,6 @@ import Cabang from '#models/cabang'
 import SalesOrderItem from '#models/sales_order_item'
 import { salesOrderValidator, updateSalesOrderValidator } from '#validators/sale'
 import { toRoman } from '#helper/bulan_romawi'
-import Mail from '@adonisjs/mail/services/main'
-import SalesOrderCreated from '#mails/sales_order_created'
-import Customer from '#models/customer'
-import Perusahaan from '#models/perusahaan'
-import Quotation from '#models/quotation'
 import { DateTime } from 'luxon';
 
 export default class SalesController {
@@ -384,18 +379,6 @@ export default class SalesController {
       }
 
       await trx.commit()
-
-      // Ambil data terkait untuk email
-      const customer = await Customer.findOrFail(so.customerId)
-      const perusahaan = await Perusahaan.findOrFail(so.perusahaanId)
-      const cabang = await Cabang.findOrFail(so.cabangId)
-
-      // Kirim email notifikasi
-      try {
-        await Mail.send(new SalesOrderCreated(so, customer, perusahaan, cabang))
-      } catch (emailError) {
-        console.error('Email sending failed:', emailError)
-      }
 
       return response.created({
           message: 'Sales Order berhasil dibuat',
