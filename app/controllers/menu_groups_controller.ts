@@ -5,6 +5,14 @@ import { createMenuGroupValidator, updateMenuGroupValidator } from '#validators/
 export default class MenuGroupsController {
   async index({ request, response, auth }: HttpContext) {
     try {
+      // ✅ VALIDASI: Pastikan user ter-autentikasi
+      if (!auth.user) {
+        return response.unauthorized({
+          message: 'User tidak ter-autentikasi',
+          code: 'UNAUTHORIZED'
+        })
+      }
+
       const user = auth.user!
       await user.load('roles', (rolesQuery) => {
         rolesQuery.preload('permissions')
@@ -82,9 +90,14 @@ export default class MenuGroupsController {
 
       return response.ok(menuGroups.toJSON())
     } catch (error) {
+      console.error('❌ Error in MenuGroupsController.index:', error)
       return response.internalServerError({
         message: 'Terjadi kesalahan saat mengambil data menu groups',
-        error,
+        error: {
+          name: error.name,
+          message: error.message,
+          code: error.code || 'MENU_GROUP_INDEX_ERROR'
+        }
       })
     }
   }
@@ -136,8 +149,15 @@ export default class MenuGroupsController {
   }
 
   // Method baru untuk menampilkan semua menu groups tanpa filter permission
-  async getAll({ request, response }: HttpContext) {
+  async getAll({ request, response, auth }: HttpContext) {
     try {
+      // ✅ VALIDASI: Pastikan user ter-autentikasi
+      if (!auth.user) {
+        return response.unauthorized({
+          message: 'User tidak ter-autentikasi',
+          code: 'UNAUTHORIZED'
+        })
+      }
       const page = request.input('page', 1)
       const limit = request.input('rows', 10)
       const search = request.input('search', '')
@@ -180,9 +200,14 @@ export default class MenuGroupsController {
 
       return response.ok(menuGroups.toJSON())
     } catch (error) {
+      console.error('❌ Error in MenuGroupsController.index:', error)
       return response.internalServerError({
         message: 'Terjadi kesalahan saat mengambil data menu groups',
-        error,
+        error: {
+          name: error.name,
+          message: error.message,
+          code: error.code || 'MENU_GROUP_INDEX_ERROR'
+        }
       })
     }
   }

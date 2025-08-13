@@ -11,8 +11,8 @@ import { toRoman } from '#helper/bulan_romawi'
 export default class PurchasesController {
     async index({ request, response }: HttpContext) {
         try {
-            const page         = request.input('page', 1)
-            const limit        = request.input('rows', 10)
+            const page         = parseInt(request.input('page', '1'), 10) || 1
+            const limit        = parseInt(request.input('rows', '10'), 10) || 10
             const search       = request.input('search', '')
             const searchValue  = search || request.input('search.value', '')
             const sortField    = request.input('sortField')
