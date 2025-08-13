@@ -9,6 +9,7 @@ import StorageService from '#services/storage_service'
 export default class CustomersController {
   private storageService: StorageService
 
+  // Constructor
   constructor() {
     this.storageService = new StorageService()
   }
