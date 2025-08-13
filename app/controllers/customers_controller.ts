@@ -107,53 +107,38 @@ export default class CustomersController {
 
     let logoPath: string | null = null
 
-        // Upload file jika ada
+    // Upload file jika ada
     if (payload.logo && payload.logo instanceof MultipartFile) {
       try {
-        console.log('🔍 Debug - Starting logo upload:')
-        console.log('  - File Name:', payload.logo.clientName)
-        console.log('  - File Size:', payload.logo.size)
-        console.log('  - File Type:', payload.logo.type)
-        console.log('  - File Extension:', payload.logo.clientName?.split('.').pop()?.toLowerCase())
-        
-        // ✅ VALIDASI: Pastikan file tidak kosong
+        // Validasi file tidak kosong
         if (!payload.logo.size || payload.logo.size === 0) {
           throw new Error('File logo kosong atau tidak valid')
         }
         
-        // ✅ VALIDASI: Pastikan file adalah image (lebih fleksibel)
+        // Validasi file adalah image
         const fileType = payload.logo.type || ''
         const fileExtension = payload.logo.clientName?.split('.').pop()?.toLowerCase() || ''
         
-        // ✅ Daftar MIME types yang diizinkan (lebih lengkap)
         const allowedMimeTypes = [
           'image/jpeg',
           'image/jpg', 
           'image/png',
-          'image/x-png',  // Beberapa browser menggunakan ini untuk PNG
+          'image/x-png',
           'image/gif',
           'image/webp',
           'image/svg+xml'
         ]
         
-        // ✅ Daftar extensions yang diizinkan
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
         
-        // ✅ Validasi berdasarkan MIME type atau extension
         const isValidMimeType = allowedMimeTypes.includes(fileType)
         const isValidExtension = allowedExtensions.includes(fileExtension)
-        
-        console.log('🔍 Debug - File validation:')
-        console.log('  - MIME Type:', fileType)
-        console.log('  - Extension:', fileExtension)
-        console.log('  - Valid MIME Type:', isValidMimeType)
-        console.log('  - Valid Extension:', isValidExtension)
         
         if (!isValidMimeType && !isValidExtension) {
           throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
         }
         
-        // ✅ VALIDASI: Pastikan file size tidak terlalu besar (max 5MB)
+        // Validasi file size
         const maxSize = 5 * 1024 * 1024 // 5MB
         if (payload.logo.size > maxSize) {
           throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
@@ -165,28 +150,10 @@ export default class CustomersController {
           true // public
         )
         
-        // ✅ SIMPAN URL LENGKAP, bukan path saja
-        logoPath = uploadResult.url  // Gunakan URL lengkap, bukan path
-        console.log('✅ Logo upload successful:')
-        console.log('  - Path:', uploadResult.path)
-        console.log('  - URL:', uploadResult.url)
-        console.log('  - Saved to DB:', logoPath)
-        
-        // ✅ VERIFIKASI: Test URL accessibility
-        try {
-          console.log('🔍 Debug - Testing URL accessibility:', uploadResult.url)
-          const response = await fetch(uploadResult.url, { method: 'HEAD' })
-          console.log('✅ URL accessibility test:', response.status)
-          if (response.status !== 200) {
-            console.warn('⚠️ URL accessibility test failed:', response.status)
-          }
-        } catch (urlError) {
-          console.warn('⚠️ URL accessibility test failed:', urlError.message)
-          console.log('🔍 Debug - URL that failed:', uploadResult.url)
-        }
+        logoPath = uploadResult.url
         
       } catch (err) {
-        console.error('❌ Logo upload failed:', err)
+        console.error('Logo upload failed:', err)
         return response.internalServerError({
           message: 'Gagal menyimpan file logo',
           error: err.message,
@@ -247,53 +214,37 @@ export default class CustomersController {
       let logoPath = customer.logo
 
       // Upload file jika ada
-          // Upload file jika ada
       if (payload.logo && payload.logo instanceof MultipartFile) {
         try {
-          console.log('🔍 Debug - Starting logo upload:')
-          console.log('  - File Name:', payload.logo.clientName)
-          console.log('  - File Size:', payload.logo.size)
-          console.log('  - File Type:', payload.logo.type)
-          console.log('  - File Extension:', payload.logo.clientName?.split('.').pop()?.toLowerCase())
-          
-          // ✅ VALIDASI: Pastikan file tidak kosong
+          // Validasi file tidak kosong
           if (!payload.logo.size || payload.logo.size === 0) {
             throw new Error('File logo kosong atau tidak valid')
           }
           
-          // ✅ VALIDASI: Pastikan file adalah image (lebih fleksibel)
+          // Validasi file adalah image
           const fileType = payload.logo.type || ''
           const fileExtension = payload.logo.clientName?.split('.').pop()?.toLowerCase() || ''
           
-          // ✅ Daftar MIME types yang diizinkan (lebih lengkap)
           const allowedMimeTypes = [
             'image/jpeg',
             'image/jpg', 
             'image/png',
-            'image/x-png',  // Beberapa browser menggunakan ini untuk PNG
+            'image/x-png',
             'image/gif',
             'image/webp',
             'image/svg+xml'
           ]
           
-          // ✅ Daftar extensions yang diizinkan
           const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
           
-          // ✅ Validasi berdasarkan MIME type atau extension
           const isValidMimeType = allowedMimeTypes.includes(fileType)
           const isValidExtension = allowedExtensions.includes(fileExtension)
-          
-          console.log('🔍 Debug - File validation:')
-          console.log('  - MIME Type:', fileType)
-          console.log('  - Extension:', fileExtension)
-          console.log('  - Valid MIME Type:', isValidMimeType)
-          console.log('  - Valid Extension:', isValidExtension)
           
           if (!isValidMimeType && !isValidExtension) {
             throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
           }
           
-          // ✅ VALIDASI: Pastikan file size tidak terlalu besar (max 5MB)
+          // Validasi file size
           const maxSize = 5 * 1024 * 1024 // 5MB
           if (payload.logo.size > maxSize) {
             throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
@@ -302,29 +253,13 @@ export default class CustomersController {
           const uploadResult = await this.storageService.uploadFile(
             payload.logo,
             'customers',
-            true
+            true // public
           )
           
-          // ✅ SIMPAN URL LENGKAP, bukan path saja
-          logoPath = uploadResult.url  // Gunakan URL lengkap, bukan path
-          console.log('✅ Logo updated:')
-          console.log('  - Path:', uploadResult.path)
-          console.log('  - URL:', uploadResult.url)
-          console.log('  - Saved to DB:', logoPath)
-          
-          // ✅ VERIFIKASI: Test URL accessibility
-          try {
-            const response = await fetch(uploadResult.url, { method: 'HEAD' })
-            console.log('✅ URL accessibility test:', response.status)
-            if (response.status !== 200) {
-              console.warn('⚠️ URL accessibility test failed:', response.status)
-            }
-          } catch (urlError) {
-            console.warn('⚠️ URL accessibility test failed:', urlError.message)
-          }
+          logoPath = uploadResult.url
           
         } catch (err) {
-          console.error('❌ Logo upload failed:', err)
+          console.error('Logo upload failed:', err)
           return response.internalServerError({
             message: 'Gagal menyimpan file logo',
             error: err.message,

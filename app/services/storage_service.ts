@@ -22,14 +22,10 @@ export default class StorageService {
   ): Promise<{ url: string; path: string }> {
     if (this.storageDriver === 's3') {
       try {
-        console.log(' Debug - Attempting S3 upload...')
         const result = await this.uploadToS3(file, folder, isPublic)
-        console.log('✅ S3 upload successful')
         return result
       } catch (error) {
-        console.warn('⚠️ S3 upload failed, fallback to local:', error.message)
-        console.log('🔍 Debug - S3 Config:', this.s3Service.getConfigInfo())
-        // ✅ FALLBACK: Jika S3 gagal, gunakan local
+        console.warn('S3 upload failed, fallback to local:', error.message)
         return await this.uploadToLocal(file, folder)
       }
     } else {
@@ -70,23 +66,15 @@ export default class StorageService {
 
     const path = `uploads/${folder}/${fileName}`
     
-    // ✅ Fix URL generation untuk production
     const host = env.get('HOST')
     let url: string
     
     if (host === '0.0.0.0' || host === 'localhost') {
-      // Untuk production, gunakan domain yang sebenarnya
       const apiBase = env.get('APP_URL') || 'https://api.kainnovadigital.com'
       url = `${apiBase}/${path}`
     } else {
       url = `${host}/${path}`
     }
-
-    console.log('🔍 Debug - Local upload URL:', {
-      host,
-      path,
-      finalUrl: url
-    })
 
     return {
       url,
@@ -102,11 +90,10 @@ export default class StorageService {
       try {
         return await this.s3Service.deleteFile(path)
       } catch (error) {
-        console.warn('⚠️ S3 delete failed:', error.message)
+        console.warn('S3 delete failed:', error.message)
         return false
       }
     } else {
-      // Local file deletion logic
       const fs = await import('fs/promises')
       const fullPath = app.publicPath(path)
       
@@ -114,7 +101,7 @@ export default class StorageService {
         await fs.unlink(fullPath)
         return true
       } catch (error) {
-        console.error('❌ Local file delete error:', error)
+        console.error('Local file delete error:', error)
         return false
       }
     }
@@ -128,7 +115,7 @@ export default class StorageService {
       try {
         return this.s3Service.getPublicUrl(path)
       } catch (error) {
-        console.warn('⚠️ S3 URL generation failed, fallback to local:', error.message)
+        console.warn('S3 URL generation failed, fallback to local:', error.message)
         return `${env.get('HOST')}/${path}`
       }
     } else {
@@ -142,7 +129,6 @@ export default class StorageService {
   async testStorage(): Promise<{ s3: boolean; local: boolean }> {
     const s3Test = await this.s3Service.testConnection()
     
-    // Test local storage
     let localTest = false
     try {
       const fs = await import('fs/promises')
@@ -150,7 +136,7 @@ export default class StorageService {
       await fs.access(testPath).catch(() => fs.mkdir(testPath, { recursive: true }))
       localTest = true
     } catch (error) {
-      console.error('❌ Local storage test failed:', error)
+      console.error('Local storage test failed:', error)
     }
 
     return {
