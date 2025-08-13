@@ -107,7 +107,6 @@ export default class CustomersController {
 
     let logoPath: string | null = null
 
-    // Upload file jika ada
         // Upload file jika ada
     if (payload.logo && payload.logo instanceof MultipartFile) {
       try {
@@ -115,16 +114,43 @@ export default class CustomersController {
         console.log('  - File Name:', payload.logo.clientName)
         console.log('  - File Size:', payload.logo.size)
         console.log('  - File Type:', payload.logo.type)
+        console.log('  - File Extension:', payload.logo.clientName?.split('.').pop()?.toLowerCase())
         
         // ✅ VALIDASI: Pastikan file tidak kosong
         if (!payload.logo.size || payload.logo.size === 0) {
           throw new Error('File logo kosong atau tidak valid')
         }
         
-        // ✅ VALIDASI: Pastikan file adalah image
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-        if (!allowedTypes.includes(payload.logo.type || '')) {
-          throw new Error('File harus berupa gambar (JPEG, PNG, GIF, WebP)')
+        // ✅ VALIDASI: Pastikan file adalah image (lebih fleksibel)
+        const fileType = payload.logo.type || ''
+        const fileExtension = payload.logo.clientName?.split('.').pop()?.toLowerCase() || ''
+        
+        // ✅ Daftar MIME types yang diizinkan (lebih lengkap)
+        const allowedMimeTypes = [
+          'image/jpeg',
+          'image/jpg', 
+          'image/png',
+          'image/x-png',  // Beberapa browser menggunakan ini untuk PNG
+          'image/gif',
+          'image/webp',
+          'image/svg+xml'
+        ]
+        
+        // ✅ Daftar extensions yang diizinkan
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+        
+        // ✅ Validasi berdasarkan MIME type atau extension
+        const isValidMimeType = allowedMimeTypes.includes(fileType)
+        const isValidExtension = allowedExtensions.includes(fileExtension)
+        
+        console.log('🔍 Debug - File validation:')
+        console.log('  - MIME Type:', fileType)
+        console.log('  - Extension:', fileExtension)
+        console.log('  - Valid MIME Type:', isValidMimeType)
+        console.log('  - Valid Extension:', isValidExtension)
+        
+        if (!isValidMimeType && !isValidExtension) {
+          throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
         }
         
         // ✅ VALIDASI: Pastikan file size tidak terlalu besar (max 5MB)
@@ -217,22 +243,50 @@ export default class CustomersController {
       let logoPath = customer.logo
 
       // Upload file jika ada
+          // Upload file jika ada
       if (payload.logo && payload.logo instanceof MultipartFile) {
         try {
           console.log('🔍 Debug - Starting logo upload:')
           console.log('  - File Name:', payload.logo.clientName)
           console.log('  - File Size:', payload.logo.size)
           console.log('  - File Type:', payload.logo.type)
+          console.log('  - File Extension:', payload.logo.clientName?.split('.').pop()?.toLowerCase())
           
           // ✅ VALIDASI: Pastikan file tidak kosong
           if (!payload.logo.size || payload.logo.size === 0) {
             throw new Error('File logo kosong atau tidak valid')
           }
           
-          // ✅ VALIDASI: Pastikan file adalah image
-          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-          if (!allowedTypes.includes(payload.logo.type || '')) {
-            throw new Error('File harus berupa gambar (JPEG, PNG, GIF, WebP)')
+          // ✅ VALIDASI: Pastikan file adalah image (lebih fleksibel)
+          const fileType = payload.logo.type || ''
+          const fileExtension = payload.logo.clientName?.split('.').pop()?.toLowerCase() || ''
+          
+          // ✅ Daftar MIME types yang diizinkan (lebih lengkap)
+          const allowedMimeTypes = [
+            'image/jpeg',
+            'image/jpg', 
+            'image/png',
+            'image/x-png',  // Beberapa browser menggunakan ini untuk PNG
+            'image/gif',
+            'image/webp',
+            'image/svg+xml'
+          ]
+          
+          // ✅ Daftar extensions yang diizinkan
+          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+          
+          // ✅ Validasi berdasarkan MIME type atau extension
+          const isValidMimeType = allowedMimeTypes.includes(fileType)
+          const isValidExtension = allowedExtensions.includes(fileExtension)
+          
+          console.log('🔍 Debug - File validation:')
+          console.log('  - MIME Type:', fileType)
+          console.log('  - Extension:', fileExtension)
+          console.log('  - Valid MIME Type:', isValidMimeType)
+          console.log('  - Valid Extension:', isValidExtension)
+          
+          if (!isValidMimeType && !isValidExtension) {
+            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
           }
           
           // ✅ VALIDASI: Pastikan file size tidak terlalu besar (max 5MB)
