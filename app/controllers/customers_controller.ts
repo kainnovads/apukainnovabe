@@ -165,10 +165,12 @@ export default class CustomersController {
           true // public
         )
         
-        logoPath = uploadResult.path
+        // ✅ SIMPAN URL LENGKAP, bukan path saja
+        logoPath = uploadResult.url  // Gunakan URL lengkap, bukan path
         console.log('✅ Logo upload successful:')
         console.log('  - Path:', uploadResult.path)
         console.log('  - URL:', uploadResult.url)
+        console.log('  - Saved to DB:', logoPath)
         
         // ✅ VERIFIKASI: Test URL accessibility
         try {
@@ -300,13 +302,15 @@ export default class CustomersController {
           const uploadResult = await this.storageService.uploadFile(
             payload.logo,
             'customers',
-            true // public
+            true
           )
           
-          logoPath = uploadResult.path
-          console.log('✅ Logo upload successful:')
+          // ✅ SIMPAN URL LENGKAP, bukan path saja
+          logoPath = uploadResult.url  // Gunakan URL lengkap, bukan path
+          console.log('✅ Logo updated:')
           console.log('  - Path:', uploadResult.path)
           console.log('  - URL:', uploadResult.url)
+          console.log('  - Saved to DB:', logoPath)
           
           // ✅ VERIFIKASI: Test URL accessibility
           try {
