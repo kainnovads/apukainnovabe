@@ -22,7 +22,6 @@ import CabangsController from '#controllers/cabangs_controller'
 import PerusahaansController from '#controllers/perusahaans_controller'
 import AuthController from '#controllers/Http/auth_controller'
 import RolesController from '#controllers/Http/roles_controller'
-import HealthController from '#controllers/health_controller'
 import MenuGroupsController from '#controllers/menu_groups_controller'
 import MenuDetailsController from '#controllers/menu_details_controller'
 import PermissionsController from '#controllers/Http/permissions_controller'
@@ -48,10 +47,6 @@ import QuotationsController from '#controllers/quotations_controller'
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
 })
-
-// Health check routes (tanpa autentikasi untuk monitoring)
-router.get('/health', [HealthController, 'check'])
-router.get('/api/status', [HealthController, 'status'])
 
 router.get('/auth/api/csrf-token', async ({ response, request }) => {
   return response.ok({ token: request.csrfToken })

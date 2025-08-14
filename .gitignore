@@ -25,8 +25,11 @@ yarn-error.log
 # Platform specific
 .DS_Store
 
+public/uploads
+
 ENVIRONMENT_SETUP.md
 PERFORMANCE_OPTIMIZATION.md
+PERFORMANCE_IMPROVEMENTS.md
 setup-sales-invoice-items.ps1
 setup-sales-invoice-items.sh
 SALES_INVOICE_ITEMS_README.md

@@ -26,7 +26,7 @@ export const salesOrderValidator = vine.compile(
     rejectedAt     : vine.date().optional(),
     attachment: vine.file({
       size: '2mb',
-      extnames: ['jpg', 'png', 'pdf', 'docs']
+      extnames: ['jpg', 'png', 'pdf', 'docs', 'doc', 'docx', 'xls', 'xlsx', 'csv']
     }).optional(),
 
     salesOrderItems: vine.array(
@@ -70,7 +70,7 @@ export const updateSalesOrderValidator = vine.compile(
     rejectedAt     : vine.date().optional(),
     attachment: vine.file({
       size: '2mb',
-      extnames: ['jpg', 'png', 'pdf', 'docs']
+      extnames: ['jpg', 'png', 'pdf', 'docs', 'doc', 'docx', 'xls', 'xlsx', 'csv']
     }).optional(),
 
     salesOrderItems: vine.array(

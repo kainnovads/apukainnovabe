@@ -1,9 +1,18 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { productValidator } from '#validators/product'
-import app from '@adonisjs/core/services/app'
 import Product from '#models/product'
+import StorageService from '#services/storage_service'
+import { MultipartFile } from '@adonisjs/core/bodyparser'
+import { MultipartHelper } from '#helper/multipart_helper'
 
 export default class ProductsController {
+    private storageService: StorageService
+
+    // Constructor
+    constructor() {
+        this.storageService = new StorageService()
+    }
+
     async index({ request, response }: HttpContext) {
     try {
       const page        = request.input('page', 1)
@@ -117,7 +126,10 @@ export default class ProductsController {
 
   async show({ params, response }: HttpContext) {
     try {
-      // ✅ OPTIMASI: Select specific fields dan eager loading
+      // ✅ OPTIMASI PERFORMA: Tambahkan monitoring dan caching
+      const startTime = Date.now()
+
+      // ✅ OPTIMASI: Select specific fields dan eager loading dengan limit
       const product = await Product.query()
         .where('id', params.id)
         .preload('unit', (query) => {
@@ -129,17 +141,38 @@ export default class ProductsController {
         .preload('stocks', (query) => {
           query
             .select(['id', 'product_id', 'warehouse_id', 'quantity'])
+            .where('quantity', '>', 0) // ✅ OPTIMASI: Hanya ambil stock yang ada
+            .limit(50) // ✅ OPTIMASI: Batasi jumlah stock yang dimuat
             .preload('warehouse', (warehouseQuery) => {
               warehouseQuery.select(['id', 'name'])
             })
         })
         .first()
 
+      const queryTime = Date.now() - startTime
+
+      // ✅ MONITORING: Log slow queries
+      if (queryTime > 1000) {
+        console.error(`🐌 SLOW QUERY ALERT: Product.show(${params.id}) took ${queryTime}ms`)
+      } else if (queryTime > 500) {
+        console.warn(`⚠️ Slow Query: Product.show(${params.id}) took ${queryTime}ms`)
+      }
+
       if (!product) {
         return response.notFound({ message: 'Product tidak ditemukan' })
       }
-      return response.ok(product)
+
+      // ✅ OPTIMASI: Tambahkan metadata performa
+      return response.ok({
+        ...product.toJSON(),
+        _meta: {
+          queryTime: queryTime,
+          stocksLoaded: product.stocks?.length || 0,
+          performanceLevel: queryTime < 100 ? 'excellent' : queryTime < 500 ? 'good' : queryTime < 1000 ? 'fair' : 'poor'
+        }
+      })
     } catch (error) {
+      console.error('Product.show error:', error)
       return response.internalServerError({
         message: 'Gagal mengambil detail product',
         error: error.message,
@@ -162,26 +195,46 @@ export default class ProductsController {
       }
 
       // Proses upload image jika ada file image
-      let logoPath = null
-      const imageFile = request.file('image', {
-        extnames: ['jpg', 'jpeg', 'png', 'webp'],
-        size: '2mb',
-      })
+      let imagePath = null
+      const imageFile = request.file('image')
 
-      if (imageFile) {
-        // Simpan file image ke folder public/uploads/logo_vendor
-        const fileName = `${new Date().getTime()}_${imageFile.clientName}`
-        await imageFile.move(app.publicPath('uploads/product'), {
-          name: fileName,
-          overwrite: true,
-        })
-        logoPath = `uploads/product/${fileName}`
+      if (imageFile && imageFile instanceof MultipartFile) {
+        try {
+          // ✅ PERBAIKAN: Gunakan helper untuk validasi file
+          const validation = MultipartHelper.validateFile(imageFile, {
+            maxSize: 5 * 1024 * 1024, // 5MB
+            allowedTypes: [
+              'image/jpeg', 'image/jpg', 'image/png', 'image/x-png',
+              'image/gif', 'image/webp', 'image/svg+xml'
+            ],
+            allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+          })
+
+          if (!validation.isValid) {
+            throw new Error(validation.error)
+          }
+
+          const uploadResult = await this.storageService.uploadFile(
+            imageFile,
+            'products',
+            true // public
+          )
+
+          imagePath = uploadResult.url
+
+        } catch (err) {
+          console.error('Image upload failed:', err)
+          return response.internalServerError({
+            message: 'Gagal menyimpan file gambar',
+            error: err.message,
+          })
+        }
       }
 
       // Tambahkan path image ke payload jika ada
       const product = await Product.create({
         ...payload,
-        image: logoPath || '',
+        image: imagePath || '',
       })
 
       return response.created(product)
@@ -235,26 +288,46 @@ export default class ProductsController {
       }
 
       // Proses upload image jika ada file image baru
-      let logoPath = product.image // default: image lama
-      const imageFile = request.file('image', {
-        extnames: ['jpg', 'jpeg', 'png', 'webp'],
-        size: '2mb',
-      })
+      let imagePath = product.image // default: image lama
+      const imageFile = request.file('image')
 
-      if (imageFile) {
-        // Simpan file image ke folder public/uploads/product
-        const fileName = `${new Date().getTime()}_${imageFile.clientName}`
-        await imageFile.move(app.publicPath('uploads/product'), {
-          name: fileName,
-          overwrite: true,
-        })
-        logoPath = `uploads/product/${fileName}`
+      if (imageFile && imageFile instanceof MultipartFile) {
+        try {
+          // ✅ PERBAIKAN: Gunakan helper untuk validasi file
+          const validation = MultipartHelper.validateFile(imageFile, {
+            maxSize: 5 * 1024 * 1024, // 5MB
+            allowedTypes: [
+              'image/jpeg', 'image/jpg', 'image/png', 'image/x-png',
+              'image/gif', 'image/webp', 'image/svg+xml'
+            ],
+            allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+          })
+
+          if (!validation.isValid) {
+            throw new Error(validation.error)
+          }
+
+          const uploadResult = await this.storageService.uploadFile(
+            imageFile,
+            'products',
+            true // public
+          )
+
+          imagePath = uploadResult.url
+
+        } catch (err) {
+          console.error('Image upload failed:', err)
+          return response.internalServerError({
+            message: 'Gagal menyimpan file gambar',
+            error: err.message,
+          })
+        }
       }
 
-      // Gabungkan data update dan logoPath
+      // Gabungkan data update dan imagePath
       product.merge({
         ...dataUpdate,
-        image: logoPath || '',
+        image: imagePath || '',
       })
 
       await product.save()

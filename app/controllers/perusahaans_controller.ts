@@ -4,9 +4,16 @@ import {
   perusahaanValidator,
   updatePerusahaanValidator,
 } from '#validators/perusahaan_cabang'
-import app from '@adonisjs/core/services/app'
+import StorageService from '#services/storage_service'
+import { MultipartFile } from '@adonisjs/core/bodyparser'
 
 export default class PerusahaansController {
+  private storageService: StorageService
+
+  constructor() {
+    this.storageService = new StorageService()
+  }
+
   async index({ request, response }: HttpContext) {
     try {
       const page   = request.input('page', 1)
@@ -70,13 +77,57 @@ export default class PerusahaansController {
 
       // Proses upload logo jika ada file logo
       let logoPath: string | null = null
-      if (payload.logoPerusahaan) {
-        const fileName = `${new Date().getTime()}_${payload.logoPerusahaan.clientName}`
-        await payload.logoPerusahaan.move(app.publicPath('uploads/perusahaan'), {
-          name: fileName,
-          overwrite: true,
-        })
-        logoPath = `uploads/perusahaan/${fileName}`
+      if (payload.logoPerusahaan && payload.logoPerusahaan instanceof MultipartFile) {
+        try {
+          // Validasi file tidak kosong
+          if (!payload.logoPerusahaan.size || payload.logoPerusahaan.size === 0) {
+            throw new Error('File logo kosong atau tidak valid')
+          }
+
+          // Validasi file adalah image
+          const fileType = payload.logoPerusahaan.type || ''
+          const fileExtension = payload.logoPerusahaan.clientName?.split('.').pop()?.toLowerCase() || ''
+
+          const allowedMimeTypes = [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/x-png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml'
+          ]
+
+          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+          const isValidMimeType = allowedMimeTypes.includes(fileType)
+          const isValidExtension = allowedExtensions.includes(fileExtension)
+
+          if (!isValidMimeType && !isValidExtension) {
+            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+          }
+
+          // Validasi file size
+          const maxSize = 5 * 1024 * 1024 // 5MB
+          if (payload.logoPerusahaan.size > maxSize) {
+            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
+          }
+
+          const uploadResult = await this.storageService.uploadFile(
+            payload.logoPerusahaan,
+            'perusahaan',
+            true // public
+          )
+
+          logoPath = uploadResult.url
+
+        } catch (err) {
+          console.error('Logo upload failed:', err)
+          return response.internalServerError({
+            message: 'Gagal menyimpan file logo',
+            error: err.message,
+          })
+        }
       }
 
       // Tambahkan path logo ke payload jika ada
@@ -116,14 +167,57 @@ export default class PerusahaansController {
 
       // Proses upload logo jika ada file logo baru
       let logoPath = perusahaan.logoPerusahaan
-      if (payload.logoPerusahaan) {
-        // Simpan file logo ke folder public/uploads/perusahaan
-        const fileName = `${new Date().getTime()}_${payload.logoPerusahaan.clientName}`
-        await payload.logoPerusahaan.move(app.publicPath('uploads/perusahaan'), {
-          name: fileName,
-          overwrite: true,
-        })
-        logoPath = `uploads/perusahaan/${fileName}`
+      if (payload.logoPerusahaan && payload.logoPerusahaan instanceof MultipartFile) {
+        try {
+          // Validasi file tidak kosong
+          if (!payload.logoPerusahaan.size || payload.logoPerusahaan.size === 0) {
+            throw new Error('File logo kosong atau tidak valid')
+          }
+
+          // Validasi file adalah image
+          const fileType = payload.logoPerusahaan.type || ''
+          const fileExtension = payload.logoPerusahaan.clientName?.split('.').pop()?.toLowerCase() || ''
+
+          const allowedMimeTypes = [
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/x-png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml'
+          ]
+
+          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+          const isValidMimeType = allowedMimeTypes.includes(fileType)
+          const isValidExtension = allowedExtensions.includes(fileExtension)
+
+          if (!isValidMimeType && !isValidExtension) {
+            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+          }
+
+          // Validasi file size
+          const maxSize = 5 * 1024 * 1024 // 5MB
+          if (payload.logoPerusahaan.size > maxSize) {
+            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
+          }
+
+          const uploadResult = await this.storageService.uploadFile(
+            payload.logoPerusahaan,
+            'perusahaan',
+            true // public
+          )
+
+          logoPath = uploadResult.url
+
+        } catch (err) {
+          console.error('Logo upload failed:', err)
+          return response.internalServerError({
+            message: 'Gagal menyimpan file logo',
+            error: err.message,
+          })
+        }
       }
 
       // Gabungkan payload dan logoPath

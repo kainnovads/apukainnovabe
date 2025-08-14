@@ -20,8 +20,8 @@ export default class CustomersController {
       const limit       = request.input('rows', 10)
       const search      = request.input('search', '')
       const searchValue = search || request.input('search.value', '')
-      const sortField = request.input('sortField', 'id')
-      const sortOrder = request.input('sortOrder', 'asc')
+      const sortField   = request.input('sortField', 'id')
+      const sortOrder   = request.input('sortOrder', 'asc')
 
       // Query customer dengan filter search jika ada
       let dataQuery = Customer.query().orderBy(sortField, sortOrder as 'asc' | 'desc')
@@ -114,44 +114,44 @@ export default class CustomersController {
         if (!payload.logo.size || payload.logo.size === 0) {
           throw new Error('File logo kosong atau tidak valid')
         }
-        
+
         // Validasi file adalah image
         const fileType = payload.logo.type || ''
         const fileExtension = payload.logo.clientName?.split('.').pop()?.toLowerCase() || ''
-        
+
         const allowedMimeTypes = [
           'image/jpeg',
-          'image/jpg', 
+          'image/jpg',
           'image/png',
           'image/x-png',
           'image/gif',
           'image/webp',
           'image/svg+xml'
         ]
-        
+
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-        
+
         const isValidMimeType = allowedMimeTypes.includes(fileType)
         const isValidExtension = allowedExtensions.includes(fileExtension)
-        
+
         if (!isValidMimeType && !isValidExtension) {
           throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
         }
-        
+
         // Validasi file size
         const maxSize = 5 * 1024 * 1024 // 5MB
         if (payload.logo.size > maxSize) {
           throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
         }
-        
+
         const uploadResult = await this.storageService.uploadFile(
           payload.logo,
           'customers',
           true // public
         )
-        
+
         logoPath = uploadResult.url
-        
+
       } catch (err) {
         console.error('Logo upload failed:', err)
         return response.internalServerError({
@@ -220,44 +220,44 @@ export default class CustomersController {
           if (!payload.logo.size || payload.logo.size === 0) {
             throw new Error('File logo kosong atau tidak valid')
           }
-          
+
           // Validasi file adalah image
           const fileType = payload.logo.type || ''
           const fileExtension = payload.logo.clientName?.split('.').pop()?.toLowerCase() || ''
-          
+
           const allowedMimeTypes = [
             'image/jpeg',
-            'image/jpg', 
+            'image/jpg',
             'image/png',
             'image/x-png',
             'image/gif',
             'image/webp',
             'image/svg+xml'
           ]
-          
+
           const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-          
+
           const isValidMimeType = allowedMimeTypes.includes(fileType)
           const isValidExtension = allowedExtensions.includes(fileExtension)
-          
+
           if (!isValidMimeType && !isValidExtension) {
             throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
           }
-          
+
           // Validasi file size
           const maxSize = 5 * 1024 * 1024 // 5MB
           if (payload.logo.size > maxSize) {
             throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
           }
-          
+
           const uploadResult = await this.storageService.uploadFile(
             payload.logo,
             'customers',
             true // public
           )
-          
+
           logoPath = uploadResult.url
-          
+
         } catch (err) {
           console.error('Logo upload failed:', err)
           return response.internalServerError({

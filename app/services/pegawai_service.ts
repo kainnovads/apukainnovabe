@@ -4,16 +4,22 @@ import Role from '#models/auth/role'
 import Pegawai from '#models/pegawai'
 import PegawaiHistory from '#models/pegawai_history'
 import { DateTime } from 'luxon'
-import { cuid } from '@adonisjs/core/helpers'
-import app from '@adonisjs/core/services/app'
-import type { MultipartFile } from '@adonisjs/core/bodyparser'
+import { MultipartFile } from '@adonisjs/core/bodyparser'
 import db from '@adonisjs/lucid/services/db'
+import StorageService from '#services/storage_service'
 
 export default class PegawaiService {
+  private storageService: StorageService
+
+  // Constructor
+  constructor() {
+    this.storageService = new StorageService()
+  }
+
   /**
    * Create Pegawai + User + Role + Histori
    */
-  public static async createPegawaiWithUser(
+  public async createPegawaiWithUser(
     pegawaiData: any,
     historyData: any,
     avatar?: MultipartFile,
@@ -25,13 +31,57 @@ export default class PegawaiService {
         let avatarPath: string | null = null
 
         // 1. Handle avatar upload
-        if (avatar) {
-          const fileName = `${cuid()}.${avatar.extname}`
-          await avatar.move(app.publicPath('uploads'), {
-            name: fileName,
-            overwrite: true,
-          })
-          avatarPath = `uploads/${fileName}`
+        if (avatar && avatar instanceof MultipartFile) {
+          try {
+            // Validasi file tidak kosong
+            if (!avatar.size || avatar.size === 0) {
+              throw new Error('File logo kosong atau tidak valid')
+            }
+
+            // Validasi file adalah image
+            const fileType = avatar.type || ''
+            const fileExtension = avatar.clientName?.split('.').pop()?.toLowerCase() || ''
+
+            const allowedMimeTypes = [
+              'image/jpeg',
+              'image/jpg',
+              'image/png',
+              'image/x-png',
+              'image/gif',
+              'image/webp',
+              'image/svg+xml'
+            ]
+
+            const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+            const isValidMimeType = allowedMimeTypes.includes(fileType)
+            const isValidExtension = allowedExtensions.includes(fileExtension)
+
+            if (!isValidMimeType && !isValidExtension) {
+              throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+            }
+
+            // Validasi file size
+            const maxSize = 5 * 1024 * 1024 // 5MB
+            if (avatar.size > maxSize) {
+              throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
+            }
+
+            const uploadResult = await this.storageService.uploadFile(
+              avatar,
+              'pegawai',
+              true // public
+            )
+
+            avatarPath = uploadResult.url
+
+          } catch (err) {
+            console.error('Logo upload failed:', err)
+            return {
+              message: 'Gagal menyimpan file logo',
+              error: err.message,
+            }
+          }
         }
 
         // 2. Create user (biarkan plaintext, AuthFinder akan handle hash)

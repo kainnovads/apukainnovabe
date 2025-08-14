@@ -4,11 +4,18 @@ import PurchaseOrderItem from "#models/purchase_order_item"
 import { purchaseOrderValidator, updatePurchaseOrderValidator } from "#validators/purchase"
 import { MultipartFile } from "@adonisjs/core/bodyparser"
 import type { HttpContext } from "@adonisjs/core/http"
-import app from "@adonisjs/core/services/app"
 import db from "@adonisjs/lucid/services/db"
 import { toRoman } from '#helper/bulan_romawi'
+import StorageService from '#services/storage_service'
 
 export default class PurchasesController {
+    private storageService: StorageService
+
+    // Constructor
+    constructor() {
+        this.storageService = new StorageService()
+    }
+
     async index({ request, response }: HttpContext) {
         try {
             const page         = parseInt(request.input('page', '1'), 10) || 1
@@ -243,24 +250,57 @@ export default class PurchasesController {
         // Upload file jika ada
         if (payload.attachment && payload.attachment instanceof MultipartFile) {
             try {
-                const fileName = `${Date.now()}_${payload.attachment.clientName}`
-                await payload.attachment.move(app.publicPath('uploads/purchase_orders'), {
-                    name: fileName,
-                    overwrite: true,
-                })
-
-                if (!payload.attachment.isValid) {
-                    return response.badRequest({
-                        message: 'Gagal upload file attachment',
-                        error: payload.attachment.errors.map(error => error.message),
-                    })
+                // Validasi file tidak kosong
+                if (!payload.attachment.size || payload.attachment.size === 0) {
+                    throw new Error('File attachment kosong atau tidak valid')
                 }
 
-                attachmentPath = `uploads/purchase_orders/${fileName}`
+                // Validasi file type
+                const fileType = payload.attachment.type || ''
+                const fileExtension = payload.attachment.clientName?.split('.').pop()?.toLowerCase() || ''
+
+                const allowedMimeTypes = [
+                    'application/pdf',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'image/jpeg',
+                    'image/jpg',
+                    'image/png',
+                    'image/gif',
+                    'image/webp',
+                    'image/svg+xml'
+                ]
+
+                const allowedExtensions = ['pdf', 'xlsx', 'xls', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+                const isValidMimeType = allowedMimeTypes.includes(fileType)
+                const isValidExtension = allowedExtensions.includes(fileExtension)
+
+                if (!isValidMimeType && !isValidExtension) {
+                    throw new Error(`File harus berupa PDF, Excel, atau gambar. Detected: MIME=${fileType}, Ext=${fileExtension}`)
+                }
+
+                // Validasi file size (10MB)
+                const maxSize = 10 * 1024 * 1024
+                if (payload.attachment.size > maxSize) {
+                    throw new Error('Ukuran file terlalu besar (maksimal 10MB)')
+                }
+
+                const uploadResult = await this.storageService.uploadFile(
+                    payload.attachment,
+                    'purchase_orders',
+                    true // public
+                )
+
+                attachmentPath = uploadResult.url
+
             } catch (err) {
+                console.error('Attachment upload failed:', err)
                 return response.internalServerError({
-                message: 'Gagal menyimpan file attachment',
-                error: err.message,
+                    message: 'Gagal menyimpan file attachment',
+                    error: err.message,
                 })
             }
         }
@@ -352,23 +392,64 @@ export default class PurchasesController {
         try {
             const po = await PurchaseOrder.findOrFail(params.id, { client: trx })
 
-            // Optional: delete old file
+            // Handle file upload
             let attachmentPath = po.attachment
-            if (payload.attachment && payload.attachment instanceof MultipartFile) {
-                const fileName = `${Date.now()}_${payload.attachment.clientName}`
-                await payload.attachment.move(app.publicPath('uploads/purchase_orders'), {
-                    name: fileName,
-                    overwrite: true,
-                })
 
-                if (!payload.attachment.isValid) {
-                    return response.badRequest({
-                    message: 'Gagal upload file attachment',
-                    error: payload.attachment.errors.map(e => e.message),
+            if (payload.attachment && payload.attachment instanceof MultipartFile) {
+                try {
+                    // Validasi file tidak kosong
+                    if (!payload.attachment.size || payload.attachment.size === 0) {
+                        throw new Error('File attachment kosong atau tidak valid')
+                    }
+
+                    // Validasi file type
+                    const fileType = payload.attachment.type || ''
+                    const fileExtension = payload.attachment.clientName?.split('.').pop()?.toLowerCase() || ''
+
+                    const allowedMimeTypes = [
+                        'application/pdf',
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/vnd.ms-excel',
+                        'application/msword',
+                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'image/jpeg',
+                        'image/jpg',
+                        'image/png',
+                        'image/gif',
+                        'image/webp',
+                        'image/svg+xml'
+                    ]
+
+                    const allowedExtensions = ['pdf', 'xlsx', 'xls', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+                    const isValidMimeType = allowedMimeTypes.includes(fileType)
+                    const isValidExtension = allowedExtensions.includes(fileExtension)
+
+                    if (!isValidMimeType && !isValidExtension) {
+                        throw new Error(`File harus berupa PDF, Excel, atau gambar. Detected: MIME=${fileType}, Ext=${fileExtension}`)
+                    }
+
+                    // Validasi file size (10MB)
+                    const maxSize = 10 * 1024 * 1024
+                    if (payload.attachment.size > maxSize) {
+                        throw new Error('Ukuran file terlalu besar (maksimal 10MB)')
+                    }
+
+                    const uploadResult = await this.storageService.uploadFile(
+                        payload.attachment,
+                        'purchase_orders',
+                        true // public
+                    )
+
+                    attachmentPath = uploadResult.url
+
+                } catch (err) {
+                    console.error('Attachment upload failed:', err)
+                    return response.internalServerError({
+                        message: 'Gagal menyimpan file attachment',
+                        error: err.message,
                     })
                 }
-
-                attachmentPath = `uploads/purchase_orders/${fileName}`
             }
 
             const subtotal      = items.reduce((sum, item) => sum + item.quantity * item.price, 0)

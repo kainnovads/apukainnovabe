@@ -3,15 +3,22 @@ import SalesOrder from '#models/sales_order'
 import SalesInvoice from '#models/sales_invoice'
 import SalesInvoiceItem from '#models/sales_invoice_item'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
-import app from '@adonisjs/core/services/app'
 import db from '@adonisjs/lucid/services/db'
 import Cabang from '#models/cabang'
 import SalesOrderItem from '#models/sales_order_item'
 import { salesOrderValidator, updateSalesOrderValidator } from '#validators/sale'
 import { toRoman } from '#helper/bulan_romawi'
 import { DateTime } from 'luxon';
+import StorageService from '#services/storage_service'
 
 export default class SalesController {
+  private storageService: StorageService
+
+  // Constructor
+  constructor() {
+    this.storageService = new StorageService()
+  }
+
   async index({ request, response }: HttpContext) {
     try {
       const page         = parseInt(request.input('page', '1'), 10) || 1
@@ -302,24 +309,55 @@ export default class SalesController {
     // Upload file jika ada
     if (payload.attachment && payload.attachment instanceof MultipartFile) {
       try {
-        const fileName = `${Date.now()}_${payload.attachment.clientName}`
-        await payload.attachment.move(app.publicPath('uploads/sales_orders'), {
-          name     : fileName,
-          overwrite: true,
-        })
-
-        if (!payload.attachment.isValid) {
-          return response.badRequest({
-            message: 'Gagal upload file attachment',
-            error: payload.attachment.errors.map((error: any) => error.message),
-          })
+        // Validasi file tidak kosong
+        if (!payload.attachment.size || payload.attachment.size === 0) {
+          throw new Error('File attachment kosong atau tidak valid')
         }
 
-        attachmentPath = `uploads/sales_orders/${fileName}`
+        // Validasi file type
+        const fileType = payload.attachment.type || ''
+        const fileExtension = payload.attachment.clientName?.split('.').pop()?.toLowerCase() || ''
+
+        const allowedMimeTypes = [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel',
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'image/svg+xml'
+        ]
+
+        const allowedExtensions = ['pdf', 'xlsx', 'xls', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+        const isValidMimeType = allowedMimeTypes.includes(fileType)
+        const isValidExtension = allowedExtensions.includes(fileExtension)
+
+        if (!isValidMimeType && !isValidExtension) {
+          throw new Error(`File harus berupa PDF, Excel, atau gambar. Detected: MIME=${fileType}, Ext=${fileExtension}`)
+        }
+
+        // Validasi file size (10MB)
+        const maxSize = 10 * 1024 * 1024
+        if (payload.attachment.size > maxSize) {
+          throw new Error('Ukuran file terlalu besar (maksimal 10MB)')
+        }
+
+        const uploadResult = await this.storageService.uploadFile(
+          payload.attachment,
+          'sales_orders',
+          true // public
+        )
+
+        attachmentPath = uploadResult.url
+
       } catch (err) {
+        console.error('Attachment upload failed:', err)
         return response.internalServerError({
-        message: 'Gagal menyimpan file attachment',
-        error: err.message,
+          message: 'Gagal menyimpan file attachment',
+          error: err.message,
         })
       }
     }
@@ -406,23 +444,62 @@ export default class SalesController {
     try {
         const so = await SalesOrder.findOrFail(params.id, { client: trx })
 
-        // Optional: delete old file
+        // Handle file upload
         let attachmentPath = so.attachment
-        if (payload.attachment && payload.attachment instanceof MultipartFile) {
-            const fileName = `${Date.now()}_${payload.attachment.clientName}`
-            await payload.attachment.move(app.publicPath('uploads/sales_orders'), {
-                name: fileName,
-                overwrite: true,
-            })
 
-            if (!payload.attachment.isValid) {
-                return response.badRequest({
-                message: 'Gagal upload file attachment',
-                error: payload.attachment.errors.map((e: any) => e.message),
+        if (payload.attachment && payload.attachment instanceof MultipartFile) {
+            try {
+                // Validasi file tidak kosong
+                if (!payload.attachment.size || payload.attachment.size === 0) {
+                    throw new Error('File attachment kosong atau tidak valid')
+                }
+
+                // Validasi file type
+                const fileType = payload.attachment.type || ''
+                const fileExtension = payload.attachment.clientName?.split('.').pop()?.toLowerCase() || ''
+
+                const allowedMimeTypes = [
+                    'application/pdf',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.ms-excel',
+                    'image/jpeg',
+                    'image/jpg',
+                    'image/png',
+                    'image/gif',
+                    'image/webp',
+                    'image/svg+xml'
+                ]
+
+                const allowedExtensions = ['pdf', 'xlsx', 'xls', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+                const isValidMimeType = allowedMimeTypes.includes(fileType)
+                const isValidExtension = allowedExtensions.includes(fileExtension)
+
+                if (!isValidMimeType && !isValidExtension) {
+                    throw new Error(`File harus berupa PDF, Excel, atau gambar. Detected: MIME=${fileType}, Ext=${fileExtension}`)
+                }
+
+                // Validasi file size (10MB)
+                const maxSize = 10 * 1024 * 1024
+                if (payload.attachment.size > maxSize) {
+                    throw new Error('Ukuran file terlalu besar (maksimal 10MB)')
+                }
+
+                const uploadResult = await this.storageService.uploadFile(
+                    payload.attachment,
+                    'sales_orders',
+                    true // public
+                )
+
+                attachmentPath = uploadResult.url
+
+            } catch (err) {
+                console.error('Attachment upload failed:', err)
+                return response.internalServerError({
+                    message: 'Gagal menyimpan file attachment',
+                    error: err.message,
                 })
             }
-
-            attachmentPath = `uploads/sales_orders/${fileName}`
         }
 
         const subtotal      = items.reduce((sum, item) => sum + item.quantity * item.price, 0)

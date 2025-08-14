@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import env from '#start/env'
+import { MultipartHelper } from '../helpers/multipart_helper.js'
 
 export default class S3Service {
   private s3Client: S3Client | null = null
@@ -11,7 +12,7 @@ export default class S3Service {
   constructor() {
     this.region = env.get('AWS_REGION', 'us-east-1')
     this.bucketName = env.get('AWS_S3_BUCKET_NAME', '')
-    
+
     this.initializeS3Client()
   }
 
@@ -79,7 +80,7 @@ export default class S3Service {
       })
 
       await this.s3Client!.send(command)
-      
+
       // Return public URL jika public, atau signed URL jika private
       if (isPublic) {
         const url = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`
@@ -106,71 +107,26 @@ export default class S3Service {
       throw new Error('S3 service tidak tersedia. Periksa AWS credentials dan bucket configuration.')
     }
 
-    try {
-      const fileName = `${Date.now()}_${multipartFile.clientName}`
+        try {
+      // ✅ PERBAIKAN: Gunakan helper untuk generate nama file yang aman
+      const fileName = MultipartHelper.generateSafeFileName(multipartFile.clientName || 'unknown')
       const key = `${folder}/${fileName}`
-      
-      if (!multipartFile.size || multipartFile.size === 0) {
-        throw new Error('File kosong atau tidak valid')
+
+      // ✅ PERBAIKAN: Validasi file menggunakan helper
+      const validation = MultipartHelper.validateFile(multipartFile)
+      if (!validation.isValid) {
+        throw new Error(validation.error)
       }
-      
-      // Baca file content dengan validasi yang lebih robust
-      let fileContent: Buffer
-      try {
-        if (multipartFile.buffer) {
-          fileContent = await multipartFile.buffer
-        } else if (multipartFile.tmpPath) {
-          const fs = await import('fs/promises')
-          fileContent = await fs.readFile(multipartFile.tmpPath)
-        } else if (multipartFile.stream) {
-          const chunks: Buffer[] = []
-          for await (const chunk of multipartFile.stream()) {
-            chunks.push(chunk)
-          }
-          fileContent = Buffer.concat(chunks)
-        } else {
-          throw new Error('Tidak dapat membaca file content')
-        }
-        
-        if (!fileContent || fileContent.length === 0) {
-          throw new Error('File buffer kosong')
-        }
-        
-        if (fileContent.length !== multipartFile.size) {
-          console.warn('Buffer size tidak sesuai dengan file size:', {
-            bufferSize: fileContent.length,
-            fileSize: multipartFile.size
-          })
-        }
-        
-      } catch (bufferError) {
-        console.error('Error reading file buffer:', bufferError)
-        throw new Error(`Gagal membaca file content: ${bufferError.message}`)
-      }
-      
-      // Fix MIME type jika tidak lengkap
+
+      // ✅ PERBAIKAN: Baca file content menggunakan helper yang lebih robust
+      const fileContent = await MultipartHelper.readFileBuffer(multipartFile)
+
+      // ✅ PERBAIKAN: Fix MIME type menggunakan helper
       let contentType = multipartFile.type
       if (!contentType || contentType === 'image') {
-        const extension = multipartFile.clientName?.split('.').pop()?.toLowerCase()
-        switch (extension) {
-          case 'png':
-            contentType = 'image/png'
-            break
-          case 'jpg':
-          case 'jpeg':
-            contentType = 'image/jpeg'
-            break
-          case 'gif':
-            contentType = 'image/gif'
-            break
-          case 'webp':
-            contentType = 'image/webp'
-            break
-          default:
-            contentType = 'application/octet-stream'
-        }
+        contentType = MultipartHelper.detectMimeType(multipartFile.clientName || '')
       }
-      
+
       const url = await this.uploadFile(
         fileContent,
         key,

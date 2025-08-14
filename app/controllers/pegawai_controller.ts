@@ -12,6 +12,12 @@ import Cabang from '#models/cabang'
 import User from '#models/auth/user'
 
 export default class PegawaiController {
+  private pegawaiService: PegawaiService
+
+  constructor() {
+    this.pegawaiService = new PegawaiService()
+  }
+
   async index({ request, response }: HttpContext) {
     try {
       // Ambil parameter datatable
@@ -176,7 +182,7 @@ export default class PegawaiController {
       const avatar = request.file('avatar')
 
       // Kirim ke service
-      await PegawaiService.createPegawaiWithUser(
+      await this.pegawaiService.createPegawaiWithUser(
         { ...pegawaiFields }, // hanya field pegawai
         historyData,
         avatar ?? undefined,
@@ -275,9 +281,15 @@ export default class PegawaiController {
 
       return response.ok(pegawai)
     } catch (error) {
+      if (error.messages) {
+        return response.badRequest({
+          message: 'Validasi Gagal',
+          errors: error.messages,
+        })
+      }
       return response.badRequest({
         message: 'Gagal memperbarui pegawai',
-        error: error.messages || error.message,
+        error: error.message,
       })
     }
   }
