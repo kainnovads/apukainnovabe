@@ -74,9 +74,13 @@ export default class StockOutsController {
 
       const stockOuts = await dataQuery
         .preload('warehouse')
-        .preload('postedByUser')
+        .preload('postedByUser', (userQuery) => {
+          userQuery.select(['id', 'fullName', 'email'])
+        })
         .preload('stockOutDetails', (detailQuery) => {
-          detailQuery.preload('product')
+          detailQuery.preload('product', (productQuery) => {
+            productQuery.preload('unit')
+          })
         })
         .preload('salesOrder', (soQuery) => {
           soQuery.preload('deliveredByUser')
@@ -89,10 +93,18 @@ export default class StockOutsController {
 
       return response.ok(stockOuts.toJSON())
     } catch (error) {
+      console.error('❌ Error in StockOut index:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        sqlState: error.sqlState
+      })
+      
       return response.internalServerError({
         message: 'Terjadi kesalahan saat mengambil data stock out',
         error: {
-          name: 'Exception',
+          name: error.name || 'Exception',
+          message: error.message,
           status: 500
         }
       })
@@ -104,9 +116,13 @@ export default class StockOutsController {
       const stockOut = await StockOut.query()
         .where('id', params.id)
         .preload('warehouse')
-        .preload('postedByUser')
+        .preload('postedByUser', (userQuery) => {
+          userQuery.select(['id', 'fullName', 'email'])
+        })
         .preload('stockOutDetails', (detailQuery) => {
-          detailQuery.preload('product')
+          detailQuery.preload('product', (productQuery) => {
+            productQuery.preload('unit')
+          })
         })
         .preload('salesOrder', (soQuery) => {
           soQuery.preload('salesOrderItems', (soiQuery) => {
@@ -122,7 +138,6 @@ export default class StockOutsController {
 
       return response.ok(stockOut.toJSON())
     } catch (error) {
-      console.log(error)
       return response.internalServerError({
         message: 'Gagal mengambil detail Stock Out',
         error: error.message,
@@ -184,8 +199,6 @@ export default class StockOutsController {
         return response.badRequest({ message: 'Stock Out sudah di-post.' })
       }
 
-      console.log(`🔍 Posting StockOut ${stockOut.id} with ${stockOut.stockOutDetails.length} details`)
-
       // ✅ VALIDASI: Pastikan ada stock out details
       if (!stockOut.stockOutDetails || stockOut.stockOutDetails.length === 0) {
         await trx.rollback()
@@ -202,8 +215,6 @@ export default class StockOutsController {
         const currentQty = productQuantities.get(productId) || 0
         productQuantities.set(productId, currentQty + Number(detail.quantity))
       }
-
-      console.log(`🔍 Products to process:`, Array.from(productQuantities.entries()))
 
       // Cek dan update stok untuk setiap produk
       for (const [productId, totalQty] of productQuantities) {
@@ -226,7 +237,6 @@ export default class StockOutsController {
           existingStock.quantity = Number(existingStock.quantity) - totalQty
           await existingStock.useTransaction(trx).save()
           
-          console.log(`✅ Updated stock for product ${productId}: ${Number(existingStock.quantity) + totalQty} -> ${existingStock.quantity}`)
         } else {
           // Jika belum ada, tidak bisa keluar stock karena stok tidak ada
           await trx.rollback()
@@ -242,7 +252,6 @@ export default class StockOutsController {
       await stockOut.useTransaction(trx).save()
       await trx.commit()
       
-      console.log(`✅ StockOut ${stockOut.id} successfully posted`)
       return response.ok(stockOut)
     } catch (error) {
       await trx.rollback()

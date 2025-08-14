@@ -12,16 +12,12 @@ export default class PurchaseItemsController {
         const trx = await db.transaction()
 
         try {
-            console.log(`🔍 Starting updateStatusPartial for Purchase Order Item: ${params.id}`)
-
             // Ambil receivedQty dari request body
             const { receivedQty } = request.only(['receivedQty'])
-            console.log(`🔍 Received receivedQty: ${receivedQty}, type: ${typeof receivedQty}`)
 
             // Validasi receivedQty
             const parsedReceivedQty = Number(receivedQty)
             if (isNaN(parsedReceivedQty)) {
-                console.log(`❌ Invalid receivedQty: ${receivedQty}`)
                 await trx.rollback()
                 return response.badRequest({
                     message: 'Received Qty harus berupa angka yang valid',
@@ -30,7 +26,6 @@ export default class PurchaseItemsController {
             }
 
             if (parsedReceivedQty < 0) {
-                console.log(`❌ Negative receivedQty: ${parsedReceivedQty}`)
                 await trx.rollback()
                 return response.badRequest({
                     message: 'Received Qty tidak boleh negatif',
@@ -45,11 +40,8 @@ export default class PurchaseItemsController {
                 .preload('purchaseOrder')
                 .firstOrFail()
 
-            console.log(`🔍 Found Purchase Order Item: ${purchaseOrderItem.id}, current receivedQty: ${purchaseOrderItem.receivedQty}`)
-
             // Validasi receivedQty tidak melebihi quantity yang dipesan
             if (parsedReceivedQty > purchaseOrderItem.quantity) {
-                console.log(`❌ ReceivedQty ${parsedReceivedQty} exceeds ordered quantity ${purchaseOrderItem.quantity}`)
                 await trx.rollback()
                 return response.badRequest({
                     message: `Received Qty (${parsedReceivedQty}) tidak boleh melebihi quantity yang dipesan (${purchaseOrderItem.quantity})`,
@@ -63,15 +55,29 @@ export default class PurchaseItemsController {
                 .preload('purchaseOrderItems')
                 .firstOrFail()
 
-            console.log(`🔍 Found Purchase Order: ${purchaseOrder.id}, status: ${purchaseOrder.status}`)
+            // ✅ Validasi: Purchase Order yang sudah received tidak boleh diubah
+            if (purchaseOrder.status === 'received') {
+                await trx.rollback()
+                return response.badRequest({
+                    message: `Purchase Order sudah dalam status ${purchaseOrder.status.toUpperCase()} dan tidak dapat diubah lagi. Jika ada perubahan yang diperlukan, silakan buat Purchase Return.`,
+                    currentStatus: purchaseOrder.status
+                })
+            }
 
             // Update receivedQty pada item
             const oldReceivedQty = Number(purchaseOrderItem.receivedQty || 0)
             purchaseOrderItem.receivedQty = parsedReceivedQty
-            purchaseOrderItem.statusPartial = parsedReceivedQty > 0 && parsedReceivedQty < purchaseOrderItem.quantity
+            
+            // ✅ PERBAIKAN: Update statusPartial berdasarkan receivedQty
+            if (parsedReceivedQty === 0) {
+                purchaseOrderItem.statusPartial = false // Belum ada yang diterima
+            } else if (parsedReceivedQty >= purchaseOrderItem.quantity) {
+                purchaseOrderItem.statusPartial = false // Sudah fully received
+            } else {
+                purchaseOrderItem.statusPartial = true // Partial received
+            }
 
             await purchaseOrderItem.useTransaction(trx).save()
-            console.log(`✅ Updated Purchase Order Item receivedQty from ${oldReceivedQty} to ${parsedReceivedQty}`)
 
             // Fungsi untuk generate nomor Stock In
             function generateNo() {
@@ -81,120 +87,109 @@ export default class PurchaseItemsController {
                 return `SI-${timestamp}-${random}`
             }
 
-            // ✅ ALUR BARU: Setiap increment receivedQty = 1 Stock In baru
-            if (purchaseOrderItem.statusPartial === true && Number(purchaseOrderItem.receivedQty) > 0) {
-                const item = purchaseOrderItem
-                const currentReceivedQty = Number(item.receivedQty || 0)
+            // ✅ LOGIKA BARU: Hanya buat Stock In jika receivedQty berubah (naik/turun)
+            const item = purchaseOrderItem
+            const currentReceivedQty = Number(item.receivedQty || 0)
 
-                console.log(`🔍 Creating Stock In for receivedQty: ${currentReceivedQty}`)
+            // Hitung selisih perubahan receivedQty
+            const qtyDifference = currentReceivedQty - oldReceivedQty
 
-                // 1. Cek berapa banyak Stock In yang sudah ada untuk PO + produk + warehouse ini
-                const existingStockIns = await StockIn.query({ client: trx })
-                    .where('purchaseOrderId', purchaseOrder.id)
-                    .whereHas('stockInDetails', (detailQuery) => {
-                        detailQuery.where('productId', item.productId)
-                    })
-                    .count('* as total')
+            if (qtyDifference !== 0) {
 
-                const totalExistingStockIns = existingStockIns[0]?.$extras.total || 0
+                if (qtyDifference > 0) {
+                    // ✅ RECEIVEDQTY BERTAMBAH: Buat Stock In baru untuk produk ini saja
 
-                console.log(`🔍 Existing Stock Ins for product ${item.productId}: ${totalExistingStockIns}, receivedQty: ${currentReceivedQty}`)
+                    // Buat 1 Stock In yang menampung semua perubahan untuk produk ini
+                    const stockIn = await StockIn.create({
+                        noSi: generateNo(),
+                        purchaseOrderId: purchaseOrder.id,
+                        warehouseId: item.warehouseId || 0,
+                        postedBy: auth.user?.id,
+                        date: DateTime.now().toJSDate(),
+                        status: 'draft',
+                        description: `Received ${qtyDifference} unit(s) for ${item.product?.name || 'Unknown Product'}`,
+                    }, { client: trx })
 
-                // 2. Hitung berapa banyak Stock In baru yang perlu dibuat
-                const newStockInsNeeded = currentReceivedQty - totalExistingStockIns
+                    // Buat 1 StockInDetail dengan quantity sesuai perubahan
+                    await StockInDetail.create({
+                        stockInId: stockIn.id,
+                        productId: item.productId,
+                        quantity: qtyDifference, // Quantity sesuai dengan perubahan receivedQty
+                        description: `${item.description || ''} - Received ${qtyDifference} units (total: ${currentReceivedQty})`,
+                    }, { client: trx })
 
-                if (newStockInsNeeded > 0) {
-                    console.log(`🔍 Creating ${newStockInsNeeded} new Stock In(s)`)
+                } else if (qtyDifference < 0) {
+                    // ✅ RECEIVEDQTY BERKURANG: Hapus Stock In yang berlebihan (hanya yang masih draft)
+                    const qtyToRemove = Math.abs(qtyDifference)
 
-                    // ✅ BUAT STOCK IN INDIVIDUAL: 1 receivedQty = 1 Stock In
-                    for (let i = 0; i < newStockInsNeeded; i++) {
-                        // Buat Stock In baru untuk setiap unit
-                        const stockIn = await StockIn.create({
-                            noSi: generateNo(),
-                            purchaseOrderId: purchaseOrder.id,
-                            warehouseId: item.warehouseId || 0,
-                            postedBy: auth.user?.id,
-                            date: DateTime.now().toJSDate(),
-                            status: 'draft',
-                        }, { client: trx })
-
-                        // Buat 1 StockInDetail untuk Stock In ini
-                        await StockInDetail.create({
-                            stockInId: stockIn.id,
-                            productId: item.productId,
-                            quantity: 1, // Selalu 1 unit per Stock In
-                            description: `${item.description || ''} - Unit ${totalExistingStockIns + i + 1}`,
-                        }, { client: trx })
-
-                        console.log(`✅ Created StockIn ${stockIn.id} with 1 detail for unit ${totalExistingStockIns + i + 1}`)
-                    }
-
-                    console.log(`✅ Created ${newStockInsNeeded} Stock In(s) for receivedQty: ${currentReceivedQty}`)
-                } else if (newStockInsNeeded < 0) {
-                    // Jika receivedQty dikurangi, hapus Stock In yang berlebihan
-                    const excessStockIns = Math.abs(newStockInsNeeded)
-                    console.log(`🔍 Removing ${excessStockIns} excess Stock In(s)`)
-
-                    // Ambil Stock In yang berlebihan (LIFO - last created first deleted)
-                    const stockInsToRemove = await StockIn.query({ client: trx })
+                    // Ambil Stock In terkait produk ini yang masih draft (LIFO)
+                    const stockInsToUpdate = await StockIn.query({ client: trx })
                         .where('purchaseOrderId', purchaseOrder.id)
                         .whereHas('stockInDetails', (detailQuery) => {
                             detailQuery.where('productId', item.productId)
                         })
-                        .where('status', 'draft') // Hanya hapus yang masih draft
+                        .where('status', 'draft')
+                        .preload('stockInDetails', (detailQuery) => {
+                            detailQuery.where('productId', item.productId)
+                        })
                         .orderBy('createdAt', 'desc')
-                        .limit(excessStockIns)
 
-                    for (const stockIn of stockInsToRemove) {
-                        // Hapus StockInDetails terlebih dahulu
-                        await StockInDetail.query({ client: trx })
-                            .where('stockInId', stockIn.id)
-                            .delete()
+                    let remainingQtyToRemove = qtyToRemove
 
-                        // Kemudian hapus StockIn
-                        await stockIn.useTransaction(trx).delete()
-                        console.log(`✅ Deleted StockIn: ${stockIn.id}`)
+                    for (const stockIn of stockInsToUpdate) {
+                        if (remainingQtyToRemove <= 0) break
+
+                        for (const detail of stockIn.stockInDetails) {
+                            if (detail.productId === item.productId && remainingQtyToRemove > 0) {
+                                const currentDetailQty = Number(detail.quantity)
+                                
+                                if (currentDetailQty <= remainingQtyToRemove) {
+                                    // Hapus detail ini sepenuhnya
+                                    await detail.useTransaction(trx).delete()
+                                    remainingQtyToRemove -= currentDetailQty
+                                    
+                                    // Cek apakah Stock In masih punya detail lain
+                                    const remainingDetails = await StockInDetail.query({ client: trx })
+                                        .where('stockInId', stockIn.id)
+                                        .first()
+                                    
+                                    if (!remainingDetails) {
+                                        // Hapus Stock In jika tidak ada detail lagi
+                                        await stockIn.useTransaction(trx).delete()
+                                    }
+                                } else {
+                                    // Kurangi quantity detail ini
+                                    detail.quantity = currentDetailQty - remainingQtyToRemove
+                                    await detail.useTransaction(trx).save()
+                                    remainingQtyToRemove = 0
+                                }
+                            }
+                        }
                     }
-
-                    console.log(`✅ Removed ${excessStockIns} Stock In(s)`)
                 }
-
-                console.log(`✅ Stock In process completed for receivedQty: ${currentReceivedQty}`)
-            } else if (Number(purchaseOrderItem.receivedQty || 0) === 0) {
-                // ✅ Jika receivedQty = 0, hapus semua Stock In yang terkait untuk produk ini
-                console.log(`🔍 ReceivedQty is 0, removing all Stock Ins for product ${purchaseOrderItem.productId}`)
-
-                const stockInsToDelete = await StockIn.query({ client: trx })
-                    .where('purchaseOrderId', purchaseOrder.id)
-                    .whereHas('stockInDetails', (detailQuery) => {
-                        detailQuery.where('productId', purchaseOrderItem.productId)
-                    })
-                    .where('status', 'draft') // Hanya hapus yang masih draft
-
-                for (const stockIn of stockInsToDelete) {
-                    // Hapus StockInDetails terlebih dahulu
-                    await StockInDetail.query({ client: trx })
-                        .where('stockInId', stockIn.id)
-                        .delete()
-
-                    // Kemudian hapus StockIn
-                    await stockIn.useTransaction(trx).delete()
-                    console.log(`✅ Deleted StockIn: ${stockIn.id}`)
-                }
-
-                console.log(`✅ Deleted all Stock Ins for product ${purchaseOrderItem.productId}`)
             }
 
-            // Update status Purchase Order berdasarkan semua items
+            // ✅ LOGIKA BARU: Reload Purchase Order items untuk mendapatkan data terbaru
+            await purchaseOrder.load('purchaseOrderItems')
             const allItems = purchaseOrder.purchaseOrderItems
+            
             const totalReceived = allItems.reduce((sum, item) => sum + (Number(item.receivedQty) || 0), 0)
             const totalOrdered = allItems.reduce((sum, item) => sum + item.quantity, 0)
+            
+            // ✅ PERBAIKAN: Cek apakah ada item yang memiliki partial status
+            const hasPartialItems = allItems.some(item => {
+                const receivedQty = Number(item.receivedQty || 0)
+                const isPartial = receivedQty > 0 && receivedQty < item.quantity
+                return isPartial
+            })
 
             if (totalReceived === 0) {
                 purchaseOrder.status = 'approved'
-            } else if (totalReceived < totalOrdered) {
+            } else if (totalReceived < totalOrdered || hasPartialItems) {
+                // ✅ PERBAIKAN: Jika ada item partial ATAU total belum terpenuhi, status = partial
                 purchaseOrder.status = 'partial'
-            } else if (totalReceived >= totalOrdered) {
+            } else if (totalReceived >= totalOrdered && !hasPartialItems) {
+                // ✅ PERBAIKAN: Hanya jadi received jika semua item fully received
                 purchaseOrder.status = 'received'
                 purchaseOrder.receivedAt = new Date()
                 if (auth.user) {
@@ -203,7 +198,6 @@ export default class PurchaseItemsController {
             }
 
             await purchaseOrder.useTransaction(trx).save()
-            console.log(`✅ Updated Purchase Order status to: ${purchaseOrder.status}`)
 
             await trx.commit()
 
@@ -244,8 +238,6 @@ export default class PurchaseItemsController {
         const trx = await db.transaction()
 
         try {
-            console.log(`🔍 Starting receiveAllItems for Purchase Order: ${params.id}`)
-
             // Ambil Purchase Order dengan semua item-nya
             const purchaseOrder = await PurchaseOrder.query({ client: trx })
                 .where('id', params.id)
@@ -254,12 +246,19 @@ export default class PurchaseItemsController {
                 })
                 .firstOrFail()
 
-            console.log(`🔍 Found Purchase Order: ${purchaseOrder.id}, status: ${purchaseOrder.status}`)
-
             if (purchaseOrder.status == 'draft') {
                 await trx.rollback()
                 return response.badRequest({
                     message: 'Purchase Order harus dalam status approved atau partial untuk dapat menerima semua item',
+                    currentStatus: purchaseOrder.status
+                })
+            }
+
+            // ✅ Validasi: Purchase Order yang sudah received tidak perlu receive all lagi
+            if (purchaseOrder.status === 'received') {
+                await trx.rollback()
+                return response.badRequest({
+                    message: `Purchase Order sudah dalam status ${purchaseOrder.status.toUpperCase()}, semua item sudah diterima`,
                     currentStatus: purchaseOrder.status
                 })
             }
@@ -273,56 +272,75 @@ export default class PurchaseItemsController {
             }
 
             let totalStockInsCreated = 0
+            const productsWithPendingQty = []
 
-            // Proses setiap item dalam Purchase Order
+            // Identifikasi item mana saja yang masih punya pending quantity
             for (const item of purchaseOrder.purchaseOrderItems) {
                 const orderedQty = Number(item.quantity || 0)
                 const currentReceivedQty = Number(item.receivedQty || 0)
                 const pendingQty = orderedQty - currentReceivedQty
 
-                console.log(`🔍 Processing item ${item.productId}: ordered=${orderedQty}, received=${currentReceivedQty}, pending=${pendingQty}`)
-
                 if (pendingQty <= 0) {
-                    console.log(`⏭️ Skipping item ${item.productId} - already fully received`)
                     continue
                 }
 
+                // Tambahkan ke list produk yang akan dibuat Stock In-nya
+                productsWithPendingQty.push({
+                    item: item,
+                    pendingQty: pendingQty,
+                    orderedQty: orderedQty
+                })
+
                 // Update receivedQty menjadi sama dengan quantity (fully received)
                 item.receivedQty = orderedQty
-                item.statusPartial = false // Sudah complete
+                item.statusPartial = false // Sudah complete, karena receivedQty = quantity
                 await item.useTransaction(trx).save()
-
-                // Buat Stock In individual untuk setiap unit yang belum diterima
-                for (let i = 0; i < pendingQty; i++) {
-                    const stockIn = await StockIn.create({
-                        noSi: generateNo(),
-                        purchaseOrderId: purchaseOrder.id,
-                        warehouseId: item.warehouseId || 0,
-                        postedBy: auth.user?.id,
-                        date: DateTime.now().toJSDate(),
-                        status: 'draft',
-                    }, { client: trx })
-
-                    // Buat 1 StockInDetail untuk Stock In ini
-                    await StockInDetail.create({
-                        stockInId: stockIn.id,
-                        productId: item.productId,
-                        quantity: 1, // Selalu 1 unit per Stock In
-                        description: `Batch receive all - Unit ${currentReceivedQty + i + 1} dari PO #${purchaseOrder.noPo}`,
-                    }, { client: trx })
-
-                    totalStockInsCreated++
-                }
-
-                console.log(`✅ Created ${pendingQty} Stock In(s) for product ${item.productId}`)
             }
 
-            // Update status Purchase Order
+            // ✅ LOGIKA BARU: Buat 1 Stock In yang berisi semua produk yang ada pending quantity
+            if (productsWithPendingQty.length > 0) {
+
+                // Ambil warehouse dari item pertama (asumsi semua item dalam PO sama warehouse)
+                const warehouseId = productsWithPendingQty[0].item.warehouseId || 0
+
+                // Buat 1 Stock In untuk batch receive all
+                const stockIn = await StockIn.create({
+                    noSi: generateNo(),
+                    purchaseOrderId: purchaseOrder.id,
+                    warehouseId: warehouseId,
+                    postedBy: auth.user?.id,
+                    date: DateTime.now().toJSDate(),
+                    status: 'draft',
+                    description: `Receive All - ${productsWithPendingQty.length} products`,
+                }, { client: trx })
+
+                // Buat StockInDetail untuk setiap produk yang punya pending quantity
+                for (const productData of productsWithPendingQty) {
+                    await StockInDetail.create({
+                        stockInId: stockIn.id,
+                        productId: productData.item.productId,
+                        quantity: productData.pendingQty, // Quantity sesuai dengan pending quantity
+                        description: `Receive All - ${productData.pendingQty} units of ${productData.item.product?.name || 'Product'} (completing to ${productData.orderedQty})`,
+                    }, { client: trx })
+                }
+
+                totalStockInsCreated = 1 // Hanya 1 Stock In yang dibuat
+            }
+
+            // ✅ LOGIKA BARU: Reload Purchase Order items dan update status
+            await purchaseOrder.load('purchaseOrderItems')
             const allItems = purchaseOrder.purchaseOrderItems
+            
             const totalReceived = allItems.reduce((sum, item) => sum + (Number(item.receivedQty) || 0), 0)
             const totalOrdered = allItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+            
+            // ✅ PERBAIKAN: Cek apakah ada item yang memiliki partial status
+            const hasPartialItems = allItems.some(item => {
+                const receivedQty = Number(item.receivedQty || 0)
+                return receivedQty > 0 && receivedQty < item.quantity
+            })
 
-            if (totalReceived >= totalOrdered) {
+            if (totalReceived >= totalOrdered && !hasPartialItems) {
                 purchaseOrder.status = 'received'
                 purchaseOrder.receivedAt = new Date()
                 if (auth.user) {
@@ -333,7 +351,6 @@ export default class PurchaseItemsController {
             }
 
             await purchaseOrder.useTransaction(trx).save()
-            console.log(`✅ Updated Purchase Order status to: ${purchaseOrder.status}`)
 
             await trx.commit()
 
@@ -343,10 +360,13 @@ export default class PurchaseItemsController {
             })
 
             return response.ok({
-                message: `Berhasil menerima semua item. ${totalStockInsCreated} Stock In telah dibuat.`,
+                message: totalStockInsCreated > 0 
+                    ? `Berhasil menerima semua item. ${totalStockInsCreated} Stock In telah dibuat untuk ${productsWithPendingQty.length} produk.`
+                    : `Semua item sudah diterima sebelumnya. Tidak ada Stock In baru yang dibuat.`,
                 data: {
                     purchaseOrder: purchaseOrder.serialize(),
                     totalStockInsCreated,
+                    productsProcessed: productsWithPendingQty.length,
                     summary: {
                         totalOrdered,
                         totalReceived,
