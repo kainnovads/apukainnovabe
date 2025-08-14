@@ -13,7 +13,7 @@ export default class PerformanceMonitorMiddleware {
     // Ambil informasi request
     const method = request.method()
     const url = request.url()
-    const userAgent = request.header('user-agent', 'unknown')
+    const userAgent = request.header('user-agent') || 'unknown'
     const ip = request.ip()
 
     try {

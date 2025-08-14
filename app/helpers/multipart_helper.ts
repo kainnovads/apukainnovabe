@@ -53,10 +53,11 @@ export class MultipartHelper {
   /**
    * Baca buffer dari multipart file dengan error handling yang robust
    */
-  static async readFileBuffer(file: MultipartFile): Promise<Buffer> {
+  static async readFileBuffer(file: any): Promise<Buffer> {
     try {
       let fileContent: Buffer
 
+      // Cek apakah file memiliki buffer
       if (file.buffer) {
         // Jika sudah ada buffer, gunakan langsung
         fileContent = await file.buffer

@@ -292,7 +292,6 @@ export default class SalesItemsController {
       if (salesOrderItem.statusPartial === true && Number(salesOrderItem.deliveredQty) > 0) {
         const item = salesOrderItem
         const currentDeliveredQty = Number(item.deliveredQty || 0)
-        const previousDeliveredQty = Number(item.deliveredQty || 0) - 1 // Asumsi increment 1
 
         console.log(`🔍 Creating Stock Out for deliveredQty increment: ${currentDeliveredQty}`)
 
