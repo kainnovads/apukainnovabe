@@ -30,12 +30,6 @@ export default class StockOutDetail extends BaseModel {
   declare quantity: number
 
   @column()
-  declare price: number
-
-  @column()
-  declare subTotal: number
-
-  @column()
   declare description: string
 
   @belongsTo(() => StockOut)

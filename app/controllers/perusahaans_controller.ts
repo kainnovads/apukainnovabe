@@ -90,7 +90,6 @@ export default class PerusahaansController {
 
           const allowedMimeTypes = [
             'image/jpeg',
-            'image/jpg',
             'image/png',
             'image/x-png',
             'image/gif',
@@ -138,9 +137,16 @@ export default class PerusahaansController {
 
       return response.created(perusahaan)
     } catch (error) {
+      // Handle validation errors specifically
+      if (error.messages) {
+        return response.status(422).json({
+          message: 'Gagal validasi data perusahaan',
+          errors: error.messages,
+        })
+      }
       return response.badRequest({
         message: 'Gagal membuat perusahaan',
-        error: error.messages || error.message,
+        error: error.message,
       })
     }
   }
@@ -156,11 +162,11 @@ export default class PerusahaansController {
           .where('email_perusahaan', payload.emailPerusahaan)
           .first()
         if (existing) {
-          return response.badRequest({
-            message: 'Gagal memperbarui perusahaan',
-            error: {
-              message: 'Email sudah digunakan oleh perusahaan lain.',
-            },
+          return response.status(422).json({
+            message: 'Email sudah digunakan oleh perusahaan lain.',
+            errors: {
+              emailPerusahaan: ['Email sudah digunakan oleh perusahaan lain.']
+            }
           })
         }
       }
@@ -180,7 +186,6 @@ export default class PerusahaansController {
 
           const allowedMimeTypes = [
             'image/jpeg',
-            'image/jpg',
             'image/png',
             'image/x-png',
             'image/gif',
@@ -229,9 +234,16 @@ export default class PerusahaansController {
       await perusahaan.save()
       return response.ok(perusahaan)
     } catch (error) {
+      // Handle validation errors specifically
+      if (error.messages) {
+        return response.status(422).json({
+          message: 'Gagal validasi data perusahaan',
+          errors: error.messages,
+        })
+      }
       return response.badRequest({
         message: 'Gagal memperbarui perusahaan',
-        error: error.messages || error.message,
+        error: error.message,
       })
     }
   }

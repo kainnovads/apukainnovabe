@@ -21,7 +21,7 @@ export default class SalesItemsController {
           productQuery.select(['id', 'name', 'priceSell', 'sku'])
         })
       })
-      
+
       let itemsToInvoice = []
       let invoiceDescription = ''
       let deliveredItemsTotal = 0
@@ -31,9 +31,9 @@ export default class SalesItemsController {
         const existingInvoicesCount = await SalesInvoice.query()
           .where('salesOrderId', salesOrder.id)
           .count('* as total')
-        
+
         const totalExistingInvoices = existingInvoicesCount[0]?.$extras.total || 0
-        
+
         if (totalExistingInvoices > 0) {
           // Sudah ada invoice partial sebelumnya, tidak perlu buat invoice lagi
           console.log(`✅ Sales Order #${salesOrder.noSo} sudah memiliki ${totalExistingInvoices} invoice partial. Tidak membuat invoice baru untuk status delivered.`)
@@ -47,7 +47,7 @@ export default class SalesItemsController {
       } else {
         // ✅ JIKA STATUS PARTIAL: Buat invoice hanya untuk item yang baru di-deliver
         const newlyDeliveredItem = salesOrder.salesOrderItems.find(item => item.id === newlyDeliveredItemId)
-        
+
         console.log('🔍 Found newly delivered item:', {
           found: !!newlyDeliveredItem,
           id: newlyDeliveredItem?.id,
@@ -55,7 +55,7 @@ export default class SalesItemsController {
           productId: newlyDeliveredItem?.productId,
           warehouseId: newlyDeliveredItem?.warehouseId
         })
-        
+
         if (!newlyDeliveredItem || !newlyDeliveredItem.statusPartial) {
           console.warn(`⚠️ Item ID ${newlyDeliveredItemId} tidak ditemukan atau statusPartial bukan true`)
           return null
@@ -89,7 +89,7 @@ export default class SalesItemsController {
         const bulan = String(now.getMonth() + 1).padStart(2, '0')
         const tahun = String(now.getFullYear()).slice(-2)
         const currentMonthPattern = `-${bulan}${tahun}`
-        
+
         // Ambil nomor invoice tertinggi untuk bulan ini
         const lastInvoice = await SalesInvoice.query()
           .whereRaw(`no_invoice LIKE '%${currentMonthPattern}'`)
@@ -121,7 +121,7 @@ export default class SalesItemsController {
 
           const discountPercent = Number(salesOrder.discountPercent) || 0
           const taxPercent = Number(salesOrder.taxPercent) || 0
-          
+
           const discountAmount = subtotalItems * (discountPercent / 100)
           const totalAfterDiscount = subtotalItems - discountAmount
           const taxAmount = totalAfterDiscount * (taxPercent / 100)
@@ -213,23 +213,55 @@ export default class SalesItemsController {
       const itemId = params.id
       const { deliveredQty } = request.only(['deliveredQty'])
 
+      console.log('🔍 updateStatusPartial called:', {
+        itemId,
+        deliveredQty,
+        deliveredQtyType: typeof deliveredQty
+      })
+
       const salesOrderItem = await SalesOrderItem.query()
         .where('id', itemId)
         .firstOrFail()
 
+      console.log('🔍 SalesOrderItem found:', {
+        id: salesOrderItem.id,
+        quantity: salesOrderItem.quantity,
+        currentDeliveredQty: salesOrderItem.deliveredQty
+      })
+
       // Validasi: deliveredQty tidak boleh melebihi quantity dan tidak boleh negatif
       if (deliveredQty !== undefined) {
         const numDeliveredQty = Number(deliveredQty)
+        console.log('🔍 Validation check:', {
+          deliveredQty,
+          numDeliveredQty,
+          maxQuantity: salesOrderItem.quantity
+        })
+
+        if (isNaN(numDeliveredQty)) {
+          console.error('❌ ERROR: deliveredQty is not a valid number')
+          return response.badRequest({
+            message: `Kuantitas diterima harus berupa angka yang valid.`
+          })
+        }
+
         if (numDeliveredQty < 0) {
+          console.error('❌ ERROR: deliveredQty is negative')
           return response.badRequest({
             message: `Kuantitas diterima tidak boleh negatif.`
           })
         }
         if (numDeliveredQty > salesOrderItem.quantity) {
+          console.error('❌ ERROR: deliveredQty exceeds quantity')
           return response.badRequest({
             message: `Kuantitas diterima (${deliveredQty}) tidak boleh melebihi kuantitas yang dipesan (${salesOrderItem.quantity}).`
           })
         }
+      } else {
+        console.error('❌ ERROR: deliveredQty is undefined')
+        return response.badRequest({
+          message: `Parameter deliveredQty diperlukan.`
+        })
       }
 
       // Update delivered_qty item SO
@@ -256,86 +288,122 @@ export default class SalesItemsController {
         updatedItem.deliveredQty = salesOrderItem.deliveredQty
       }
 
-      // Jika deliveredQty > 0, maka statusPartial otomatis true, insert ke 3 tabel sekaligus
-      if (salesOrderItem.statusPartial === true) {
-        // Ambil item yang sedang diubah saat ini, bukan semua item yang sudah diterima
+            // ✅ ALUR BARU: Setiap increment deliveredQty = 1 Stock Out baru
+      if (salesOrderItem.statusPartial === true && Number(salesOrderItem.deliveredQty) > 0) {
         const item = salesOrderItem
+        const currentDeliveredQty = Number(item.deliveredQty || 0)
+        const previousDeliveredQty = Number(item.deliveredQty || 0) - 1 // Asumsi increment 1
 
-        // 1. Cek apakah ada StockOut yang masih draft untuk sales order ini
-        let stockOut = await StockOut.query()
+        console.log(`🔍 Creating Stock Out for deliveredQty increment: ${currentDeliveredQty}`)
+
+                // 1. Cek berapa banyak Stock Out yang sudah ada untuk SO + produk + warehouse ini
+        const existingStockOuts = await StockOut.query()
           .where('salesOrderId', salesOrder.id)
-          .where('warehouseId', item.warehouseId)
-          .where('status', 'draft')
-          .first()
-
-        // 2. Jika tidak ada StockOut draft, buat yang baru
-        if (!stockOut) {
-          stockOut = await StockOut.create({
-            noSo: generateNo(),
-            salesOrderId: salesOrder.id,
-            warehouseId: item.warehouseId,
-            postedBy: auth.user?.id,
-            date: DateTime.now().toJSDate(),
-            status: 'draft',
-            description: `Penerimaan otomatis dari SO #${salesOrder.noSo || salesOrder.id}`,
+          .whereHas('stockOutDetails', (detailQuery) => {
+            detailQuery.where('productId', item.productId)
           })
+          .count('* as total')
+
+        const totalExistingStockOuts = existingStockOuts[0]?.$extras.total || 0
+
+        console.log(`🔍 Existing Stock Outs for product ${item.productId}: ${totalExistingStockOuts}, deliveredQty: ${currentDeliveredQty}`)
+
+        // 2. Hitung berapa banyak Stock Out baru yang perlu dibuat
+        const newStockOutsNeeded = currentDeliveredQty - totalExistingStockOuts
+
+        if (newStockOutsNeeded > 0) {
+          console.log(`🔍 Creating ${newStockOutsNeeded} new Stock Out(s)`)
+
+          // ✅ BUAT STOCK OUT INDIVIDUAL: 1 deliveredQty = 1 Stock Out
+          for (let i = 0; i < newStockOutsNeeded; i++) {
+            // Buat Stock Out baru untuk setiap unit
+            const stockOut = await StockOut.create({
+              noSo: generateNo(),
+              salesOrderId: salesOrder.id,
+              warehouseId: item.warehouseId,
+              postedBy: auth.user?.id,
+              date: DateTime.now().toJSDate(),
+              status: 'draft',
+              description: `Stock Out Unit ${totalExistingStockOuts + i + 1} dari SO #${salesOrder.noSo || salesOrder.id} - Produk: ${item.productId}`,
+            })
+
+            // Buat 1 StockOutDetail untuk Stock Out ini
+            await StockOutDetail.create({
+              stockOutId: stockOut.id,
+              productId: item.productId,
+              quantity: 1, // Selalu 1 unit per Stock Out
+              description: `${item.description || ''} - Unit ${totalExistingStockOuts + i + 1}`,
+            })
+
+            console.log(`✅ Created StockOut ${stockOut.id} with 1 detail for unit ${totalExistingStockOuts + i + 1}`)
+          }
+
+          console.log(`✅ Created ${newStockOutsNeeded} Stock Out(s) for deliveredQty: ${currentDeliveredQty}`)
+        } else if (newStockOutsNeeded < 0) {
+          // Jika deliveredQty dikurangi, hapus Stock Out yang berlebihan
+          const excessStockOuts = Math.abs(newStockOutsNeeded)
+          console.log(`🔍 Removing ${excessStockOuts} excess Stock Out(s)`)
+
+          // Ambil Stock Out yang berlebihan (LIFO - last created first deleted)
+          const stockOutsToRemove = await StockOut.query()
+            .where('salesOrderId', salesOrder.id)
+            .whereHas('stockOutDetails', (detailQuery) => {
+              detailQuery.where('productId', item.productId)
+            })
+            .where('status', 'draft') // Hanya hapus yang masih draft
+            .orderBy('createdAt', 'desc')
+            .limit(excessStockOuts)
+
+          for (const stockOut of stockOutsToRemove) {
+            // Hapus StockOutDetails terlebih dahulu
+            await StockOutDetail.query()
+              .where('stockOutId', stockOut.id)
+              .delete()
+
+            // Kemudian hapus StockOut
+            await stockOut.delete()
+            console.log(`✅ Deleted StockOut: ${stockOut.id}`)
+          }
+
+          console.log(`✅ Removed ${excessStockOuts} Stock Out(s)`)
         }
 
-        // 3. Cek apakah StockOutDetail untuk produk ini sudah ada di StockOut draft
-        const existingDetail = await StockOutDetail.query()
-          .where('stockOutId', stockOut.id)
-          .where('productId', item.productId)
-          .first()
+        console.log(`✅ Stock Out process completed for deliveredQty: ${currentDeliveredQty}`)
+      } else if (Number(salesOrderItem.deliveredQty || 0) === 0) {
+        // ✅ Jika deliveredQty = 0, hapus semua Stock Out yang terkait untuk produk ini
+        console.log(`🔍 DeliveredQty is 0, removing all Stock Outs for product ${salesOrderItem.productId}`)
 
-        if (existingDetail) {
-          // Update quantity yang sudah ada
-          existingDetail.quantity = Number(item.deliveredQty ?? item.quantity)
-          existingDetail.description = item.description || ''
-          await existingDetail.save()
-        } else {
-          // Buat StockOutDetail baru
-          await StockOutDetail.create({
-            stockOutId: stockOut.id,
-            productId: item.productId,
-            quantity: Number(item.deliveredQty ?? item.quantity),
-            description: item.description || '',
-          })
-        }
-      } else {
-        // Jika statusPartial di-set ke false, hapus StockOutDetail yang terkait
-        // Tapi hanya dari StockOut yang masih draft
-        const draftStockOuts = await StockOut.query()
+        const stockOutsToDelete = await StockOut.query()
           .where('salesOrderId', salesOrder.id)
-          .where('warehouseId', salesOrderItem.warehouseId)
-          .where('status', 'draft')
+          .whereHas('stockOutDetails', (detailQuery) => {
+            detailQuery.where('productId', salesOrderItem.productId)
+          })
+          .where('status', 'draft') // Hanya hapus yang masih draft
 
-        for (const stockOut of draftStockOuts) {
+        for (const stockOut of stockOutsToDelete) {
+          // Hapus StockOutDetails terlebih dahulu
           await StockOutDetail.query()
             .where('stockOutId', stockOut.id)
-            .where('productId', salesOrderItem.productId)
             .delete()
-          
-          // Jika StockOut tidak memiliki detail lagi, hapus juga StockOut-nya
-          const remainingDetails = await StockOutDetail.query()
-            .where('stockOutId', stockOut.id)
-            .count('* as total')
-          
-          if (remainingDetails[0]?.$extras.total === 0) {
-            await stockOut.delete()
-          }
+
+          // Kemudian hapus StockOut
+          await stockOut.delete()
+          console.log(`✅ Deleted StockOut: ${stockOut.id}`)
         }
+
+        console.log(`✅ Deleted all Stock Outs for product ${salesOrderItem.productId}`)
       }
 
       // Logika untuk menentukan status Sales Order berdasarkan deliveredQty, bukan statusPartial
       let newSalesOrderStatus = salesOrder.status
 
       // Cek apakah ada item yang memiliki deliveredQty > 0
-      const hasAnyItemWithDeliveredQty = salesOrder.salesOrderItems.some(item => 
+      const hasAnyItemWithDeliveredQty = salesOrder.salesOrderItems.some(item =>
         Number(item.deliveredQty || 0) > 0
       )
-      
+
       // Cek apakah semua item sudah delivered penuh (deliveredQty = quantity)
-      const allItemsFullyDelivered = salesOrder.salesOrderItems.every(item => 
+      const allItemsFullyDelivered = salesOrder.salesOrderItems.every(item =>
         Number(item.deliveredQty || 0) === Number(item.quantity || 0)
       )
 
@@ -412,7 +480,7 @@ export default class SalesItemsController {
             }
           }
         }
-        
+
         // Simpan perubahan sales order
         await salesOrder.save()
       }
@@ -426,8 +494,26 @@ export default class SalesItemsController {
         }
       })
     } catch (error) {
-      console.error('Gagal memperbarui status item SO atau SO:', error)
-      return response.badRequest({ message: 'Gagal memperbarui status', error: error.message })
+      console.error('❌ ERROR in updateStatusPartial:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        status: error.status,
+        name: error.name
+      })
+
+      // Handle specific errors
+      if (error.code === 'E_ROW_NOT_FOUND') {
+        return response.notFound({
+          message: 'Sales Order Item tidak ditemukan'
+        })
+      }
+
+      return response.badRequest({
+        message: 'Gagal memperbarui status',
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      })
     }
   }
 }

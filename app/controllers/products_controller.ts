@@ -3,7 +3,7 @@ import { productValidator } from '#validators/product'
 import Product from '#models/product'
 import StorageService from '#services/storage_service'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
-import { MultipartHelper } from '#helper/multipart_helper'
+
 
 export default class ProductsController {
     private storageService: StorageService
@@ -188,34 +188,55 @@ export default class ProductsController {
       // Cek apakah SKU sudah ada
       const existingProduct = await Product.findBy('sku', payload.sku)
       if (existingProduct) {
-        return response.badRequest({
-          message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
-          error: 'products_sku_unique'
+        return response.status(422).json({
+          message: 'Part Number sudah ada, silakan gunakan Part Number lain.',
+          errors: {
+            sku: ['Part Number sudah ada, silakan gunakan Part Number lain.']
+          }
         })
       }
 
       // Proses upload image jika ada file image
-      let imagePath = null
-      const imageFile = request.file('image')
+      let imagePath: string | null = null
 
-      if (imageFile && imageFile instanceof MultipartFile) {
+      // Upload file jika ada - ubah cara mengambil file untuk konsistensi dengan customer
+      if (payload.image && payload.image instanceof MultipartFile) {
         try {
-          // ✅ PERBAIKAN: Gunakan helper untuk validasi file
-          const validation = MultipartHelper.validateFile(imageFile, {
-            maxSize: 5 * 1024 * 1024, // 5MB
-            allowedTypes: [
-              'image/jpeg', 'image/jpg', 'image/png', 'image/x-png',
-              'image/gif', 'image/webp', 'image/svg+xml'
-            ],
-            allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-          })
+          // Validasi file tidak kosong
+          if (!payload.image.size || payload.image.size === 0) {
+            throw new Error('File gambar kosong atau tidak valid')
+          }
 
-          if (!validation.isValid) {
-            throw new Error(validation.error)
+          // Validasi file adalah image
+          const fileType = payload.image.type || ''
+          const fileExtension = payload.image.clientName?.split('.').pop()?.toLowerCase() || ''
+
+          const allowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/x-png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml'
+          ]
+
+          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+          const isValidMimeType = allowedMimeTypes.includes(fileType)
+          const isValidExtension = allowedExtensions.includes(fileExtension)
+
+          if (!isValidMimeType && !isValidExtension) {
+            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+          }
+
+          // Validasi file size
+          const maxSize = 5 * 1024 * 1024 // 5MB
+          if (payload.image.size > maxSize) {
+            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
           }
 
           const uploadResult = await this.storageService.uploadFile(
-            imageFile,
+            payload.image,
             'products',
             true // public
           )
@@ -241,14 +262,23 @@ export default class ProductsController {
     } catch (error) {
       // Cek error duplikat SKU
       if (error.code === '23505' && error.detail && error.detail.includes('products_sku_unique')) {
-        return response.badRequest({
+        return response.status(422).json({
           message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
-          error: error.detail,
+          errors: {
+            sku: ['SKU sudah digunakan, silakan gunakan SKU lain.']
+          }
+        })
+      }
+      // Handle validation errors specifically
+      if (error.messages) {
+        return response.status(422).json({
+          message: 'Gagal validasi data product',
+          errors: error.messages,
         })
       }
       return response.badRequest({
         message: 'Gagal membuat product',
-        error: error.messages || error.message,
+        error: error.message,
       })
     }
   }
@@ -267,9 +297,11 @@ export default class ProductsController {
       if (payload.sku && payload.sku !== product.sku) {
         const existingProduct = await Product.findBy('sku', payload.sku)
         if (existingProduct) {
-          return response.badRequest({
+          return response.status(422).json({
             message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
-            error: 'products_sku_unique'
+            errors: {
+              sku: ['SKU sudah digunakan, silakan gunakan SKU lain.']
+            }
           })
         }
       }
@@ -289,26 +321,45 @@ export default class ProductsController {
 
       // Proses upload image jika ada file image baru
       let imagePath = product.image // default: image lama
-      const imageFile = request.file('image')
 
-      if (imageFile && imageFile instanceof MultipartFile) {
+      // Upload file jika ada - ubah cara mengambil file untuk konsistensi dengan customer
+      if (payload.image && payload.image instanceof MultipartFile) {
         try {
-          // ✅ PERBAIKAN: Gunakan helper untuk validasi file
-          const validation = MultipartHelper.validateFile(imageFile, {
-            maxSize: 5 * 1024 * 1024, // 5MB
-            allowedTypes: [
-              'image/jpeg', 'image/jpg', 'image/png', 'image/x-png',
-              'image/gif', 'image/webp', 'image/svg+xml'
-            ],
-            allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-          })
+          // Validasi file tidak kosong
+          if (!payload.image.size || payload.image.size === 0) {
+            throw new Error('File gambar kosong atau tidak valid')
+          }
 
-          if (!validation.isValid) {
-            throw new Error(validation.error)
+          // Validasi file adalah image
+          const fileType = payload.image.type || ''
+          const fileExtension = payload.image.clientName?.split('.').pop()?.toLowerCase() || ''
+
+          const allowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/x-png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml'
+          ]
+
+          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+
+          const isValidMimeType = allowedMimeTypes.includes(fileType)
+          const isValidExtension = allowedExtensions.includes(fileExtension)
+
+          if (!isValidMimeType && !isValidExtension) {
+            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+          }
+
+          // Validasi file size
+          const maxSize = 5 * 1024 * 1024 // 5MB
+          if (payload.image.size > maxSize) {
+            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
           }
 
           const uploadResult = await this.storageService.uploadFile(
-            imageFile,
+            payload.image,
             'products',
             true // public
           )
@@ -335,14 +386,23 @@ export default class ProductsController {
     } catch (error) {
       // Cek error duplikat SKU
       if (error.code === '23505' && error.detail && error.detail.includes('products_sku_unique')) {
-        return response.badRequest({
+        return response.status(422).json({
           message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
-          error: error.detail,
+          errors: {
+            sku: ['SKU sudah digunakan, silakan gunakan SKU lain.']
+          }
+        })
+      }
+      // Handle validation errors specifically
+      if (error.messages) {
+        return response.status(422).json({
+          message: 'Gagal validasi data product',
+          errors: error.messages,
         })
       }
       return response.badRequest({
         message: 'Gagal memperbarui product',
-        error: error.messages || error.message,
+        error: error.message,
       })
     }
   }

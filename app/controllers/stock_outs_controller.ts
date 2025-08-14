@@ -75,6 +75,9 @@ export default class StockOutsController {
       const stockOuts = await dataQuery
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('stockOutDetails', (detailQuery) => {
+          detailQuery.preload('product')
+        })
         .preload('salesOrder', (soQuery) => {
           soQuery.preload('deliveredByUser')
           soQuery.preload('salesOrderItems', (soiQuery) => {
@@ -102,6 +105,9 @@ export default class StockOutsController {
         .where('id', params.id)
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('stockOutDetails', (detailQuery) => {
+          detailQuery.preload('product')
+        })
         .preload('salesOrder', (soQuery) => {
           soQuery.preload('salesOrderItems', (soiQuery) => {
             soiQuery.where('statusPartial', true)
@@ -168,7 +174,9 @@ export default class StockOutsController {
     try {
       const stockOut = await StockOut.query({ client: trx })
         .where('id', params.id)
-        .preload('stockOutDetails')
+        .preload('stockOutDetails', (detailQuery) => {
+          detailQuery.preload('product')
+        })
         .firstOrFail()
 
       if (stockOut.status === 'posted') {
@@ -176,31 +184,54 @@ export default class StockOutsController {
         return response.badRequest({ message: 'Stock Out sudah di-post.' })
       }
 
-      // Cek dan update/insert stok untuk setiap item di stock out details
+      console.log(`🔍 Posting StockOut ${stockOut.id} with ${stockOut.stockOutDetails.length} details`)
+
+      // ✅ VALIDASI: Pastikan ada stock out details
+      if (!stockOut.stockOutDetails || stockOut.stockOutDetails.length === 0) {
+        await trx.rollback()
+        return response.badRequest({
+          message: 'Stock Out tidak memiliki detail item untuk di-post'
+        })
+      }
+
+      // ✅ Group details by product untuk menghitung total quantity per produk
+      const productQuantities = new Map()
+      
       for (const detail of stockOut.stockOutDetails) {
+        const productId = detail.productId
+        const currentQty = productQuantities.get(productId) || 0
+        productQuantities.set(productId, currentQty + Number(detail.quantity))
+      }
+
+      console.log(`🔍 Products to process:`, Array.from(productQuantities.entries()))
+
+      // Cek dan update stok untuk setiap produk
+      for (const [productId, totalQty] of productQuantities) {
         // Cek apakah stok sudah ada
         const existingStock = await Stock
           .query({ client: trx })
-          .where('product_id', detail.productId)
+          .where('product_id', productId)
           .andWhere('warehouse_id', stockOut.warehouseId)
           .first()
 
         if (existingStock) {
           // Cek apakah stok mencukupi
-          if (Number(existingStock.quantity) < Number(detail.quantity)) {
+          if (Number(existingStock.quantity) < totalQty) {
             await trx.rollback()
             return response.badRequest({
-              message: 'Stock barang tidak mencukupi'
+              message: `Stock barang ${existingStock.product?.name || productId} tidak mencukupi. Tersedia: ${existingStock.quantity}, dibutuhkan: ${totalQty}`
             })
           }
-          // Jika sudah ada, update quantity
-          existingStock.quantity = Number(existingStock.quantity) - Number(detail.quantity)
+          // Jika sudah ada, kurangi quantity
+          existingStock.quantity = Number(existingStock.quantity) - totalQty
           await existingStock.useTransaction(trx).save()
+          
+          console.log(`✅ Updated stock for product ${productId}: ${Number(existingStock.quantity) + totalQty} -> ${existingStock.quantity}`)
         } else {
           // Jika belum ada, tidak bisa keluar stock karena stok tidak ada
           await trx.rollback()
           return response.badRequest({
-            message: 'Stock barang tidak ada'
+            message: `Stock untuk produk ID ${productId} tidak ditemukan di warehouse`
           })
         }
       }
@@ -210,9 +241,12 @@ export default class StockOutsController {
       stockOut.postedBy = auth.user?.id || 0
       await stockOut.useTransaction(trx).save()
       await trx.commit()
+      
+      console.log(`✅ StockOut ${stockOut.id} successfully posted`)
       return response.ok(stockOut)
     } catch (error) {
       await trx.rollback()
+      console.error(`❌ Failed to post StockOut ${params.id}:`, error)
       return response.internalServerError({
         message: 'Gagal memposting Stock Out',
         error: error.message,

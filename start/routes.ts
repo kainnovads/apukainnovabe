@@ -36,7 +36,7 @@ import StocksController from '#controllers/stocks_controller'
 import StockInsController from '#controllers/stock_ins_controller'
 import StockOutsController from '#controllers/stock_outs_controller'
 import SalesOrdersController from '#controllers/sales_controller'
-import SalesOrderItemsController from '#controllers/sales_items_controller'
+import SalesItemsController from '#controllers/sales_items_controller'
 import SalesReturnsController from '#controllers/sales_returns_controller'
 import StockTransfersController from '#controllers/stock_transfers_controller'
 import AssociationsController from '#controllers/associations_controller'
@@ -116,6 +116,7 @@ router
 
     // Purchase Order Item Router
     router.patch('/purchase-order-item/updateStatusPartial/:id', [PurchaseItemsController, 'updateStatusPartial'])
+    router.post('/purchase-order/receiveAllItems/:id', [PurchaseItemsController, 'receiveAllItems'])
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -130,7 +131,7 @@ router
     router.resource('sales-order', SalesOrdersController).except(['update']).apiOnly()
 
     // Sales Order Item Router
-    router.patch('/sales-order-item/updateStatusPartial/:id', [SalesOrderItemsController, 'updateStatusPartial'])
+    router.patch('/sales-order-item/updateStatusPartial/:id', [SalesItemsController, 'updateStatusPartial'])
   })
   .prefix('/api')
   .use(middleware.auth())

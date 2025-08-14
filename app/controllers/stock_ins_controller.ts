@@ -73,6 +73,9 @@ export default class StockInsController {
       const stockIns = await dataQuery
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('stockInDetails', (stockInDetailQuery) => {
+          stockInDetailQuery.preload('product')
+        })
         .preload('purchaseOrder', (poQuery) => {
           poQuery.preload('receivedByUser')
           poQuery.preload('purchaseOrderItems', (poiQuery) => {
@@ -99,6 +102,9 @@ export default class StockInsController {
         .where('id', params.id)
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('stockInDetails', (stockInDetailQuery) => {
+          stockInDetailQuery.preload('product')
+        })
         .preload('purchaseOrder', (poQuery) => {
           poQuery.preload('purchaseOrderItems', (poiQuery) => {
             poiQuery.preload('product')
@@ -177,24 +183,33 @@ export default class StockInsController {
       }
 
       // Cek dan update/insert stok untuk setiap item di stock in details
+      // ✅ HITUNG TOTAL QUANTITY per produk dari semua StockInDetails
+      const productQuantities = new Map<number, number>()
+
       for (const detail of stockIn.stockInDetails) {
+        const currentQty = productQuantities.get(detail.productId) || 0
+        productQuantities.set(detail.productId, currentQty + Number(detail.quantity))
+      }
+
+      // Update stock untuk setiap produk dengan total quantity
+      for (const [productId, totalQuantity] of productQuantities) {
         // Cek apakah stok sudah ada
         const existingStock = await Stock
           .query({ client: trx })
-          .where('product_id', detail.productId)
+          .where('product_id', productId)
           .andWhere('warehouse_id', stockIn.warehouseId)
           .first()
 
         if (existingStock) {
           // Jika sudah ada, update quantity
-          existingStock.quantity = Number(existingStock.quantity) + Number(detail.quantity)
+          existingStock.quantity = Number(existingStock.quantity) + totalQuantity
           await existingStock.useTransaction(trx).save()
         } else {
           // Jika belum ada, buat record baru
           await Stock.create({
-            productId  : detail.productId,
+            productId  : productId,
             warehouseId: stockIn.warehouseId,
-            quantity   : Number(detail.quantity)
+            quantity   : totalQuantity
           }, { client: trx })
         }
       }

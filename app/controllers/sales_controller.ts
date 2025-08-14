@@ -599,7 +599,7 @@ export default class SalesController {
     }
   }
 
-  async approveSalesOrder({ params, response, auth }: HttpContext) {
+    async approveSalesOrder({ params, response, auth }: HttpContext) {
     try {
         const so = await SalesOrder.find(params.id)
         if (!so) {
@@ -613,9 +613,6 @@ export default class SalesController {
         }
         await so.save()
 
-        // ✅ TIDAK BUAT INVOICE saat approve, hanya saat status_partial diubah atau delivered
-        // Invoice akan dibuat dari sales_items_controller.ts saat user mengubah status_partial
-
         return response.ok({
             message: 'Sales Order berhasil diapprove',
             data: {
@@ -624,7 +621,11 @@ export default class SalesController {
             }
         })
     } catch (error) {
-        return response.internalServerError({ message: 'Gagal mengapprove purchase order' })
+        console.error('Error approving sales order:', error)
+        return response.internalServerError({
+          message: 'Gagal mengapprove Sales Order',
+          error: error.message
+        })
     }
   }
 
