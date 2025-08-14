@@ -6,6 +6,7 @@ import SalesInvoiceItem from '#models/sales_invoice_item'
 import StockOut from '#models/stock_out'
 import StockOutDetail from '#models/stock_out_detail'
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 
 export default class SalesItemsController {
     // ✅ UBAH: Fungsi untuk membuat invoice baru untuk setiap partial delivery
@@ -510,6 +511,141 @@ export default class SalesItemsController {
 
       return response.badRequest({
         message: 'Gagal memperbarui status',
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      })
+    }
+  }
+
+  public async deliverAllItems({ params, response, auth }: HttpContext) {
+    const trx = await db.transaction()
+    try {
+      const salesOrderId = params.id
+
+      console.log(`🔍 deliverAllItems called for SO: ${salesOrderId}`)
+
+      // Ambil Sales Order dengan semua items
+      const salesOrder = await SalesOrder.query({ client: trx })
+        .where('id', salesOrderId)
+        .preload('salesOrderItems', (query) => {
+          query.preload('product', (productQuery) => {
+            productQuery.select(['id', 'name', 'priceSell', 'sku'])
+          })
+        })
+        .firstOrFail()
+
+      console.log(`🔍 Found Sales Order: ${salesOrder.noSo} with ${salesOrder.salesOrderItems.length} items`)
+
+      // Fungsi generateNo untuk no_so
+      function generateNo() {
+        return 'SO-' + Date.now()
+      }
+
+      let totalStockOutsCreated = 0
+      let updatedItems = []
+
+      // Proses setiap item yang belum fully delivered
+      for (const item of salesOrder.salesOrderItems) {
+        const currentDeliveredQty = Math.floor(Number(item.deliveredQty) || 0)
+        const maxQuantity = Math.floor(Number(item.quantity) || 0)
+        const pendingQuantity = maxQuantity - currentDeliveredQty
+
+        console.log(`🔍 Processing item ${item.id}: current=${currentDeliveredQty}, max=${maxQuantity}, pending=${pendingQuantity}`)
+
+        if (pendingQuantity > 0) {
+          // Update deliveredQty ke maksimum
+          item.deliveredQty = maxQuantity
+          item.statusPartial = true
+          await item.useTransaction(trx).save()
+
+          // Cek berapa banyak Stock Out yang sudah ada untuk item ini
+          const existingStockOuts = await StockOut.query({ client: trx })
+            .where('salesOrderId', salesOrder.id)
+            .whereHas('stockOutDetails', (detailQuery) => {
+              detailQuery.where('productId', item.productId)
+            })
+            .count('* as total')
+
+          const totalExistingStockOuts = existingStockOuts[0]?.$extras.total || 0
+          const newStockOutsNeeded = pendingQuantity
+
+          console.log(`🔍 Creating ${newStockOutsNeeded} Stock Out(s) for item ${item.id}`)
+
+          // Buat Stock Out individual untuk setiap pending unit
+          for (let i = 0; i < newStockOutsNeeded; i++) {
+            const stockOut = await StockOut.create({
+              noSo: generateNo(),
+              salesOrderId: salesOrder.id,
+              warehouseId: item.warehouseId,
+              postedBy: auth.user?.id,
+              date: DateTime.now().toJSDate(),
+              status: 'draft',
+              description: `Stock Out Unit ${totalExistingStockOuts + i + 1} dari SO #${salesOrder.noSo || salesOrder.id} - Produk: ${item.product?.name || item.productId}`,
+            }, { client: trx })
+
+            // Buat 1 StockOutDetail untuk Stock Out ini
+            await StockOutDetail.create({
+              stockOutId: stockOut.id,
+              productId: item.productId,
+              quantity: 1, // Selalu 1 unit per Stock Out
+              description: `${item.description || ''} - Unit ${totalExistingStockOuts + i + 1}`,
+            }, { client: trx })
+
+            totalStockOutsCreated++
+            console.log(`✅ Created StockOut ${stockOut.id} with 1 detail for unit ${totalExistingStockOuts + i + 1}`)
+          }
+
+          updatedItems.push({
+            id: item.id,
+            productName: item.product?.name || 'Unknown Product',
+            quantity: maxQuantity,
+            deliveredQty: maxQuantity,
+            stockOutsCreated: newStockOutsNeeded
+          })
+        }
+      }
+
+      // Update status Sales Order ke 'delivered' jika semua item sudah delivered
+      const allItemsFullyDelivered = salesOrder.salesOrderItems.every(item =>
+        Math.floor(Number(item.deliveredQty || 0)) === Math.floor(Number(item.quantity || 0))
+      )
+
+      if (allItemsFullyDelivered) {
+        salesOrder.status = 'delivered'
+        salesOrder.deliveredAt = new Date()
+        if (auth.user?.id) {
+          salesOrder.deliveredBy = auth.user.id
+        }
+        await salesOrder.useTransaction(trx).save()
+        console.log(`✅ Sales Order status updated to 'delivered'`)
+      }
+
+      await trx.commit()
+
+      console.log(`✅ Deliver All completed: ${totalStockOutsCreated} Stock Out(s) created for ${updatedItems.length} items`)
+
+      return response.ok({
+        message: 'Semua item berhasil di-deliver',
+        data: {
+          salesOrderId: salesOrder.id,
+          totalStockOutsCreated,
+          updatedItems,
+          newStatus: salesOrder.status
+        }
+      })
+
+    } catch (error) {
+      await trx.rollback()
+      console.error('❌ ERROR in deliverAllItems:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        status: error.status,
+        name: error.name
+      })
+
+      return response.badRequest({
+        message: 'Gagal deliver semua item',
         error: error.message,
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       })

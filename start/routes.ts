@@ -132,6 +132,7 @@ router
 
     // Sales Order Item Router
     router.patch('/sales-order-item/updateStatusPartial/:id', [SalesItemsController, 'updateStatusPartial'])
+    router.post('/sales-order/deliverAllItems/:id', [SalesItemsController, 'deliverAllItems'])
   })
   .prefix('/api')
   .use(middleware.auth())
