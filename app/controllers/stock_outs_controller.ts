@@ -273,7 +273,42 @@ export default class StockOutsController {
       })
     } catch (error) {
       return response.internalServerError({
-        message: 'Gagal mengambil total Stock In',
+        message: 'Gagal mengambil total Stock Out',
+        error: error.message,
+      })
+    }
+  }
+
+  async getAllForExport({ response }: HttpContext) {
+    try {
+      const stockOuts = await StockOut.query()
+        .preload('warehouse')
+        .preload('postedByUser', (userQuery) => {
+          userQuery.select(['id', 'fullName', 'email'])
+        })
+        .preload('stockOutDetails', (detailQuery) => {
+          detailQuery.preload('product', (productQuery) => {
+            productQuery.preload('unit')
+          })
+        })
+        .preload('salesOrder', (soQuery) => {
+          soQuery.preload('deliveredByUser')
+          soQuery.preload('salesOrderItems', (soiQuery) => {
+            soiQuery.where('statusPartial', true)
+            soiQuery.preload('product')
+          })
+        })
+        .orderBy('created_at', 'desc')
+
+      return response.ok({
+        data: stockOuts,
+        meta: {
+          total: stockOuts.length
+        }
+      })
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data stock out untuk export',
         error: error.message,
       })
     }

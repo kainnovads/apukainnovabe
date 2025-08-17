@@ -6,6 +6,7 @@ import Role from '#models/auth/role'
 import AccessToken from '#models/auth/auth_access_token'
 import crypto from 'node:crypto'
 import { DateTime } from 'luxon'
+import UserSessionService from '#services/user_session_service'
 
 export default class AuthController {
   // Register
@@ -69,6 +70,13 @@ export default class AuthController {
       // Ambil role user
       await user.load('roles')
 
+      // Buat session tracking
+      const session = await UserSessionService.createSession(
+        user.id,
+        request.ip(),
+        request.header('user-agent') || ''
+      )
+
       return response.ok({
         message: 'Login berhasil',
         token: {
@@ -83,6 +91,7 @@ export default class AuthController {
           isActive: user.isActive,
           roles: user.roles,
         },
+        sessionId: session.sessionId,
       })
     } catch (error) {
       console.error('Login error:', error)
@@ -138,6 +147,13 @@ export default class AuthController {
     }
 
     await token.delete()
+
+    // Logout session tracking
+    const sessionId = request.header('x-session-id')
+    if (sessionId) {
+      await UserSessionService.logoutSession(sessionId)
+    }
+
     return response.ok({ message: 'Logout successful' })
   }
 

@@ -886,4 +886,160 @@ export default class SalesController {
       deliveredLast4Months: Number(deliveredLast4Months[0].total),
     })
   }
+
+  async getSalesStatistics({ response }: HttpContext) {
+    try {
+      const now = DateTime.now()
+      
+      // 1. Total nominal transaksi 1 bulan terakhir
+      const oneMonthAgo = now.minus({ months: 1 }).toISODate()
+      const lastMonthSales = await SalesOrder.query()
+        .where('status', 'delivered')
+        .where('created_at', '>=', oneMonthAgo)
+        .sum('total as totalAmount')
+      
+      const lastMonthTotal = Number(lastMonthSales[0]?.$extras.totalAmount || 0)
+
+      // 2. Total nominal transaksi 2 bulan lalu untuk perbandingan
+      const twoMonthsAgo = now.minus({ months: 2 }).toISODate()
+      const twoMonthsAgoSales = await SalesOrder.query()
+        .where('status', 'delivered')
+        .where('created_at', '>=', twoMonthsAgo)
+        .where('created_at', '<', oneMonthAgo)
+        .sum('total as totalAmount')
+      
+      const twoMonthsAgoTotal = Number(twoMonthsAgoSales[0]?.$extras.totalAmount || 0)
+
+      // 3. Data per minggu (4 minggu terakhir)
+      const weeklyData = []
+      for (let i = 0; i < 4; i++) {
+        const weekStart = now.minus({ weeks: i + 1 }).startOf('week')
+        const weekEnd = now.minus({ weeks: i }).startOf('week')
+        
+        const weekSales = await SalesOrder.query()
+          .where('status', 'delivered')
+          .where('created_at', '>=', weekStart.toISODate())
+          .where('created_at', '<', weekEnd.toISODate())
+          .sum('total as totalAmount')
+        
+        weeklyData.push({
+          week: `Week ${4 - i}`,
+          amount: Number(weekSales[0]?.$extras.totalAmount || 0),
+          dateRange: `${weekStart.toFormat('dd/MM')} - ${weekEnd.minus({ days: 1 }).toFormat('dd/MM')}`
+        })
+      }
+
+      // 4. Hitung performa penjualan (persentase perubahan)
+      let performancePercentage = 0
+      if (twoMonthsAgoTotal > 0) {
+        performancePercentage = ((lastMonthTotal - twoMonthsAgoTotal) / twoMonthsAgoTotal) * 100
+      }
+
+      // 5. Data hari ini
+      const today = now.startOf('day')
+      const todaySales = await SalesOrder.query()
+        .where('status', 'delivered')
+        .where('created_at', '>=', today.toISODate())
+        .sum('total as totalAmount')
+      
+      const todayTotal = Number(todaySales[0]?.$extras.totalAmount || 0)
+
+      // 6. Data minggu ini
+      const thisWeekStart = now.startOf('week')
+      const thisWeekSales = await SalesOrder.query()
+        .where('status', 'delivered')
+        .where('created_at', '>=', thisWeekStart.toISODate())
+        .sum('total as totalAmount')
+      
+      const thisWeekTotal = Number(thisWeekSales[0]?.$extras.totalAmount || 0)
+
+      // 7. Data minggu lalu untuk perbandingan
+      const lastWeekStart = now.minus({ weeks: 1 }).startOf('week')
+      const lastWeekEnd = now.startOf('week')
+      const lastWeekSales = await SalesOrder.query()
+        .where('status', 'delivered')
+        .where('created_at', '>=', lastWeekStart.toISODate())
+        .where('created_at', '<', lastWeekEnd.toISODate())
+        .sum('total as totalAmount')
+      
+      const lastWeekTotal = Number(lastWeekSales[0]?.$extras.totalAmount || 0)
+
+      // 8. Hitung performa mingguan
+      let weeklyPerformancePercentage = 0
+      if (lastWeekTotal > 0) {
+        weeklyPerformancePercentage = ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100
+      }
+
+      return response.ok({
+        lastMonth: {
+          total: lastMonthTotal,
+          performance: performancePercentage
+        },
+        thisWeek: {
+          total: thisWeekTotal,
+          performance: weeklyPerformancePercentage
+        },
+        today: {
+          total: todayTotal
+        },
+        weeklyData: weeklyData.reverse(), // Urutkan dari minggu terlama ke terbaru
+        performance: {
+          monthly: performancePercentage,
+          weekly: weeklyPerformancePercentage
+        }
+      })
+    } catch (error) {
+      console.error('Error getting sales statistics:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil statistik penjualan',
+        error: error.message
+      })
+    }
+  }
+
+  async getSalesByCustomer({ response }: HttpContext) {
+    try {
+      // Ambil data penjualan berdasarkan customer untuk 1 bulan terakhir
+      const oneMonthAgo = DateTime.now().minus({ months: 1 }).toISODate()
+      
+      const salesByCustomer = await db
+        .from('sales_orders')
+        .select(
+          'customers.name as customer_name',
+          'customers.id as customer_id',
+          db.raw('SUM(sales_orders.total) as total_sales')
+        )
+        .leftJoin('customers', 'sales_orders.customer_id', 'customers.id')
+        .where('sales_orders.status', 'delivered')
+        .where('sales_orders.created_at', '>=', oneMonthAgo)
+        .groupBy('customers.id', 'customers.name')
+        .orderBy('total_sales', 'desc')
+        .limit(5)
+
+      // Hitung total penjualan untuk subtitle
+      const totalSales = salesByCustomer.reduce((sum, item) => sum + Number(item.total_sales), 0)
+
+      // Format data untuk chart
+      const chartData = salesByCustomer.map((item, index) => {
+        const colors = ['#696cff', '#71dd37', '#ffab00', '#ff3e1d', '#03c3ec']
+        return {
+          customer: item.customer_name || 'Unknown Customer',
+          sales: Number(item.total_sales),
+          color: colors[index] || '#696cff',
+          percentage: totalSales > 0 ? ((Number(item.total_sales) / totalSales) * 100).toFixed(1) : '0'
+        }
+      })
+
+      return response.ok({
+        totalSales: totalSales,
+        customers: chartData
+      })
+    } catch (error) {
+      console.error('Error getting sales by customer:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil data penjualan berdasarkan customer',
+        error: error.message
+      })
+    }
+  }
 }

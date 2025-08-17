@@ -96,6 +96,36 @@ export default class StockInsController {
     }
   }
 
+  async show({ params, response }: HttpContext) {
+    try {
+      const stockIn = await StockIn.query()
+        .where('id', params.id)
+        .preload('warehouse')
+        .preload('postedByUser')
+        .preload('stockInDetails', (stockInDetailQuery) => {
+          stockInDetailQuery.preload('product')
+        })
+        .preload('purchaseOrder', (poQuery) => {
+          poQuery.preload('purchaseOrderItems', (poiQuery) => {
+            poiQuery.preload('product')
+          })
+        })
+        .first()
+
+      if (!stockIn) {
+        return response.notFound({ message: 'Stock In tidak ditemukan' })
+      }
+
+      return response.ok(stockIn.toJSON())
+    } catch (error) {
+      console.log(error)
+      return response.internalServerError({
+        message: 'Gagal mengambil detail Stock In',
+        error: error.message,
+      })
+    }
+  }
+
   async getStockInDetails({ params, response }: HttpContext) {
     try {
       const stockIn = await StockIn.query()
@@ -248,6 +278,36 @@ export default class StockInsController {
     } catch (error) {
       return response.internalServerError({
         message: 'Gagal mengambil total Stock In',
+        error: error.message,
+      })
+    }
+  }
+
+  async getAllForExport({ response }: HttpContext) {
+    try {
+      const stockIns = await StockIn.query()
+        .preload('warehouse')
+        .preload('postedByUser')
+        .preload('stockInDetails', (stockInDetailQuery) => {
+          stockInDetailQuery.preload('product')
+        })
+        .preload('purchaseOrder', (poQuery) => {
+          poQuery.preload('receivedByUser')
+          poQuery.preload('purchaseOrderItems', (poiQuery) => {
+            poiQuery.preload('product')
+          })
+        })
+        .orderBy('created_at', 'desc')
+
+      return response.ok({
+        data: stockIns,
+        meta: {
+          total: stockIns.length
+        }
+      })
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data stock in untuk export',
         error: error.message,
       })
     }

@@ -43,6 +43,7 @@ import AssociationsController from '#controllers/associations_controller'
 import SalesInvoicesController from '#controllers/sales_invoices_controller'
 import SuratJalansController from '#controllers/surat_jalans_controller'
 import QuotationsController from '#controllers/quotations_controller'
+import UserSessionsController from '#controllers/user_sessions_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -56,6 +57,8 @@ router.get('/auth/api/csrf-token', async ({ response, request }) => {
 router
 .group(() => {
   router.get('/sales-order/countByStatus', [SalesOrdersController, 'countByStatus'])
+  router.get('/sales-order/statistics', [SalesOrdersController, 'getSalesStatistics'])
+  router.get('/sales-order/salesByCustomer', [SalesOrdersController, 'getSalesByCustomer'])
 })
 .prefix('/api')
 .use(middleware.auth())
@@ -312,6 +315,7 @@ router
     router.post('/stock-in/postStockIn/:id', [StockInsController, 'postStockIn'])
     router.get('/stock-in/getTotalStockIn', [StockInsController, 'getTotalStockIn'])
     router.get('/stock-in/getStockInDetails/:id', [StockInsController, 'getStockInDetails'])
+    router.get('/stock-in/export', [StockInsController, 'getAllForExport'])
     router.resource('stock-in', StockInsController).apiOnly()
   })
   .prefix('/api')
@@ -323,6 +327,7 @@ router
     router.post('/stock-out/postStockOut/:id', [StockOutsController, 'postStockOut'])
     router.get('/stock-out/getTotalStockOut', [StockOutsController, 'getTotalStockOut'])
     router.get('/stock-out/getStockOutDetails/:id', [StockOutsController, 'getStockOutDetails'])
+    router.get('/stock-out/export', [StockOutsController, 'getAllForExport'])
     router.resource('stock-out', StockOutsController).apiOnly()
   })
   .prefix('/api')
@@ -369,3 +374,14 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasPermission(['access_perusahaan', 'access_cabang', 'access_warehouse', 'access_product', 'access_customer', 'access_vendor']))
+
+  // User Session Router - untuk monitoring user yang sedang online
+  router.group(() => {
+    router.get('/user-sessions/active-users', [UserSessionsController, 'getActiveUsers'])
+    router.get('/user-sessions/user/:id/sessions', [UserSessionsController, 'getUserSessions'])
+    router.post('/user-sessions/force-logout/:sessionId', [UserSessionsController, 'forceLogout'])
+    router.post('/user-sessions/cleanup-expired', [UserSessionsController, 'cleanupExpired'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasRole(['superadmin', 'admin']))
