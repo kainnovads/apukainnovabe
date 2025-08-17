@@ -309,56 +309,153 @@ export default class SalesInvoicesController {
     const noUrut    = String(nextNumber).padStart(4, '0')
     const noInvoice = `${noUrut}-${bulan}${tahun}`
 
-    const payload   = await request.validateUsing(salesInvoiceValidator)
-    const items     = payload.salesInvoiceItems || []
-
-    const trx = await db.transaction()
-
     try {
-      const SalesInv = await SalesInvoice.create({
-          salesOrderId   : payload.salesOrderId,
-          customerId     : payload.customerId,
-          noInvoice      : noInvoice,
-          up             : payload.up || '',
-          date           : payload.date,
-          dueDate        : payload.dueDate,
-          status         : payload.status || 'unpaid',
-          discountPercent: payload.discountPercent || 0,
-          taxPercent     : payload.taxPercent || 0,
-          dpp            : payload.dpp || 0,
-          total          : payload.total, // Sudah grand total dari frontend
-          paidAmount     : payload.paidAmount || 0,
-          remainingAmount: payload.remainingAmount || (payload.total - (payload.paidAmount || 0)),
-          description    : payload.description || '',
-      }, { client: trx })
+      const payload = await request.validateUsing(salesInvoiceValidator)
+      const items = payload.salesInvoiceItems || []
 
-      // ✅ BUAT SALES INVOICE ITEMS
-      for (const item of items) {
-        await SalesInvoiceItem.create({
-          salesInvoiceId  : SalesInv.id,
-          salesOrderItemId: item.salesOrderItemId,
-          productId       : Number(item.productId),
-          warehouseId     : Number(item.warehouseId),
-          quantity        : Number(item.quantity),
-          price           : Number(item.price),
-          subtotal        : Number(item.subtotal),
-          description     : item.description,
-          deliveredQty    : Number(item.deliveredQty || 0),
-          isReturned      : item.isReturned || false,
-        }, { client: trx })
+      // ✅ VALIDASI TAMBAHAN: Pastikan data yang diperlukan ada
+      if (!payload.customerId) {
+        return response.badRequest({
+          message: 'Customer ID harus diisi',
+          error: 'customerId_required'
+        })
       }
 
-      await trx.commit()
+      if (!payload.date || !payload.dueDate) {
+        return response.badRequest({
+          message: 'Tanggal invoice dan jatuh tempo harus diisi',
+          error: 'date_required'
+        })
+      }
 
-      return response.created({
-          message: 'Sales Invoice berhasil dibuat',
-          data: SalesInv,
-      })
+      if (!payload.total || payload.total <= 0) {
+        return response.badRequest({
+          message: 'Total invoice harus lebih dari 0',
+          error: 'invalid_total'
+        })
+      }
+
+      // ✅ VALIDASI: Jika ada sales order, pastikan sales order exists
+      if (payload.salesOrderId) {
+        const salesOrder = await db.from('sales_orders').where('id', payload.salesOrderId).first()
+        if (!salesOrder) {
+          return response.badRequest({
+            message: 'Sales Order tidak ditemukan',
+            error: 'sales_order_not_found'
+          })
+        }
+      }
+
+      // ✅ VALIDASI: Pastikan customer exists
+      const customer = await db.from('customers').where('id', payload.customerId).first()
+      if (!customer) {
+        return response.badRequest({
+          message: 'Customer tidak ditemukan',
+          error: 'customer_not_found'
+        })
+      }
+
+      const trx = await db.transaction()
+
+      try {
+        const SalesInv = await SalesInvoice.create({
+            salesOrderId   : payload.salesOrderId || null,
+            customerId     : payload.customerId,
+            noInvoice      : noInvoice,
+            email          : payload.email || '',
+            up             : payload.up || '',
+            date           : payload.date,
+            dueDate        : payload.dueDate,
+            status         : payload.status || 'unpaid',
+            discountPercent: payload.discountPercent || 0,
+            taxPercent     : payload.taxPercent || 0,
+            dpp            : payload.dpp || 0,
+            total          : payload.total,
+            paidAmount     : payload.paidAmount || 0,
+            remainingAmount: payload.remainingAmount || (payload.total - (payload.paidAmount || 0)),
+            description    : payload.description || '',
+        }, { client: trx })
+
+        // ✅ BUAT SALES INVOICE ITEMS dengan validasi
+        if (items.length > 0) {
+          for (const item of items) {
+            // ✅ VALIDASI: Pastikan product exists
+            if (item.productId) {
+              const product = await db.from('products').where('id', item.productId).first()
+              if (!product) {
+                throw new Error(`Product dengan ID ${item.productId} tidak ditemukan`)
+              }
+            }
+
+            // ✅ VALIDASI: Pastikan warehouse exists jika ada
+            if (item.warehouseId) {
+              const warehouse = await db.from('warehouses').where('id', item.warehouseId).first()
+              if (!warehouse) {
+                throw new Error(`Warehouse dengan ID ${item.warehouseId} tidak ditemukan`)
+              }
+            }
+
+            // ✅ VALIDASI: Pastikan sales order item exists jika ada
+            if (item.salesOrderItemId) {
+              const salesOrderItem = await db.from('sales_order_items').where('id', item.salesOrderItemId).first()
+              if (!salesOrderItem) {
+                throw new Error(`Sales Order Item dengan ID ${item.salesOrderItemId} tidak ditemukan`)
+              }
+            }
+
+            await SalesInvoiceItem.create({
+              salesInvoiceId  : SalesInv.id,
+              salesOrderItemId: item.salesOrderItemId || null,
+              productId       : Number(item.productId),
+              warehouseId     : item.warehouseId ? Number(item.warehouseId) : null,
+              quantity        : Number(item.quantity) || 0,
+              price           : Number(item.price) || 0,
+              subtotal        : Number(item.subtotal) || 0,
+              description     : item.description || '',
+              deliveredQty    : Number(item.deliveredQty || 0),
+              isReturned      : item.isReturned || false,
+            }, { client: trx })
+          }
+        }
+
+        await trx.commit()
+
+        return response.created({
+            message: 'Sales Invoice berhasil dibuat',
+            data: SalesInv,
+        })
       } catch (error) {
-      await trx.rollback()
-      console.error('SI Error:', error)
-      return response.internalServerError({
+        await trx.rollback()
+        console.error('❌ Sales Invoice Creation Error:', error)
+        
+        // ✅ ERROR HANDLING: Berikan pesan error yang lebih spesifik
+        if (error.message.includes('foreign key constraint')) {
+          return response.badRequest({
+            message: 'Data referensi tidak valid. Pastikan customer, product, dan warehouse yang dipilih ada.',
+            error: 'foreign_key_constraint_failed',
+            details: error.message
+          })
+        }
+        
+        if (error.message.includes('duplicate key')) {
+          return response.badRequest({
+            message: 'Nomor invoice sudah ada. Silakan coba lagi.',
+            error: 'duplicate_invoice_number'
+          })
+        }
+
+        return response.internalServerError({
           message: 'Gagal membuat Sales Invoice',
+          error: error.message,
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        })
+      }
+    } catch (validationError) {
+      console.error('❌ Validation Error:', validationError)
+      return response.badRequest({
+        message: 'Data yang dikirim tidak valid',
+        error: 'validation_failed',
+        details: validationError.messages || validationError.message
       })
     }
   }
@@ -376,6 +473,7 @@ export default class SalesInvoicesController {
 
       if (payload.salesOrderId !== undefined) updateData.salesOrderId = payload.salesOrderId
       if (payload.customerId !== undefined) updateData.customerId = payload.customerId
+      if (payload.email !== undefined) updateData.email = payload.email
       if (payload.up !== undefined) updateData.up = payload.up
       if (payload.date !== undefined) updateData.date = payload.date
       if (payload.dueDate !== undefined) updateData.dueDate = payload.dueDate

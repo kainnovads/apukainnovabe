@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reminder Tagihan Invoice</title>
+  <meta name="x-compiled-by" content="send_real_invoice_reminders.ts" />
+  <!-- Variabel yang tersedia: customer_name, no_invoice, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status_label, status_class, description, nm_perusahaan, perusahaan_phone, perusahaan_email -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .invoice-details {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .amount {
+      font-size: 18px;
+      font-weight: bold;
+      color: #dc3545;
+    }
+
+    .due-date {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .status-unpaid {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .status-partial {
+      color: #ffc107;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>🔔 Reminder Tagihan Invoice</h2>
+      <p>Halo {{customer_name}},</p>
+    </div>
+
+    <p>Kami ingin mengingatkan bahwa Anda memiliki tagihan invoice yang belum lunas:</p>
+
+    <div class="invoice-details">
+      <h3>Detail Invoice:</h3>
+      <ul>
+        <li><strong>No. Invoice:</strong> {{no_invoice}}</li>
+        <li><strong>Tanggal Invoice:</strong> {{invoice_date}}</li>
+        <li><strong>Jatuh Tempo:</strong> <span class="due-date">{{due_date}}</span></li>
+        <li><strong>Total Tagihan:</strong> {{total_amount}}</li>
+        <li><strong>Sudah Dibayar:</strong> {{paid_amount}}</li>
+        <li><strong>Sisa Tagihan:</strong> <span class="amount">{{remaining_amount}}</span></li>
+        <li><strong>Status:</strong> <span class="{{status_class}}">{{status_label}}</span></li>
+        {{description}}
+      </ul>
+    </div>
+
+    <p>Mohon segera lakukan pembayaran untuk menghindari keterlambatan. Jika Anda sudah melakukan pembayaran, mohon abaikan email ini.</p>
+
+    <p>Untuk informasi lebih lanjut, silakan hubungi tim keuangan kami.</p>
+
+    <div class="footer">
+      <p>Hormat kami,<br>
+        <strong>Tim Keuangan {{nm_perusahaan}}</strong></p>
+      {{perusahaan_phone}}
+      {{perusahaan_email}}
+    </div>
+  </div>
+</body>
+</html>

@@ -31,9 +31,6 @@ export default class StockOutsController {
             .orWhereHas('postedByUser', (uQuery) => {
               uQuery.whereRaw('LOWER(full_name) LIKE ?', [`%${lowerSearch}%`])
             })
-            .orWhereHas('deliveredByUser', (uQuery) => {
-              uQuery.whereRaw('LOWER(full_name) LIKE ?', [`%${lowerSearch}%`])
-            })
         })
       }
 
@@ -58,11 +55,6 @@ export default class StockOutsController {
           } else if (relation === 'postedByUser') {
             dataQuery
               .leftJoin('users', 'stock_outs.posted_by', 'users.id')
-              .orderBy(`users.${dbColumn}`, actualSortOrder)
-              .select('stock_outs.*')
-          } else if (relation === 'deliveredByUser') {
-            dataQuery
-              .leftJoin('users', 'stock_outs.delivered_by', 'users.id')
               .orderBy(`users.${dbColumn}`, actualSortOrder)
               .select('stock_outs.*')
           }

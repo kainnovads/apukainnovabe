@@ -4,6 +4,7 @@ export const salesInvoiceValidator = vine.compile(
   vine.object({
     noInvoice        : vine.string().unique({ table: 'sales_invoices', column: 'no_invoice' }).optional(),
     up               : vine.string().optional(),
+    email            : vine.string().optional(),
     customerId       : vine.number(),
     perusahaanId     : vine.number().optional(),
     cabangId         : vine.number().optional(),
@@ -19,7 +20,7 @@ export const salesInvoiceValidator = vine.compile(
     status           : vine.enum(['unpaid', 'partial', 'paid'] as const).optional(),
     description      : vine.string().optional(),
     salesInvoiceItems: vine.array(vine.object({
-      salesOrderItemId: vine.string(),
+      salesOrderItemId: vine.string().optional(),
       productId       : vine.number(),
       warehouseId     : vine.number().optional(),
       quantity        : vine.number(),
@@ -35,7 +36,8 @@ export const salesInvoiceValidator = vine.compile(
 export const updateSalesInvoiceValidator = vine.compile(
   vine.object({
     noInvoice        : vine.string().unique({ table: 'sales_invoices', column: 'no_invoice' }).optional(),
-    up               : vine.string(),
+    up               : vine.string().optional(),
+    email            : vine.string().optional(),
     customerId       : vine.number().optional(),
     perusahaanId     : vine.number().optional(),
     cabangId         : vine.number().optional(),
@@ -51,7 +53,7 @@ export const updateSalesInvoiceValidator = vine.compile(
     status           : vine.enum(['unpaid', 'partial', 'paid'] as const).optional(),
     description      : vine.string().optional(),
     salesInvoiceItems: vine.array(vine.object({
-      salesOrderItemId: vine.string(),
+      salesOrderItemId: vine.string().optional(),
       productId       : vine.number(),
       warehouseId     : vine.number().optional(),
       quantity        : vine.number(),

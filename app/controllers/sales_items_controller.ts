@@ -265,7 +265,6 @@ export default class SalesItemsController {
             salesOrderId: salesOrder.id,
             warehouseId: salesOrderItem.warehouseId,
             postedBy: auth.user?.id,
-            deliveredBy: auth.user?.id, // Set deliveredBy untuk menampilkan pengirim
             date: DateTime.now().toJSDate(),
             status: 'draft',
             description: `Stock Out from SO #${salesOrder.noSo || salesOrder.id} - Product: ${salesOrderItem.product?.name || salesOrderItem.productId} - Unit ${i + 1}`,
@@ -312,11 +311,11 @@ export default class SalesItemsController {
       const totalDelivered = allItems.reduce((sum, item) => sum + (Number(item.deliveredQty) || 0), 0)
       const totalOrdered = allItems.reduce((sum, item) => sum + item.quantity, 0)
 
-      // ✅ PERBAIKAN: Cek apakah ada item yang memiliki partial status
-      const hasPartialItems = allItems.some(item => {
+      // ✅ PERBAIKAN: Cek apakah semua item sudah fully delivered
+      const allItemsFullyDelivered = allItems.every(item => {
         const deliveredQty = Number(item.deliveredQty || 0)
-        const isPartial = deliveredQty > 0 && deliveredQty < item.quantity
-        return isPartial
+        const orderedQty = Number(item.quantity || 0)
+        return deliveredQty >= orderedQty
       })
 
       let newSalesOrderStatus: 'draft' | 'approved' | 'rejected' | 'delivered' | 'partial' = salesOrder.status
@@ -328,16 +327,16 @@ export default class SalesItemsController {
         } else {
           newSalesOrderStatus = 'draft'
         }
-      } else if (totalDelivered < totalOrdered || hasPartialItems) {
-        // ✅ PERBAIKAN: Jika ada item partial ATAU total belum terpenuhi, status = partial
-        newSalesOrderStatus = 'partial'
-      } else if (totalDelivered >= totalOrdered && !hasPartialItems) {
-        // ✅ PERBAIKAN: Hanya jadi delivered jika semua item fully delivered
+      } else if (allItemsFullyDelivered) {
+        // ✅ PERBAIKAN: Jika semua item fully delivered, status = delivered
         newSalesOrderStatus = 'delivered'
         salesOrder.deliveredAt = new Date()
         if (auth.user) {
           salesOrder.deliveredBy = auth.user.id
         }
+      } else {
+        // ✅ PERBAIKAN: Jika ada item yang belum fully delivered, status = partial
+        newSalesOrderStatus = 'partial'
       }
 
       // ✅ BUAT INVOICE OTOMATIS hanya jika:
@@ -459,7 +458,6 @@ export default class SalesItemsController {
               salesOrderId: salesOrder.id,
               warehouseId: item.warehouseId,
               postedBy: auth.user?.id,
-              deliveredBy: auth.user?.id, // Set deliveredBy untuk menampilkan pengirim
               date: DateTime.now().toJSDate(),
               status: 'draft',
               description: `Deliver All - ${item.product?.name || item.productId} - Unit ${i + 1}/${pendingQty}`,
@@ -486,14 +484,14 @@ export default class SalesItemsController {
       const totalDelivered = allItems.reduce((sum, item) => sum + (Number(item.deliveredQty) || 0), 0)
       const totalOrdered = allItems.reduce((sum, item) => sum + item.quantity, 0)
 
-      // Cek apakah ada item yang memiliki partial status
-      const hasPartialItems = allItems.some(item => {
+      // ✅ PERBAIKAN: Cek apakah semua item sudah fully delivered
+      const allItemsFullyDelivered = allItems.every(item => {
         const deliveredQty = Number(item.deliveredQty || 0)
-        const isPartial = deliveredQty > 0 && deliveredQty < item.quantity
-        return isPartial
+        const orderedQty = Number(item.quantity || 0)
+        return deliveredQty >= orderedQty
       })
 
-      if (totalDelivered >= totalOrdered && !hasPartialItems) {
+      if (allItemsFullyDelivered) {
         salesOrder.status = 'delivered'
         salesOrder.deliveredAt = new Date()
         if (auth.user) {

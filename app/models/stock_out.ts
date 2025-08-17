@@ -41,9 +41,6 @@ export default class StockOut extends BaseModel {
   declare postedBy: number
 
   @column()
-  declare deliveredBy: number
-
-  @column()
   declare status: string
 
   @column()
@@ -59,11 +56,6 @@ export default class StockOut extends BaseModel {
     foreignKey: 'postedBy',
   })
   declare postedByUser: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'deliveredBy',
-  })
-  declare deliveredByUser: BelongsTo<typeof User>
 
   @belongsTo(() => Warehouse)
   declare warehouse: BelongsTo<typeof Warehouse>

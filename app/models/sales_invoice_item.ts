@@ -26,7 +26,7 @@ export default class SalesInvoiceItem extends BaseModel {
   declare salesInvoiceId: string
 
   @column()
-  declare salesOrderItemId: string
+  declare salesOrderItemId: string | null
 
   @column()
   declare productId: number
