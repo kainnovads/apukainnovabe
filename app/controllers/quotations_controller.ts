@@ -1,4 +1,5 @@
 import Cabang from "#models/cabang"
+import Customer from "#models/customer"
 import Quotation from "#models/quotation"
 import QuotationItem from "#models/quotation_item"
 import { quotationValidator, updateQuotationValidator } from "#validators/quotation"
@@ -225,6 +226,25 @@ export default class QuotationsController {
         return response.badRequest({ message: 'Items tidak boleh kosong ya' })
         }
 
+        // ✅ NEW: Validasi bahwa semua produk adalah produk customer
+        const customer = await Customer.find(payload.customerId)
+        if (!customer) {
+            return response.badRequest({ message: 'Customer tidak ditemukan' })
+        }
+
+        // Ambil produk yang dimiliki customer
+        await customer.load('products')
+        const customerProductIds = customer.products.map((p: any) => p.id)
+
+        // Validasi setiap item
+        for (const item of items) {
+            if (!customerProductIds.includes(item.productId)) {
+                return response.badRequest({
+                    message: `Produk dengan ID ${item.productId} tidak dimiliki oleh customer yang dipilih`
+                })
+            }
+        }
+
         const trx = await db.transaction()
 
         try {
@@ -301,6 +321,25 @@ export default class QuotationsController {
 
         if (!Array.isArray(items) || items.length === 0) {
             return response.badRequest({ message: 'Items tidak boleh kosong' })
+        }
+
+        // ✅ NEW: Validasi bahwa semua produk adalah produk customer
+        const customer = await Customer.find(payload.customerId)
+        if (!customer) {
+            return response.badRequest({ message: 'Customer tidak ditemukan' })
+        }
+
+        // Ambil produk yang dimiliki customer
+        await customer.load('products')
+        const customerProductIds = customer.products.map((p: any) => p.id)
+
+        // Validasi setiap item
+        for (const item of items) {
+            if (!customerProductIds.includes(item.productId)) {
+                return response.badRequest({
+                    message: `Produk dengan ID ${item.productId} tidak dimiliki oleh customer yang dipilih`
+                })
+            }
         }
 
         const trx = await db.transaction()

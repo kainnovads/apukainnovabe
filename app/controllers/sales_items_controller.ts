@@ -177,7 +177,7 @@ export default class SalesItemsController {
     }
 
     const trx = await db.transaction()
-    
+
     try {
       const itemId = params.id
       const { deliveredQty } = request.only(['deliveredQty'])
@@ -309,7 +309,6 @@ export default class SalesItemsController {
       const allItems = salesOrder.salesOrderItems
 
       const totalDelivered = allItems.reduce((sum, item) => sum + (Number(item.deliveredQty) || 0), 0)
-      const totalOrdered = allItems.reduce((sum, item) => sum + item.quantity, 0)
 
       // ✅ PERBAIKAN: Cek apakah semua item sudah fully delivered
       const allItemsFullyDelivered = allItems.every(item => {
@@ -481,9 +480,6 @@ export default class SalesItemsController {
       await salesOrder.load('salesOrderItems')
       const allItems = salesOrder.salesOrderItems
 
-      const totalDelivered = allItems.reduce((sum, item) => sum + (Number(item.deliveredQty) || 0), 0)
-      const totalOrdered = allItems.reduce((sum, item) => sum + item.quantity, 0)
-
       // ✅ PERBAIKAN: Cek apakah semua item sudah fully delivered
       const allItemsFullyDelivered = allItems.every(item => {
         const deliveredQty = Number(item.deliveredQty || 0)
@@ -506,7 +502,7 @@ export default class SalesItemsController {
       await trx.commit()
 
       // ✅ RESPONSE MESSAGE: Update untuk mencerminkan logika baru
-      const responseMessage = totalStockOutsCreated > 0 
+      const responseMessage = totalStockOutsCreated > 0
         ? `Berhasil deliver semua item. ${totalStockOutsCreated} Stock Out dibuat untuk ${productsWithPendingQty.length} produk.`
         : 'Semua item sudah di-deliver sebelumnya.'
 
