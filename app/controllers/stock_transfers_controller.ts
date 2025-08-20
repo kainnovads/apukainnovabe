@@ -167,7 +167,7 @@ export default class StockTransfersController {
       const stockTransfer = await StockTransfer.query()
         .where('id', params.id)
         .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
+          query.select(['id', 'nmPerusahaan'])
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'alamatCabang'])
