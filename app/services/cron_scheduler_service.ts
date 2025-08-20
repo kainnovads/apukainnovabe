@@ -8,7 +8,7 @@ import { DateTime } from 'luxon'
 export default class CronSchedulerService {
   private cronJobs: cron.ScheduledTask[] = []
 
-  constructor(private mailer: Mailer<any>) {}
+  constructor(private mailer?: Mailer<any>) {}
 
   /**
    * Menjalankan invoice reminder menggunakan service yang sudah ada
@@ -16,6 +16,11 @@ export default class CronSchedulerService {
   private async runInvoiceReminderService() {
     try {
       console.log(` [${DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss')}] Menjalankan invoice reminder service...`)
+
+      if (!this.mailer) {
+        console.warn('⚠️ Mailer tidak tersedia, skip invoice reminder')
+        return { success: false, error: 'Mailer not available' }
+      }
 
       const reminderService = new InvoiceReminderService(this.mailer)
 

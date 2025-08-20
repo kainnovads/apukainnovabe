@@ -28,6 +28,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+  DB_SSL: Env.schema.string.optional(),
 
   // ✅ OPTIMASI: Performance monitoring environment variables dengan default values
   DB_DEBUG: Env.schema.boolean.optional(),
@@ -43,11 +44,11 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring AWS S3 storage
   |----------------------------------------------------------
   */
-AWS_ACCESS_KEY_ID: Env.schema.string.optional(),
-AWS_SECRET_ACCESS_KEY: Env.schema.string.optional(),
-AWS_REGION: Env.schema.string.optional(),
-AWS_S3_BUCKET_NAME: Env.schema.string.optional(),
-AWS_S3_ENDPOINT: Env.schema.string.optional(),
+  AWS_ACCESS_KEY_ID: Env.schema.string.optional(),
+  AWS_SECRET_ACCESS_KEY: Env.schema.string.optional(),
+  AWS_REGION: Env.schema.string.optional(),
+  AWS_S3_BUCKET_NAME: Env.schema.string.optional(),
+  AWS_S3_ENDPOINT: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
@@ -71,5 +72,12 @@ AWS_S3_ENDPOINT: Env.schema.string.optional(),
   SMTP_HOST: Env.schema.string.optional(),
   SMTP_PORT: Env.schema.string.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
-  SMTP_PASSWORD: Env.schema.string.optional()
+  SMTP_PASSWORD: Env.schema.string.optional(),
+  SMTP_SECURE: Env.schema.string.optional(),
+  SMTP_TLS_REJECT_UNAUTHORIZED: Env.schema.string.optional(),
+  MAIL_FROM_ADDRESS: Env.schema.string.optional(),
+  SMTP_FROM_NAME: Env.schema.string.optional(),
+  MAILGUN_API_KEY: Env.schema.string.optional(),
+  MAILGUN_DOMAIN: Env.schema.string.optional(),
+  SPARKPOST_API_KEY: Env.schema.string.optional()
 })

@@ -38,3 +38,7 @@ README_FP_GROWTH_IMPROVEMENT.md
 README_SALES_BY_CUSTOMER.md
 README_SALES_STATISTICS.md
 README_USER_SESSION_TRACKING.md
+
+# Security: Environment files with credentials
+.ebextensions/*_credentials.config
+.ebextensions/*_secrets.config
