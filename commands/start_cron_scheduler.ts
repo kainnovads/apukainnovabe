@@ -9,6 +9,23 @@ export default class StartCronScheduler extends BaseCommand {
 
   static options: CommandOptions = {
     allowUnknownFlags: false,
+    flags: [
+      {
+        name: 'type',
+        type: 'string',
+        description: 'Jenis scheduler (weekly, daily, custom, all)',
+      },
+      {
+        name: 'pattern',
+        type: 'string',
+        description: 'Cron pattern untuk custom scheduler',
+      },
+      {
+        name: 'description',
+        type: 'string',
+        description: 'Deskripsi scheduler custom',
+      },
+    ],
   }
 
   async run() {
