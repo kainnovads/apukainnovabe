@@ -42,3 +42,6 @@ README_USER_SESSION_TRACKING.md
 # Security: Environment files with credentials
 .ebextensions/*_credentials.config
 .ebextensions/*_secrets.config
+
+# Production files
+package-lock.json
