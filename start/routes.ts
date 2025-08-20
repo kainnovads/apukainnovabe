@@ -49,6 +49,15 @@ router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
 })
 
+// Health check route
+router.get('/health', async () => {
+  return {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown'
+  }
+})
+
 router.get('/auth/api/csrf-token', async ({ response, request }) => {
   return response.ok({ token: request.csrfToken })
 })

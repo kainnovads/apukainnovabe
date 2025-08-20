@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "./build",
-    "types": ["@adonisjs/auth"],
+    "strict": false,
+    "types": ["@adonisjs/auth", "@types/node"],
     "paths": {
       "#helper/*": ["./app/helpers/*"],
       "#models/*": ["./app/models/*"],
@@ -12,7 +13,8 @@
       "#services/*": ["./app/services/*"],
       "#utils/*": ["./app/utils/*"],
       "#middlewares/*": ["./app/middlewares/*"],
-      "#config/*": ["./config/*"]
+      "#config/*": ["./config/*"],
+      "#start/*": ["./start/*"]
     }
   },
   "include": ["**/*"],
