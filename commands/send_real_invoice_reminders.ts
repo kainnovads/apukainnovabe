@@ -26,7 +26,9 @@ export default class SendRealInvoiceReminders extends BaseCommand {
           user: process.env.DB_USER || process.env.RDS_USERNAME || 'superadmin',
           password: process.env.DB_PASSWORD || process.env.RDS_PASSWORD || 'KainnovaDS#2139725',
           database: process.env.DB_DATABASE || process.env.RDS_DB_NAME || 'ebdb',
-          ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+          ssl: {
+            rejectUnauthorized: false
+          }
         })
 
         await dbClient.connect()
