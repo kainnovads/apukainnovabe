@@ -11,13 +11,13 @@ const mailConfig = defineConfig({
    */
   mailers: {
     smtp: transports.smtp({
-      host: env.get('SMTP_HOST') || 'localhost',
+      host: env.get('SMTP_HOST') || 'smtp.gmail.com',
       port: env.get('SMTP_PORT') || '587',
       secure: env.get('SMTP_SECURE') === 'true',
       auth: {
         type: 'login',
-        user: env.get('SMTP_USERNAME') || '',
-        pass: env.get('SMTP_PASSWORD') || '',
+        user: env.get('SMTP_USERNAME') || 'financeandara@gmail.com',
+        pass: env.get('SMTP_PASSWORD') || 'dcdntkmvstdulhjp',
       },
       tls: {
         rejectUnauthorized: env.get('SMTP_TLS_REJECT_UNAUTHORIZED') === 'true'
