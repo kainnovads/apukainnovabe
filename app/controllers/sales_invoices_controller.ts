@@ -168,6 +168,15 @@ export default class SalesInvoicesController {
           .preload('customer', (customerQuery) => {
             customerQuery.select(['id', 'name', 'email', 'phone'])
           })
+          // ✅ TAMBAHAN: Preload salesInvoiceItems dengan product di fallback query
+          .preload('salesInvoiceItems', (siiQuery) => {
+            siiQuery.preload('product', (productQuery) => {
+              productQuery.select(['id', 'name', 'priceSell', 'sku'])
+            })
+            siiQuery.preload('warehouse', (warehouseQuery) => {
+              warehouseQuery.select(['id', 'name'])
+            })
+          })
 
         // Apply same filters
         if (customerId) {
@@ -427,7 +436,7 @@ export default class SalesInvoicesController {
       } catch (error) {
         await trx.rollback()
         console.error('❌ Sales Invoice Creation Error:', error)
-        
+
         // ✅ ERROR HANDLING: Berikan pesan error yang lebih spesifik
         if (error.message.includes('foreign key constraint')) {
           return response.badRequest({
@@ -436,7 +445,7 @@ export default class SalesInvoicesController {
             details: error.message
           })
         }
-        
+
         if (error.message.includes('duplicate key')) {
           return response.badRequest({
             message: 'Nomor invoice sudah ada. Silakan coba lagi.',

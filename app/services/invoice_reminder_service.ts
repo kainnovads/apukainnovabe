@@ -38,7 +38,7 @@ export default class InvoiceReminderService {
 
           // Kirim email reminder
           await this.mailer.send(new InvoiceReminder(invoice, invoice.customer, perusahaan))
-          
+
           console.info(`✅ Email reminder terkirim untuk invoice ${invoice.noInvoice} ke ${invoice.email}`)
           successCount++
 
@@ -66,7 +66,7 @@ export default class InvoiceReminderService {
   async sendOverdueReminders() {
     try {
       const today = DateTime.now().toJSDate()
-      
+
       const overdueInvoices = await SalesInvoice.query()
         .whereIn('status', ['unpaid', 'partial'])
         .where('dueDate', '<', today)
@@ -85,13 +85,13 @@ export default class InvoiceReminderService {
           }
 
           const perusahaan = invoice.salesOrder?.perusahaan || await Perusahaan.first()
-          
+
           // Kirim email dengan subject yang berbeda untuk overdue
           const reminder = new InvoiceReminder(invoice, invoice.customer, perusahaan)
           reminder.subject = '⚠️ URGENT: Tagihan Invoice Telah Melewati Jatuh Tempo'
-          
+
           await this.mailer.send(reminder)
-          
+
           console.info(`✅ Email overdue reminder terkirim untuk invoice ${invoice.noInvoice}`)
           successCount++
 
