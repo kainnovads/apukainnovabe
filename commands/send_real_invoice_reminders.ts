@@ -108,12 +108,12 @@ export default class SendRealInvoiceReminders extends BaseCommand {
         const nodemailer = await import('nodemailer')
 
         transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'sandbox.smtp.mailtrap.io',
-          port: parseInt(process.env.SMTP_PORT || '2525'),
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: parseInt(process.env.SMTP_PORT || '587'),
           secure: false,
           auth: {
-            user: process.env.SMTP_USERNAME || 'f5758aab633a80',
-            pass: process.env.SMTP_PASSWORD || 'ebd1833e13ed84'
+            user: process.env.SMTP_USERNAME || 'financeandara@gmail.com',
+            pass: process.env.SMTP_PASSWORD || 'dcdntkmvstdulhjp'
           }
         })
 
