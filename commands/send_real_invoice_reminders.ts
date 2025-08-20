@@ -21,11 +21,11 @@ export default class SendRealInvoiceReminders extends BaseCommand {
         const { Client } = await import('pg')
 
         dbClient = new Client({
-          host: process.env.DB_HOST || '127.0.0.1',
-          port: parseInt(process.env.DB_PORT || '5432'),
-          user: process.env.DB_USER || 'postgres',
-          password: process.env.DB_PASSWORD || '',
-          database: process.env.DB_DATABASE || 'adoniserp',
+          host: process.env.DB_HOST || process.env.RDS_HOSTNAME || '127.0.0.1',
+          port: parseInt(process.env.DB_PORT || process.env.RDS_PORT || '5432'),
+          user: process.env.DB_USER || process.env.RDS_USERNAME || 'postgres',
+          password: process.env.DB_PASSWORD || process.env.RDS_PASSWORD || '',
+          database: process.env.DB_DATABASE || process.env.RDS_DB_NAME || 'adoniserp',
           ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
         })
 
