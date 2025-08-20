@@ -49,7 +49,7 @@ router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
 })
 
-// Health check route
+// Health Check AWS EB
 router.get('/health', async () => {
   return {
     status: 'healthy',
