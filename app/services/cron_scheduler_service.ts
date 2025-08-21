@@ -66,62 +66,6 @@ export default class CronSchedulerService {
   }
 
   /**
-   * Memulai scheduler untuk overdue invoice (setiap hari jam 9 pagi)
-   */
-  startDailyOverdueReminder() {
-    console.log('📅 Memulai daily overdue reminder scheduler (Setiap hari jam 9:00)...')
-
-    // Cron pattern: 0 9 * * * (Setiap hari jam 9:00)
-    const dailyJob = cron.schedule('0 9 * * *', async () => {
-      console.log('📅 Menjalankan daily overdue reminder...')
-      await this.runInvoiceReminderService()
-    }, {
-      timezone: 'Asia/Jakarta'
-    })
-
-    this.cronJobs.push(dailyJob)
-    console.log('✅ Daily overdue reminder scheduler berhasil dimulai')
-
-    return dailyJob
-  }
-
-  /**
-   * Memulai scheduler custom dengan pattern cron
-   */
-  startCustomScheduler(cronPattern: string, description: string = 'Custom scheduler') {
-    console.log(`📅 Memulai ${description} dengan pattern: ${cronPattern}`)
-
-    const customJob = cron.schedule(cronPattern, async () => {
-      console.log(`📅 Menjalankan ${description}...`)
-      await this.runInvoiceReminderService()
-    }, {
-      timezone: 'Asia/Jakarta'
-    })
-
-    this.cronJobs.push(customJob)
-    console.log(`✅ ${description} berhasil dimulai`)
-
-    return customJob
-  }
-
-  /**
-   * Memulai semua scheduler default
-   */
-  startAllSchedulers() {
-    console.log('🚀 Memulai semua scheduler invoice reminder...')
-
-    // Start weekly scheduler
-    this.startWeeklyInvoiceReminder()
-
-    // Start daily scheduler
-    this.startDailyOverdueReminder()
-
-    console.log('✅ Semua scheduler berhasil dimulai')
-    console.log('📅 Weekly reminder: Setiap Senin jam 9:00')
-    console.log('📅 Daily reminder: Setiap hari jam 9:00')
-  }
-
-  /**
    * Menghentikan semua scheduler
    */
   stopAllSchedulers() {
