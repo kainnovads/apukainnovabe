@@ -1,0 +1,1 @@
+{"version":3,"file":"sales_invoice_items_seeder.js","sourceRoot":"","sources":["../../../database/seeders/sales_invoice_items_seeder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAE,MAAM,yBAAyB,CAAA;AAEpD,MAAM,CAAC,OAAO,MAAO,SAAQ,UAAU;IACrC,KAAK,CAAC,GAAG;QAkDP,OAAO,CAAC,GAAG,CAAC,oEAAoE,CAAC,CAAA;IACnF,CAAC;CACF"}

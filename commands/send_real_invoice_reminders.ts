@@ -211,7 +211,7 @@ export default class SendRealInvoiceReminders extends BaseCommand {
 
           // Send email
           await transporter.sendMail({
-            from: process.env.MAIL_FROM_ADDRESS || 'kainnovads@outlook.com',
+            from: process.env.MAIL_FROM_ADDRESS || 'financeandara@gmail.com',
             to: invoice.invoice_email,
             subject: `Reminder Tagihan Invoice - ${invoice.no_invoice}`,
             html: htmlContent
