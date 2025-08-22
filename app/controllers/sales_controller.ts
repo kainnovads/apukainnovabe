@@ -157,9 +157,15 @@ export default class SalesController {
         }
       }
 
-      // ✅ Default ordering with proper indexing
+      // ✅ Default ordering dengan data terbaru di atas
       if (!customOrder) {
-        dataQuery.orderBy('created_at', 'desc')
+        dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc')
+      } else {
+        // ✅ Tambahkan secondary ordering untuk memastikan konsistensi
+        // Jika sorting bukan berdasarkan created_at, tambahkan created_at sebagai secondary sort
+        if (sortField !== 'created_at' && !sortField.includes('created_at')) {
+          dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc')
+        }
       }
 
       // ✅ OPTIMASI: Add query performance monitoring
@@ -172,6 +178,9 @@ export default class SalesController {
       if (queryTime > 1000) {
         console.warn(`🐌 Slow Query Alert: Sales Orders took ${queryTime}ms`)
       }
+
+      // ✅ Log sorting info untuk debugging
+      console.log(`📊 Sales Orders sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`)
 
       return response.ok({
         ...salesOrders.toJSON(),
@@ -890,14 +899,14 @@ export default class SalesController {
   async getSalesStatistics({ response }: HttpContext) {
     try {
       const now = DateTime.now()
-      
+
       // 1. Total nominal transaksi 1 bulan terakhir
       const oneMonthAgo = now.minus({ months: 1 }).toISODate()
       const lastMonthSales = await SalesOrder.query()
         .where('status', 'delivered')
         .where('created_at', '>=', oneMonthAgo)
         .sum('total as totalAmount')
-      
+
       const lastMonthTotal = Number(lastMonthSales[0]?.$extras.totalAmount || 0)
 
       // 2. Total nominal transaksi 2 bulan lalu untuk perbandingan
@@ -907,7 +916,7 @@ export default class SalesController {
         .where('created_at', '>=', twoMonthsAgo)
         .where('created_at', '<', oneMonthAgo)
         .sum('total as totalAmount')
-      
+
       const twoMonthsAgoTotal = Number(twoMonthsAgoSales[0]?.$extras.totalAmount || 0)
 
       // 3. Data per minggu (4 minggu terakhir)
@@ -915,13 +924,13 @@ export default class SalesController {
       for (let i = 0; i < 4; i++) {
         const weekStart = now.minus({ weeks: i + 1 }).startOf('week')
         const weekEnd = now.minus({ weeks: i }).startOf('week')
-        
+
         const weekSales = await SalesOrder.query()
           .where('status', 'delivered')
           .where('created_at', '>=', weekStart.toISODate())
           .where('created_at', '<', weekEnd.toISODate())
           .sum('total as totalAmount')
-        
+
         weeklyData.push({
           week: `Week ${4 - i}`,
           amount: Number(weekSales[0]?.$extras.totalAmount || 0),
@@ -941,7 +950,7 @@ export default class SalesController {
         .where('status', 'delivered')
         .where('created_at', '>=', today.toISODate())
         .sum('total as totalAmount')
-      
+
       const todayTotal = Number(todaySales[0]?.$extras.totalAmount || 0)
 
       // 6. Data minggu ini
@@ -950,7 +959,7 @@ export default class SalesController {
         .where('status', 'delivered')
         .where('created_at', '>=', thisWeekStart.toISODate())
         .sum('total as totalAmount')
-      
+
       const thisWeekTotal = Number(thisWeekSales[0]?.$extras.totalAmount || 0)
 
       // 7. Data minggu lalu untuk perbandingan
@@ -961,7 +970,7 @@ export default class SalesController {
         .where('created_at', '>=', lastWeekStart.toISODate())
         .where('created_at', '<', lastWeekEnd.toISODate())
         .sum('total as totalAmount')
-      
+
       const lastWeekTotal = Number(lastWeekSales[0]?.$extras.totalAmount || 0)
 
       // 8. Hitung performa mingguan
@@ -1001,7 +1010,7 @@ export default class SalesController {
     try {
       // Ambil data penjualan berdasarkan customer untuk 1 bulan terakhir
       const oneMonthAgo = DateTime.now().minus({ months: 1 }).toISODate()
-      
+
       const salesByCustomer = await db
         .from('sales_orders')
         .select(

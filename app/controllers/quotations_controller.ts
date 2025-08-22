@@ -111,9 +111,15 @@ export default class QuotationsController {
               }
             }
 
-            // ✅ Default ordering with proper indexing
+            // ✅ Default ordering dengan data terbaru di atas
             if (!customOrder) {
-              dataQuery.orderBy('created_at', 'desc')
+              dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc')
+            } else {
+              // ✅ Tambahkan secondary ordering untuk memastikan konsistensi
+              // Jika sorting bukan berdasarkan created_at, tambahkan created_at sebagai secondary sort
+              if (sortField !== 'created_at' && !sortField.includes('created_at')) {
+                dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc')
+              }
             }
 
             // ✅ OPTIMASI: Add query performance monitoring
@@ -123,8 +129,11 @@ export default class QuotationsController {
 
             // ✅ Log slow queries untuk monitoring
             if (queryTime > 1000) {
-              console.warn(`🐌 Slow Query Alert: Purchase Orders took ${queryTime}ms`)
+              console.warn(`🐌 Slow Query Alert: Quotations took ${queryTime}ms`)
             }
+
+            // ✅ Log sorting info untuk debugging
+            console.log(`📊 Quotations sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`)
 
             return response.ok({
               ...quotation.toJSON(),

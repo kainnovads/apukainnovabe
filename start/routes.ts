@@ -124,6 +124,7 @@ router
     router.patch('/purchase-order/rejectPurchaseOrder/:id', [PurchasesController, 'rejectPurchaseOrder'])
     router.post('/purchase-order/:id', [PurchasesController, 'update'])
     router.get('/purchase-order/getPurchaseOrderDetails/:id', [PurchasesController, 'getPurchaseOrderDetails'])
+    router.get('/purchase-order/countByStatus', [PurchasesController, 'countByStatus'])
     router.resource('purchase-order', PurchasesController).except(['update']).apiOnly()
 
     // Purchase Order Item Router
