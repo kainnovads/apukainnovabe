@@ -520,34 +520,27 @@ export default class SuratJalansController {
   }
 
   async destroy({ params, response }: HttpContext) {
-    const trx = await db.transaction()
-
     try {
-      const suratJalan = await SuratJalan.findOrFail(params.id)
+      const suratJalan = await SuratJalan.find(params.id)
+      
+      if (!suratJalan) {
+        return response.notFound({
+          message: 'Surat Jalan tidak ditemukan',
+        })
+      }
 
       // Hapus surat jalan items terlebih dahulu
-      await SuratJalanItem.query({ client: trx })
+      await SuratJalanItem.query()
         .where('suratJalanId', suratJalan.id)
         .delete()
 
       // Hapus surat jalan
       await suratJalan.delete()
 
-      await trx.commit()
-
       return response.ok({
         message: 'Surat Jalan berhasil dihapus',
       })
     } catch (error) {
-      await trx.rollback()
-      console.error('Delete Surat Jalan Error:', error)
-
-      if (error.status === 404) {
-        return response.notFound({
-          message: 'Surat Jalan tidak ditemukan',
-        })
-      }
-
       return response.internalServerError({
         message: 'Gagal menghapus Surat Jalan',
         error: error.message,
