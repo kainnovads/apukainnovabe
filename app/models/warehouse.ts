@@ -33,6 +33,9 @@ export default class Warehouse extends BaseModel {
   @column()
   declare email: string
 
+  @column()
+  declare isActive: boolean
+
   @hasMany(() => Stock)
   declare stocks: HasMany<typeof Stock>
 

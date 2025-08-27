@@ -65,6 +65,12 @@ export default class PurchasesController {
             dataQuery.preload('purchaseOrderItems', (query) => {
               query.preload('product', (productQuery) => {
                 productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku'])
+                  .preload('productCustomer', (pcQuery) => {
+                    pcQuery.select(['id', 'productId', 'customerId', 'priceSell'])
+                      .preload('customer', (customerQuery) => {
+                        customerQuery.select(['id', 'name'])
+                      })
+                  })
               })
             })
           }

@@ -116,6 +116,14 @@ export default class AuthController {
       loader.load('roles', (rolesQuery) => {
         rolesQuery.preload('permissions')
       })
+      loader.load('pegawai', (pegawaiQuery) => {
+        pegawaiQuery.preload('PegawaiHistory', (historyQuery) => {
+          historyQuery.preload('perusahaan')
+          historyQuery.preload('cabang', (cabangQuery) => {
+            cabangQuery.preload('perusahaan')
+          })
+        })
+      })
     })
 
     return response.ok(user)

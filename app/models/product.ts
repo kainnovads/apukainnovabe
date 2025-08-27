@@ -7,6 +7,7 @@ import StockInDetail from '#models/stock_in_detail'
 import StockOutDetail from '#models/stock_out_detail'
 import Customer from '#models/customer'
 import Stock from '#models/stock'
+import ProductCustomer from '#models/product_customer'
 
 export default class Product extends BaseModel {
   @column({ isPrimary: true })
@@ -65,6 +66,9 @@ export default class Product extends BaseModel {
 
   @hasMany(() => Stock)
   declare stocks: HasMany<typeof Stock>
+
+  @hasMany(() => ProductCustomer)
+  declare productCustomer: HasMany<typeof ProductCustomer>
 
   @manyToMany(() => Customer, {
     pivotTable: 'product_customers',
