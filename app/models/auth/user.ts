@@ -49,7 +49,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   })
   declare roles: ManyToMany<typeof Role>
 
-  @hasOne(() => Pegawai)
+  @hasOne(() => Pegawai, {
+    foreignKey: 'user_id',
+  })
   declare pegawai: HasOne<typeof Pegawai>
 
   @hasMany(() => PurchaseOrder, {
