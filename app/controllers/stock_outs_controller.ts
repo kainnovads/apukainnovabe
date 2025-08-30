@@ -265,7 +265,14 @@ export default class StockOutsController {
         return response.badRequest({ message: 'ID Stock Out harus berupa array dan tidak boleh kosong.' })
       }
 
-      const results = {
+      // Define types for results
+      type SuccessResult = { id: any; noSo: string }
+      type FailedResult = { id: any; reason: string }
+      
+      const results: {
+        success: SuccessResult[]
+        failed: FailedResult[]
+      } = {
         success: [],
         failed: []
       }
