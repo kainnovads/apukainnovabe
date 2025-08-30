@@ -50,6 +50,9 @@ export default class SalesOrder extends BaseModel {
   declare quotationId: string | null
 
   @column()
+  declare termOfPayment: string | null
+
+  @column()
   declare date: Date
 
   @column()

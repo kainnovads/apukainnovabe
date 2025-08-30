@@ -6,10 +6,10 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary()
-      table.uuid('sales_invoice_id').references('id').inTable('sales_invoices').onDelete('CASCADE')
-      table.uuid('sales_order_item_id').references('id').inTable('sales_order_items').onDelete('SET NULL').nullable()
-      table.integer('product_id').references('id').inTable('products').onDelete('RESTRICT')
-      table.integer('warehouse_id').references('id').inTable('warehouses').onDelete('SET NULL').nullable()
+      table.uuid('sales_invoice_id').references('id').inTable('sales_invoices').onDelete('CASCADE').onUpdate('CASCADE')
+      table.uuid('sales_order_item_id').references('id').inTable('sales_order_items').onDelete('SET NULL').onUpdate('CASCADE').nullable()
+      table.integer('product_id').unsigned().references('id').inTable('products').onDelete('RESTRICT').onUpdate('CASCADE')
+      table.integer('warehouse_id').unsigned().references('id').inTable('warehouses').onDelete('SET NULL').onUpdate('CASCADE').nullable()
       table.integer('quantity').notNullable()
       table.decimal('price', 15, 2).notNullable()
       table.decimal('subtotal', 15, 2).notNullable()

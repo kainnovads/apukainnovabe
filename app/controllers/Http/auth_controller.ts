@@ -1,5 +1,5 @@
 import { HttpContext } from '@adonisjs/core/http'
-import { createUserValidator } from '#validators/auth/auth'
+import { createUserValidator, loginValidator } from '#validators/auth/auth'
 import hash from '@adonisjs/core/services/hash'
 import User from '#models/auth/user'
 import Role from '#models/auth/role'
@@ -33,16 +33,17 @@ export default class AuthController {
   // Login
   async login({ request, response }: HttpContext) {
     console.log('Login method hit!')
-    const { email, password } = request.only(['email', 'password'])
+    const data = await request.validateUsing(loginValidator)
+    const { username, password } = data
 
-    console.log('Login attempt for:', email)
+    console.log('Login attempt for username:', username)
 
     try {
-      // 1. Cari user berdasarkan email
-      const user = await User.findBy('email', email)
+      // 1. Cari user berdasarkan username
+      const user = await User.findBy('username', username)
       if (!user) {
         console.log('User not found')
-        return response.unauthorized({ message: 'Email atau password salah' })
+        return response.unauthorized({ message: 'Username atau password salah' })
       }
 
       console.log('User found:', user.id, user.isActive)
@@ -61,7 +62,7 @@ export default class AuthController {
 
       if (!passwordValid) {
         console.log('Invalid password')
-        return response.unauthorized({ message: 'Email atau password salah' })
+        return response.unauthorized({ message: 'Username atau password salah' })
       }
 
       // 4. Generate token
@@ -86,6 +87,7 @@ export default class AuthController {
         },
         user: {
           id: user.id,
+          username: user.username,
           email: user.email,
           fullName: user.fullName,
           isActive: user.isActive,

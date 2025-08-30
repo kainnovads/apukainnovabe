@@ -12,6 +12,7 @@ export default class extends BaseSchema {
       table.string('no_po').notNullable().unique()
       table.string('up').notNullable()
       table.string('ext_nama_perusahaan')
+      table.string('term_of_payment')
       table.date('date').notNullable()
       table.date('due_date').notNullable()
       table.enum('status', ['draft', 'approved', 'rejected', 'partial', 'received']).defaultTo('draft')

@@ -268,15 +268,20 @@ export default class CustomersController {
       }
 
       // Update Customer utama
-      customer.merge({
-        name           : payload.name,
-        email          : payload.email,
-        phone          : payload.phone,
-        address        : payload.address,
-        npwp           : payload.npwp,
-        logo           : logoPath || undefined,
-      })
+      const updateData = {
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        address: payload.address,
+        npwp: payload.npwp || '',
+        logo: logoPath || '',
+      }
+      
+      customer.merge(updateData)
       await customer.save()
+      
+      // Reload data customer untuk memastikan data yang dikembalikan adalah yang terbaru
+      await customer.refresh()
 
       // Hapus item lama lalu insert ulang
       await ProductCustomer.query({ client: trx })
@@ -292,6 +297,35 @@ export default class CustomersController {
       }
 
       await trx.commit()
+
+      // Reload customer dengan products untuk response yang lengkap
+      const updatedCustomer = await Customer.query()
+        .where('id', customer.id)
+        .preload('products', (query) => query.preload('unit'))
+        .first()
+
+      if (updatedCustomer) {
+        // Serialize customer data and manually construct product data with pivot info
+        const customerJSON = updatedCustomer.serialize()
+        const productList = updatedCustomer.products.map((p) => {
+          return {
+            id: p.id,
+            productId: p.id,
+            name: p.name,
+            sku: p.sku,
+            priceSell: p.$extras.pivot_price_sell,
+            unit: p.unit,
+          }
+        })
+
+        customerJSON.customerProducts = productList
+        delete customerJSON.products
+
+        return response.ok({
+          message: 'Customer berhasil diperbarui',
+          data: customerJSON,
+        })
+      }
 
       return response.ok({
         message: 'Customer berhasil diperbarui',

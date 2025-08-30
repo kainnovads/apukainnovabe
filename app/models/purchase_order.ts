@@ -44,6 +44,9 @@ export default class PurchaseOrder extends BaseModel {
   declare extNamaPerusahaan: string | null
 
   @column()
+  declare termOfPayment: string | null
+
+  @column()
   declare date: Date
 
   @column()

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { BaseModel, belongsTo, column, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import { BaseModel, belongsTo, column, hasMany, manyToMany, beforeSave } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import Unit from '#models/unit'
 import Category from '#models/category'
@@ -75,4 +75,12 @@ export default class Product extends BaseModel {
     pivotColumns: ['price_sell'],
   })
   declare customers: ManyToMany<typeof Customer>
+
+  @beforeSave()
+  static async beforeSaveHook(product: Product) {
+    // Pastikan nama selalu dalam huruf kapital
+    if (product.name) {
+      product.name = product.name.toUpperCase()
+    }
+  }
 }

@@ -259,6 +259,113 @@ export default class StockInsController {
     }
   }
 
+  async postAllStockIn({ request, response, auth }: HttpContext) {
+    const trx = await db.transaction()
+    try {
+      const { ids } = request.body()
+      
+      if (!Array.isArray(ids) || ids.length === 0) {
+        await trx.rollback()
+        return response.badRequest({ message: 'ID Stock In harus berupa array dan tidak boleh kosong.' })
+      }
+
+      const results = {
+        success: [],
+        failed: []
+      }
+
+      for (const id of ids) {
+        try {
+          const stockIn = await StockIn.query({ client: trx })
+            .where('id', id)
+            .preload('stockInDetails')
+            .first()
+
+          if (!stockIn) {
+            results.failed.push({
+              id,
+              reason: 'Stock In tidak ditemukan'
+            })
+            continue
+          }
+
+          if (stockIn.status === 'posted') {
+            results.failed.push({
+              id,
+              reason: 'Stock In sudah di-post'
+            })
+            continue
+          }
+
+          if (!stockIn.stockInDetails || stockIn.stockInDetails.length === 0) {
+            results.failed.push({
+              id,
+              reason: 'Tidak ada item detail di Stock In ini'
+            })
+            continue
+          }
+
+          // Hitung total quantity per produk
+          const productQuantities = new Map<number, number>()
+
+          for (const detail of stockIn.stockInDetails) {
+            const currentQty = productQuantities.get(detail.productId) || 0
+            productQuantities.set(detail.productId, currentQty + Number(detail.quantity))
+          }
+
+          // Update stock untuk setiap produk
+          for (const [productId, totalQuantity] of productQuantities) {
+            const existingStock = await Stock
+              .query({ client: trx })
+              .where('product_id', productId)
+              .andWhere('warehouse_id', stockIn.warehouseId)
+              .first()
+
+            if (existingStock) {
+              existingStock.quantity = Number(existingStock.quantity) + totalQuantity
+              await existingStock.useTransaction(trx).save()
+            } else {
+              await Stock.create({
+                productId  : productId,
+                warehouseId: stockIn.warehouseId,
+                quantity   : totalQuantity
+              }, { client: trx })
+            }
+          }
+
+          stockIn.status   = 'posted'
+          stockIn.postedAt = new Date()
+          stockIn.postedBy = auth.user?.id || 0
+          await stockIn.useTransaction(trx).save()
+
+          results.success.push({
+            id,
+            noSi: stockIn.noSi
+          })
+
+        } catch (error) {
+          results.failed.push({
+            id,
+            reason: error.message || 'Terjadi kesalahan saat memposting'
+          })
+        }
+      }
+
+      await trx.commit()
+      
+      return response.ok({
+        message: `Berhasil memposting ${results.success.length} Stock In, gagal ${results.failed.length}`,
+        results
+      })
+    } catch (error) {
+      await trx.rollback()
+      return response.internalServerError({
+        message: 'Gagal memposting Stock In',
+        error: error.message,
+      })
+    }
+  }
+
   async getTotalStockIn({ response }: HttpContext) {
     try {
       // Total semua Stock In

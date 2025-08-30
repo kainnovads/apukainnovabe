@@ -1,19 +1,33 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import User from '#models/auth/user'
+import Role from '#models/auth/role'
 import Pegawai from '#models/pegawai'
 import { DateTime } from 'luxon'
 
 export default class extends BaseSeeder {
   public async run() {
-    // 1. Buat user
+    // 1. Pastikan role dengan id 1 ada
+    let role = await Role.find(1)
+    if (!role) {
+      role = await Role.create({
+        id: 1,
+        name: 'superadmin',
+      })
+    }
+
+    // 2. Buat user
     const user = await User.create({
+      username: 'rifqiaria95',
       fullName: 'Rifqi Aria',
       email: 'rifqiaria95@gmail.com',
       password: 'password123',
       isActive: true,
     })
 
-    // 2. Buat pegawai yang terhubung dengan user
+    // 3. Assign role ke user menggunakan relasi many-to-many
+    await user.related('roles').attach([role.id])
+
+    // 4. Buat pegawai yang terhubung dengan user
     await Pegawai.create({
       nm_pegawai: 'Rifqi Aria',
       tgl_lahir_pegawai: DateTime.fromISO('1990-01-01'),
@@ -34,5 +48,7 @@ export default class extends BaseSeeder {
       avatar: null,
       user_id: user.id,
     })
+
+    console.log(`User ${user.email} berhasil dibuat dengan role: ${role.name}`)
   }
 }

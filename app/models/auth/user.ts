@@ -18,13 +18,16 @@ import SuratJalan from '#models/surat_jalan'
 import Quotation from '#models/quotation'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-  uids: ['email'],
+  uids: ['email', 'username'],
   passwordColumnName: 'password',
 })
 
 export default class User extends compose(BaseModel, AuthFinder) {
   @column({ isPrimary: true })
   declare id: number
+
+  @column()
+  declare username: string
 
   @column({ columnName: 'full_name' })
   declare fullName: string | null

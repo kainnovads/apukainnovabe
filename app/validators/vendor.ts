@@ -6,7 +6,7 @@ export const vendorValidator = vine.compile(
     address: vine.string().minLength(1).maxLength(255),
     email: vine.string().minLength(1).maxLength(30),
     phone: vine.string().minLength(1).maxLength(30),
-    npwp: vine.string().minLength(1).maxLength(30),
+    npwp: vine.string().maxLength(30).optional(),
     logo: vine.file().optional(),
   })
 )

@@ -255,6 +255,7 @@ export default class ProductsController {
       // Tambahkan path image ke payload jika ada
       const product = await Product.create({
         ...payload,
+        name: payload.name.toUpperCase(), // Konversi nama ke huruf kapital
         image: imagePath || '',
       })
 
@@ -307,7 +308,7 @@ export default class ProductsController {
       }
 
       const dataUpdate = {
-        name      : payload.name ?? product.name,
+        name      : payload.name ? payload.name.toUpperCase() : product.name, // Konversi nama ke huruf kapital jika ada
         sku       : payload.sku ?? product.sku,
         unitId    : payload.unitId ?? product.unitId,
         categoryId: payload.categoryId ?? product.categoryId,
@@ -418,6 +419,18 @@ export default class ProductsController {
     } catch (error) {
       return response.internalServerError({
         message: 'Gagal menghapus product',
+        error: error.message,
+      })
+    }
+  }
+
+  async totalProducts({ response }: HttpContext) {
+    try {
+      const result = await Product.query().count('* as total')
+      return response.ok({ total: Number(result[0].$extras.total) })
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil total produk',
         error: error.message,
       })
     }

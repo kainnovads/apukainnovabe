@@ -153,6 +153,8 @@ export default class VendorsController {
         return response.notFound({ message: 'Vendor tidak ditemukan' })
       }
 
+
+
       // Validasi data (kecuali logo)
       const payload = await request.validateUsing(vendorValidator)
 
@@ -214,12 +216,22 @@ export default class VendorsController {
       }
 
       // Gabungkan payload dan logoPath
-      vendor.merge({
-        ...payload,
+      const updateData = {
+        name: payload.name,
+        address: payload.address,
+        email: payload.email,
+        phone: payload.phone,
+        npwp: payload.npwp || '',
         logo: logoPath || '',
-      })
+      }
+      
+      vendor.merge(updateData)
 
       await vendor.save()
+      
+      // Reload data vendor untuk memastikan data yang dikembalikan adalah yang terbaru
+      await vendor.refresh()
+      
       return response.ok(vendor)
     } catch (error) {
       return response.badRequest({

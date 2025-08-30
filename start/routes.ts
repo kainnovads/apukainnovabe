@@ -245,6 +245,7 @@ router
   // Product Router
   router.group(() => {
     router.post('/product/:id', [ProductsController, 'update'])
+    router.get('/product/totalProducts', [ProductsController, 'totalProducts'])
     router.resource('product', ProductsController).except(['update']).apiOnly()
   })
   .prefix('/api')
@@ -253,8 +254,7 @@ router
 
   // Customer Router
   router.group(() => {
-    router.post('/customer/:id', [CustomersController, 'update'])
-    router.resource('customer', CustomersController).except(['update']).apiOnly()
+    router.resource('customer', CustomersController).apiOnly()
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -262,8 +262,7 @@ router
 
   // Vendor Router
   router.group(() => {
-    router.post('/vendor/:id', [VendorsController, 'update'])
-    router.resource('vendor', VendorsController).except(['update']).apiOnly()
+    router.resource('vendor', VendorsController).apiOnly()
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -323,6 +322,7 @@ router
   // Stock In Router
   router.group(() => {
     router.post('/stock-in/postStockIn/:id', [StockInsController, 'postStockIn'])
+    router.post('/stock-in/postAllStockIn', [StockInsController, 'postAllStockIn'])
     router.get('/stock-in/getTotalStockIn', [StockInsController, 'getTotalStockIn'])
     router.get('/stock-in/getStockInDetails/:id', [StockInsController, 'getStockInDetails'])
     router.get('/stock-in/export', [StockInsController, 'getAllForExport'])
@@ -335,6 +335,7 @@ router
   // Stock Out Router
   router.group(() => {
     router.post('/stock-out/postStockOut/:id', [StockOutsController, 'postStockOut'])
+    router.post('/stock-out/postAllStockOut', [StockOutsController, 'postAllStockOut'])
     router.get('/stock-out/getTotalStockOut', [StockOutsController, 'getTotalStockOut'])
     router.get('/stock-out/getStockOutDetails/:id', [StockOutsController, 'getStockOutDetails'])
     router.get('/stock-out/export', [StockOutsController, 'getAllForExport'])

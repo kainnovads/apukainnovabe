@@ -17,6 +17,39 @@ export default class PegawaiService {
   }
 
   /**
+   * Generate username dari nama depan pegawai
+   */
+  private async generateUsername(fullName: string): Promise<string> {
+    // Ambil nama depan (kata pertama)
+    const firstName = fullName.trim().split(' ')[0]
+    
+    // Convert ke lowercase dan hapus karakter khusus
+    let username = firstName.toLowerCase()
+      .replace(/[^a-z0-9]/g, '') // Hapus karakter khusus, hanya a-z dan 0-9
+      .replace(/\s+/g, '') // Hapus spasi
+    
+    // Jika username kosong, gunakan 'user'
+    if (!username) {
+      username = 'user'
+    }
+    
+    // Cek apakah username sudah ada
+    let finalUsername = username
+    let counter = 1
+    
+    while (true) {
+      const existingUser = await User.findBy('username', finalUsername)
+      if (!existingUser) {
+        break
+      }
+      finalUsername = `${username}${counter}`
+      counter++
+    }
+    
+    return finalUsername
+  }
+
+  /**
    * Create Pegawai + User + Role + Histori
    */
   public async createPegawaiWithUser(
@@ -84,20 +117,26 @@ export default class PegawaiService {
           }
         }
 
-        // 2. Create user (biarkan plaintext, AuthFinder akan handle hash)
+        // 2. Generate username dari nama pegawai
+        console.log('[PegawaiService] Generating username...');
+        const username = await this.generateUsername(pegawaiData.nm_pegawai)
+        console.log(`[PegawaiService] Generated username: ${username}`);
+
+        // 3. Create user (biarkan plaintext, AuthFinder akan handle hash)
         console.log('[PegawaiService] Creating User...');
         const user = new User()
         user.useTransaction(trx)
         user.fill({
+          username: username,
           fullName: pegawaiData.nm_pegawai,
           email: email,
           password: 'password123',
           isActive: true,
         })
         await user.save()
-        console.log(`[PegawaiService] User created with ID: ${user.id}`);
+        console.log(`[PegawaiService] User created with ID: ${user.id} and username: ${username}`);
 
-        // 3. Assign role guest
+        // 4. Assign role guest
         const guestRole = await Role.findBy('name', 'guest')
         if (guestRole) {
           console.log('[PegawaiService] Assigning role to user...');
@@ -105,7 +144,7 @@ export default class PegawaiService {
           console.log('[PegawaiService] Role assigned.');
         }
 
-        // 4. Create pegawai
+        // 5. Create pegawai
         console.log('[PegawaiService] Creating Pegawai...');
         const pegawai = new Pegawai()
         pegawai.useTransaction(trx)
@@ -122,7 +161,7 @@ export default class PegawaiService {
         await pegawai.save()
         console.log(`[PegawaiService] Pegawai created with ID: ${pegawai.id_pegawai}`);
 
-        // 5. Create histori pegawai
+        // 6. Create histori pegawai
         console.log('[PegawaiService] Creating PegawaiHistory...');
         const history = new PegawaiHistory()
         history.useTransaction(trx)
