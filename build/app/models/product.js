@@ -8,14 +8,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { DateTime } from 'luxon';
-import { BaseModel, belongsTo, column, hasMany, manyToMany } from '@adonisjs/lucid/orm';
+import { BaseModel, belongsTo, column, hasMany, manyToMany, beforeSave } from '@adonisjs/lucid/orm';
 import Unit from '#models/unit';
 import Category from '#models/category';
 import StockInDetail from '#models/stock_in_detail';
 import StockOutDetail from '#models/stock_out_detail';
 import Customer from '#models/customer';
 import Stock from '#models/stock';
+import ProductCustomer from '#models/product_customer';
 export default class Product extends BaseModel {
+    static async beforeSaveHook(product) {
+        if (product.name) {
+            product.name = product.name.toUpperCase();
+        }
+    }
 }
 __decorate([
     column({ isPrimary: true }),
@@ -33,6 +39,10 @@ __decorate([
     column(),
     __metadata("design:type", String)
 ], Product.prototype, "name", void 0);
+__decorate([
+    column(),
+    __metadata("design:type", String)
+], Product.prototype, "noInterchange", void 0);
 __decorate([
     column(),
     __metadata("design:type", String)
@@ -94,10 +104,20 @@ __decorate([
     __metadata("design:type", Object)
 ], Product.prototype, "stocks", void 0);
 __decorate([
+    hasMany(() => ProductCustomer),
+    __metadata("design:type", Object)
+], Product.prototype, "productCustomer", void 0);
+__decorate([
     manyToMany(() => Customer, {
         pivotTable: 'product_customers',
         pivotColumns: ['price_sell'],
     }),
     __metadata("design:type", Object)
 ], Product.prototype, "customers", void 0);
+__decorate([
+    beforeSave(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Product]),
+    __metadata("design:returntype", Promise)
+], Product, "beforeSaveHook", null);
 //# sourceMappingURL=product.js.map

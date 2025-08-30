@@ -74,7 +74,8 @@
     "node-cron": "^4.2.1",
     "node-fpgrowth": "^1.2.1",
     "pg": "^8.15.6",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "xlsx": "^0.18.5"
   },
   "hotHook": {
     "boundaries": [

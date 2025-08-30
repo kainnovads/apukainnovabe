@@ -66,6 +66,10 @@ __decorate([
 ], SalesOrder.prototype, "quotationId", void 0);
 __decorate([
     column(),
+    __metadata("design:type", Object)
+], SalesOrder.prototype, "termOfPayment", void 0);
+__decorate([
+    column(),
     __metadata("design:type", Date)
 ], SalesOrder.prototype, "date", void 0);
 __decorate([

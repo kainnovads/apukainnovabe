@@ -147,5 +147,66 @@ export default class StocksController {
             });
         }
     }
+    async exportExcel({ request, response }) {
+        try {
+            const search = request.input('search', '');
+            const productId = request.input('productId');
+            const warehouseId = request.input('warehouseId');
+            const Perusahaan = (await import('#models/perusahaan')).default;
+            const perusahaan = await Perusahaan.first();
+            const nmPerusahaan = perusahaan?.nmPerusahaan || '';
+            let dataQuery = Stock.query();
+            if (productId) {
+                dataQuery.where('product_id', productId);
+            }
+            if (warehouseId) {
+                dataQuery.where('warehouse_id', warehouseId);
+            }
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                dataQuery.where((query) => {
+                    query
+                        .orWhereHas('product', (pQuery) => {
+                        pQuery
+                            .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                            .orWhereRaw('LOWER(sku) LIKE ?', [`%${lowerSearch}%`]);
+                    })
+                        .orWhereHas('warehouse', (wQuery) => {
+                        wQuery
+                            .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                            .orWhereRaw('LOWER(code) LIKE ?', [`%${lowerSearch}%`]);
+                    });
+                });
+            }
+            const stocks = await dataQuery
+                .preload('warehouse')
+                .preload('product', (productQuery) => {
+                productQuery.preload('unit');
+            })
+                .orderBy('id', 'desc');
+            const excelData = stocks.map(stock => ({
+                'product.sku': stock.product?.sku || '-',
+                'product.name': stock.product?.name || '-',
+                'warehouse.code': stock.warehouse?.code || '-',
+                'warehouse.name': stock.warehouse?.name || '-',
+                quantity: Math.floor(stock.quantity),
+                'product.unit.name': stock.product?.unit?.name || '-',
+                createdAt: stock.createdAt.toFormat('dd/MM/yyyy HH:mm'),
+                updatedAt: stock.updatedAt.toFormat('dd/MM/yyyy HH:mm')
+            }));
+            return response.ok({
+                data: excelData,
+                total: stocks.length,
+                nmPerusahaan: nmPerusahaan
+            });
+        }
+        catch (error) {
+            console.error('Export Excel error:', error);
+            return response.internalServerError({
+                message: 'Gagal export data stock ke Excel',
+                error: error.message,
+            });
+        }
+    }
 }
 //# sourceMappingURL=stocks_controller.js.map

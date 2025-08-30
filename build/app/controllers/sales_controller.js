@@ -138,7 +138,12 @@ export default class SalesController {
                 }
             }
             if (!customOrder) {
-                dataQuery.orderBy('created_at', 'desc');
+                dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc');
+            }
+            else {
+                if (sortField !== 'created_at' && !sortField.includes('created_at')) {
+                    dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc');
+                }
             }
             const startTime = Date.now();
             const salesOrders = await dataQuery.paginate(page, limit);
@@ -146,6 +151,7 @@ export default class SalesController {
             if (queryTime > 1000) {
                 console.warn(`🐌 Slow Query Alert: Sales Orders took ${queryTime}ms`);
             }
+            console.log(`📊 Sales Orders sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`);
             return response.ok({
                 ...salesOrders.toJSON(),
                 _meta: {
@@ -316,6 +322,7 @@ export default class SalesController {
                 noPo: payload.noPo,
                 noSo: payload.noSo || await generateNo(),
                 up: payload.up,
+                termOfPayment: payload.termOfPayment,
                 date: payload.date,
                 dueDate: payload.dueDate,
                 status: payload.status || 'draft',
@@ -425,6 +432,7 @@ export default class SalesController {
                 noPo: payload.noPo,
                 noSo: payload.noSo,
                 up: payload.up,
+                termOfPayment: payload.termOfPayment,
                 date: payload.date,
                 dueDate: payload.dueDate,
                 status: newStatus,

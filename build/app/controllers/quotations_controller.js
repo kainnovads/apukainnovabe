@@ -97,14 +97,20 @@ export default class QuotationsController {
                 }
             }
             if (!customOrder) {
-                dataQuery.orderBy('created_at', 'desc');
+                dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc');
+            }
+            else {
+                if (sortField !== 'created_at' && !sortField.includes('created_at')) {
+                    dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc');
+                }
             }
             const startTime = Date.now();
             const quotation = await dataQuery.paginate(page, limit);
             const queryTime = Date.now() - startTime;
             if (queryTime > 1000) {
-                console.warn(`🐌 Slow Query Alert: Purchase Orders took ${queryTime}ms`);
+                console.warn(`🐌 Slow Query Alert: Quotations took ${queryTime}ms`);
             }
+            console.log(`📊 Quotations sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`);
             return response.ok({
                 ...quotation.toJSON(),
                 _meta: {

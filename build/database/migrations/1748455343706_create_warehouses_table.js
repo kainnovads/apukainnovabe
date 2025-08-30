@@ -9,6 +9,7 @@ export default class extends BaseSchema {
             table.string('address').notNullable();
             table.string('phone').notNullable();
             table.string('email').notNullable();
+            table.boolean('is_active').defaultTo(true);
             table.timestamp('created_at');
             table.timestamp('updated_at');
         });

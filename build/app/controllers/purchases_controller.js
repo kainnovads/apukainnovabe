@@ -54,7 +54,13 @@ export default class PurchasesController {
             if (includeItems) {
                 dataQuery.preload('purchaseOrderItems', (query) => {
                     query.preload('product', (productQuery) => {
-                        productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku']);
+                        productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku'])
+                            .preload('productCustomer', (pcQuery) => {
+                            pcQuery.select(['id', 'productId', 'customerId', 'priceSell'])
+                                .preload('customer', (customerQuery) => {
+                                customerQuery.select(['id', 'name']);
+                            });
+                        });
                     });
                 });
             }
@@ -110,7 +116,12 @@ export default class PurchasesController {
                 }
             }
             if (!customOrder) {
-                dataQuery.orderBy('created_at', 'desc');
+                dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc');
+            }
+            else {
+                if (sortField !== 'created_at' && !sortField.includes('created_at')) {
+                    dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc');
+                }
             }
             const startTime = Date.now();
             const purchaseOrder = await dataQuery.paginate(page, limit);
@@ -261,6 +272,7 @@ export default class PurchasesController {
                 noPo: await generateNo(),
                 up: payload.up,
                 extNamaPerusahaan: payload.extNamaPerusahaan || null,
+                termOfPayment: payload.termOfPayment || null,
                 date: payload.date,
                 dueDate: payload.dueDate,
                 status: payload.status || 'draft',
@@ -374,6 +386,7 @@ export default class PurchasesController {
                 cabangId: payload.cabangId,
                 up: payload.up,
                 extNamaPerusahaan: payload.extNamaPerusahaan,
+                termOfPayment: payload.termOfPayment,
                 date: payload.date,
                 dueDate: payload.dueDate,
                 status: payload.status || 'draft',
@@ -524,6 +537,29 @@ export default class PurchasesController {
             .select(['id', 'nmCabang', 'alamatCabang', 'kodeCabang', 'perusahaanId'])
             .where('perusahaanId', perusahaanId);
         return response.ok(cabang);
+    }
+    async countByStatus({ response }) {
+        try {
+            const totalQuery = await db.rawQuery('SELECT COUNT(*) as total FROM purchase_orders');
+            const approvedQuery = await db.rawQuery('SELECT COUNT(*) as total FROM purchase_orders WHERE status = ?', ['approved']);
+            const receivedQuery = await db.rawQuery('SELECT COUNT(*) as total FROM purchase_orders WHERE status = ?', ['received']);
+            const rejectedQuery = await db.rawQuery('SELECT COUNT(*) as total FROM purchase_orders WHERE status = ?', ['rejected']);
+            const draftQuery = await db.rawQuery('SELECT COUNT(*) as total FROM purchase_orders WHERE status = ?', ['draft']);
+            const result = {
+                total: parseInt(totalQuery[0]?.total || totalQuery.rows?.[0]?.total || 0),
+                approved: parseInt(approvedQuery[0]?.total || approvedQuery.rows?.[0]?.total || 0),
+                received: parseInt(receivedQuery[0]?.total || receivedQuery.rows?.[0]?.total || 0),
+                rejected: parseInt(rejectedQuery[0]?.total || rejectedQuery.rows?.[0]?.total || 0),
+                draft: parseInt(draftQuery[0]?.total || draftQuery.rows?.[0]?.total || 0),
+            };
+            return response.ok(result);
+        }
+        catch (error) {
+            return response.internalServerError({
+                message: 'Gagal mengambil data statistik purchase order',
+                error: error.message
+            });
+        }
     }
 }
 //# sourceMappingURL=purchases_controller.js.map

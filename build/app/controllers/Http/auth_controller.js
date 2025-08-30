@@ -1,4 +1,4 @@
-import { createUserValidator } from '#validators/auth/auth';
+import { createUserValidator, loginValidator } from '#validators/auth/auth';
 import hash from '@adonisjs/core/services/hash';
 import User from '#models/auth/user';
 import Role from '#models/auth/role';
@@ -21,13 +21,14 @@ export default class AuthController {
     }
     async login({ request, response }) {
         console.log('Login method hit!');
-        const { email, password } = request.only(['email', 'password']);
-        console.log('Login attempt for:', email);
+        const data = await request.validateUsing(loginValidator);
+        const { username, password, remember_me } = data;
+        console.log('Login attempt for username:', username);
         try {
-            const user = await User.findBy('email', email);
+            const user = await User.findBy('username', username);
             if (!user) {
                 console.log('User not found');
-                return response.unauthorized({ message: 'Email atau password salah' });
+                return response.unauthorized({ message: 'Username atau password salah' });
             }
             console.log('User found:', user.id, user.isActive);
             if (!user.isActive) {
@@ -39,9 +40,19 @@ export default class AuthController {
             console.log('Password valid:', passwordValid);
             if (!passwordValid) {
                 console.log('Invalid password');
-                return response.unauthorized({ message: 'Email atau password salah' });
+                return response.unauthorized({ message: 'Username atau password salah' });
             }
-            const token = await User.accessTokens.create(user);
+            let token;
+            if (remember_me) {
+                token = await User.accessTokens.create(user, {
+                    expiresAt: DateTime.now().plus({ days: 30 }).toISO()
+                });
+            }
+            else {
+                token = await User.accessTokens.create(user, {
+                    expiresAt: DateTime.now().plus({ minutes: 15 }).toISO()
+                });
+            }
             await user.load('roles');
             const session = await UserSessionService.createSession(user.id, request.ip(), request.header('user-agent') || '');
             return response.ok({
@@ -53,6 +64,7 @@ export default class AuthController {
                 },
                 user: {
                     id: user.id,
+                    username: user.username,
                     email: user.email,
                     fullName: user.fullName,
                     isActive: user.isActive,
@@ -80,6 +92,14 @@ export default class AuthController {
         await user.load((loader) => {
             loader.load('roles', (rolesQuery) => {
                 rolesQuery.preload('permissions');
+            });
+            loader.load('pegawai', (pegawaiQuery) => {
+                pegawaiQuery.preload('PegawaiHistory', (historyQuery) => {
+                    historyQuery.preload('perusahaan');
+                    historyQuery.preload('cabang', (cabangQuery) => {
+                        cabangQuery.preload('perusahaan');
+                    });
+                });
             });
         });
         return response.ok(user);

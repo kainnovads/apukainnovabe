@@ -44,6 +44,7 @@ import SalesInvoicesController from '#controllers/sales_invoices_controller'
 import SuratJalansController from '#controllers/surat_jalans_controller'
 import QuotationsController from '#controllers/quotations_controller'
 import UserSessionsController from '#controllers/user_sessions_controller'
+import ImportController from '#controllers/import_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -246,7 +247,12 @@ router
   router.group(() => {
     router.post('/product/:id', [ProductsController, 'update'])
     router.get('/product/totalProducts', [ProductsController, 'totalProducts'])
+    router.get('/product/export-excel', [ProductsController, 'exportExcel'])
     router.resource('product', ProductsController).except(['update']).apiOnly()
+    
+    // Import routes
+    router.post('/import/products-stocks', [ImportController, 'importProductsAndStocks'])
+    router.get('/import/template', [ImportController, 'downloadTemplate'])
   })
   .prefix('/api')
   .use(middleware.auth())
@@ -313,6 +319,7 @@ router
   // Stock Router
   router.group(() => {
     router.get('/stock/getTotalStock', [StocksController, 'getTotalStock'])
+    router.get('/stock/export-excel', [StocksController, 'exportExcel'])
     router.resource('stock', StocksController).apiOnly()
   })
   .prefix('/api')

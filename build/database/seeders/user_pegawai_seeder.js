@@ -1,15 +1,25 @@
 import { BaseSeeder } from '@adonisjs/lucid/seeders';
 import User from '#models/auth/user';
+import Role from '#models/auth/role';
 import Pegawai from '#models/pegawai';
 import { DateTime } from 'luxon';
 export default class extends BaseSeeder {
     async run() {
+        let role = await Role.find(1);
+        if (!role) {
+            role = await Role.create({
+                id: 1,
+                name: 'superadmin',
+            });
+        }
         const user = await User.create({
+            username: 'rifqiaria95',
             fullName: 'Rifqi Aria',
             email: 'rifqiaria95@gmail.com',
             password: 'password123',
             isActive: true,
         });
+        await user.related('roles').attach([role.id]);
         await Pegawai.create({
             nm_pegawai: 'Rifqi Aria',
             tgl_lahir_pegawai: DateTime.fromISO('1990-01-01'),
@@ -30,6 +40,7 @@ export default class extends BaseSeeder {
             avatar: null,
             user_id: user.id,
         });
+        console.log(`User ${user.email} berhasil dibuat dengan role: ${role.name}`);
     }
 }
 //# sourceMappingURL=user_pegawai_seeder.js.map

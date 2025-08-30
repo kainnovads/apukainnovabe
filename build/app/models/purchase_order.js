@@ -59,6 +59,10 @@ __decorate([
 ], PurchaseOrder.prototype, "extNamaPerusahaan", void 0);
 __decorate([
     column(),
+    __metadata("design:type", Object)
+], PurchaseOrder.prototype, "termOfPayment", void 0);
+__decorate([
+    column(),
     __metadata("design:type", Date)
 ], PurchaseOrder.prototype, "date", void 0);
 __decorate([

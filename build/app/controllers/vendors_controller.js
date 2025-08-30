@@ -156,11 +156,17 @@ export default class VendorsController {
                     });
                 }
             }
-            vendor.merge({
-                ...payload,
+            const updateData = {
+                name: payload.name,
+                address: payload.address,
+                email: payload.email,
+                phone: payload.phone,
+                npwp: payload.npwp || '',
                 logo: logoPath || '',
-            });
+            };
+            vendor.merge(updateData);
             await vendor.save();
+            await vendor.refresh();
             return response.ok(vendor);
         }
         catch (error) {

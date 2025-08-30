@@ -54,38 +54,6 @@ let CronSchedulerService = class CronSchedulerService {
         console.log('✅ Weekly invoice reminder scheduler berhasil dimulai');
         return weeklyJob;
     }
-    startDailyOverdueReminder() {
-        console.log('📅 Memulai daily overdue reminder scheduler (Setiap hari jam 9:00)...');
-        const dailyJob = cron.schedule('0 9 * * *', async () => {
-            console.log('📅 Menjalankan daily overdue reminder...');
-            await this.runInvoiceReminderService();
-        }, {
-            timezone: 'Asia/Jakarta'
-        });
-        this.cronJobs.push(dailyJob);
-        console.log('✅ Daily overdue reminder scheduler berhasil dimulai');
-        return dailyJob;
-    }
-    startCustomScheduler(cronPattern, description = 'Custom scheduler') {
-        console.log(`📅 Memulai ${description} dengan pattern: ${cronPattern}`);
-        const customJob = cron.schedule(cronPattern, async () => {
-            console.log(`📅 Menjalankan ${description}...`);
-            await this.runInvoiceReminderService();
-        }, {
-            timezone: 'Asia/Jakarta'
-        });
-        this.cronJobs.push(customJob);
-        console.log(`✅ ${description} berhasil dimulai`);
-        return customJob;
-    }
-    startAllSchedulers() {
-        console.log('🚀 Memulai semua scheduler invoice reminder...');
-        this.startWeeklyInvoiceReminder();
-        this.startDailyOverdueReminder();
-        console.log('✅ Semua scheduler berhasil dimulai');
-        console.log('📅 Weekly reminder: Setiap Senin jam 9:00');
-        console.log('📅 Daily reminder: Setiap hari jam 9:00');
-    }
     stopAllSchedulers() {
         console.log(' Menghentikan semua scheduler...');
         this.cronJobs.forEach((job, index) => {

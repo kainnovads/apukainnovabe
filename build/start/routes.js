@@ -33,6 +33,7 @@ import SalesInvoicesController from '#controllers/sales_invoices_controller';
 import SuratJalansController from '#controllers/surat_jalans_controller';
 import QuotationsController from '#controllers/quotations_controller';
 import UserSessionsController from '#controllers/user_sessions_controller';
+import ImportController from '#controllers/import_controller';
 router.get('/', async () => {
     return { message: 'Welcome to your API! Get your CSRF token here.' };
 });
@@ -92,6 +93,7 @@ router.group(() => {
     router.patch('/purchase-order/rejectPurchaseOrder/:id', [PurchasesController, 'rejectPurchaseOrder']);
     router.post('/purchase-order/:id', [PurchasesController, 'update']);
     router.get('/purchase-order/getPurchaseOrderDetails/:id', [PurchasesController, 'getPurchaseOrderDetails']);
+    router.get('/purchase-order/countByStatus', [PurchasesController, 'countByStatus']);
     router.resource('purchase-order', PurchasesController).except(['update']).apiOnly();
     router.patch('/purchase-order-item/updateStatusPartial/:id', [PurchaseItemsController, 'updateStatusPartial']);
     router.post('/purchase-order/receiveAllItems/:id', [PurchaseItemsController, 'receiveAllItems']);
@@ -186,21 +188,23 @@ router.group(() => {
     .use(middleware.hasPermission(['view_unit', 'edit_unit', 'delete_unit', 'create_unit', 'approve_unit', 'reject_unit', 'show_unit']));
 router.group(() => {
     router.post('/product/:id', [ProductsController, 'update']);
+    router.get('/product/totalProducts', [ProductsController, 'totalProducts']);
+    router.get('/product/export-excel', [ProductsController, 'exportExcel']);
     router.resource('product', ProductsController).except(['update']).apiOnly();
+    router.post('/import/products-stocks', [ImportController, 'importProductsAndStocks']);
+    router.get('/import/template', [ImportController, 'downloadTemplate']);
 })
     .prefix('/api')
     .use(middleware.auth())
     .use(middleware.hasPermission(['view_product', 'edit_product', 'delete_product', 'create_product', 'approve_product', 'reject_product', 'show_product']));
 router.group(() => {
-    router.post('/customer/:id', [CustomersController, 'update']);
-    router.resource('customer', CustomersController).except(['update']).apiOnly();
+    router.resource('customer', CustomersController).apiOnly();
 })
     .prefix('/api')
     .use(middleware.auth())
     .use(middleware.hasPermission(['view_customer', 'edit_customer', 'delete_customer', 'create_customer', 'approve_customer', 'reject_customer', 'show_customer']));
 router.group(() => {
-    router.post('/vendor/:id', [VendorsController, 'update']);
-    router.resource('vendor', VendorsController).except(['update']).apiOnly();
+    router.resource('vendor', VendorsController).apiOnly();
 })
     .prefix('/api')
     .use(middleware.auth())
@@ -239,6 +243,7 @@ router.group(() => {
     .use(middleware.hasPermission(['view_gudang', 'edit_gudang', 'delete_gudang', 'create_gudang', 'approve_gudang', 'reject_gudang', 'show_gudang']));
 router.group(() => {
     router.get('/stock/getTotalStock', [StocksController, 'getTotalStock']);
+    router.get('/stock/export-excel', [StocksController, 'exportExcel']);
     router.resource('stock', StocksController).apiOnly();
 })
     .prefix('/api')
@@ -246,6 +251,7 @@ router.group(() => {
     .use(middleware.hasPermission(['view_stock', 'edit_stock', 'delete_stock', 'create_stock', 'approve_stock', 'reject_stock', 'show_stock']));
 router.group(() => {
     router.post('/stock-in/postStockIn/:id', [StockInsController, 'postStockIn']);
+    router.post('/stock-in/postAllStockIn', [StockInsController, 'postAllStockIn']);
     router.get('/stock-in/getTotalStockIn', [StockInsController, 'getTotalStockIn']);
     router.get('/stock-in/getStockInDetails/:id', [StockInsController, 'getStockInDetails']);
     router.get('/stock-in/export', [StockInsController, 'getAllForExport']);
@@ -256,6 +262,7 @@ router.group(() => {
     .use(middleware.hasPermission(['view_stock_in', 'edit_stock_in', 'delete_stock_in', 'create_stock_in', 'approve_stock_in', 'reject_stock_in', 'show_stock_in']));
 router.group(() => {
     router.post('/stock-out/postStockOut/:id', [StockOutsController, 'postStockOut']);
+    router.post('/stock-out/postAllStockOut', [StockOutsController, 'postAllStockOut']);
     router.get('/stock-out/getTotalStockOut', [StockOutsController, 'getTotalStockOut']);
     router.get('/stock-out/getStockOutDetails/:id', [StockOutsController, 'getStockOutDetails']);
     router.get('/stock-out/export', [StockOutsController, 'getAllForExport']);

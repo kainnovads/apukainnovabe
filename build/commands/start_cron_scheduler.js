@@ -2,29 +2,12 @@ import { BaseCommand } from '@adonisjs/core/ace';
 import CronSchedulerService from '#services/cron_scheduler_service';
 export default class StartCronScheduler extends BaseCommand {
     static commandName = 'cron:start';
-    static description = 'Start the cron scheduler for invoice reminders';
+    static description = 'Start the cron scheduler for weekly invoice reminders';
     static options = {
         allowUnknownFlags: false,
-        flags: [
-            {
-                name: 'type',
-                type: 'string',
-                description: 'Jenis scheduler (weekly, daily, custom, all)',
-            },
-            {
-                name: 'pattern',
-                type: 'string',
-                description: 'Cron pattern untuk custom scheduler',
-            },
-            {
-                name: 'description',
-                type: 'string',
-                description: 'Deskripsi scheduler custom',
-            },
-        ],
     };
     async run() {
-        this.logger.info('🚀 Memulai cron scheduler untuk invoice reminder...');
+        this.logger.info('🚀 Memulai cron scheduler untuk weekly invoice reminder...');
         try {
             this.logger.info('📧 Mencoba mendapatkan Mailer instance...');
             let mailer;
@@ -43,34 +26,8 @@ export default class StartCronScheduler extends BaseCommand {
             this.logger.info('🔄 Membuat CronSchedulerService...');
             const schedulerService = new CronSchedulerService(mailer);
             this.logger.info('✅ CronSchedulerService berhasil dibuat');
-            const scheduleType = this.parsed.flags.type || 'all';
-            const cronPattern = this.parsed.flags.pattern;
-            const description = this.parsed.flags.description || 'Custom scheduler';
-            this.logger.info(`📅 Tipe scheduler: ${scheduleType}`);
-            switch (scheduleType) {
-                case 'weekly':
-                    schedulerService.startWeeklyInvoiceReminder();
-                    this.logger.info('📅 Scheduler akan berjalan setiap Senin jam 9:00');
-                    break;
-                case 'daily':
-                    schedulerService.startDailyOverdueReminder();
-                    this.logger.info('📅 Scheduler akan berjalan setiap hari jam 9:00');
-                    break;
-                case 'custom':
-                    if (!cronPattern) {
-                        this.logger.error('❌ Pattern cron harus diisi untuk custom scheduler');
-                        this.exitCode = 1;
-                        return;
-                    }
-                    schedulerService.startCustomScheduler(cronPattern, description);
-                    this.logger.info(`📅 Scheduler custom berjalan dengan pattern: ${cronPattern}`);
-                    break;
-                case 'all':
-                default:
-                    schedulerService.startAllSchedulers();
-                    this.logger.info('📅 Semua scheduler berhasil dimulai');
-                    break;
-            }
+            schedulerService.startWeeklyInvoiceReminder();
+            this.logger.info('📅 Weekly scheduler berhasil dimulai (Setiap Senin jam 9:00)');
             const status = schedulerService.getSchedulerStatus();
             this.logger.info(`📊 Status scheduler: ${status.activeJobs}/${status.totalJobs} aktif`);
             this.logger.info('✅ Cron scheduler berhasil dimulai');

@@ -6,6 +6,7 @@ export default class extends BaseSchema {
             table.increments('id');
             table.string('name').notNullable();
             table.string('sku').notNullable().unique();
+            table.string('no_interchange').notNullable().unique();
             table.decimal('stock_min', 12, 2).defaultTo(0);
             table.decimal('price_buy', 14, 2).defaultTo(0);
             table.decimal('price_sell', 14, 2).defaultTo(0);

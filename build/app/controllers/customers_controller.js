@@ -199,15 +199,17 @@ export default class CustomersController {
                     });
                 }
             }
-            customer.merge({
+            const updateData = {
                 name: payload.name,
                 email: payload.email,
                 phone: payload.phone,
                 address: payload.address,
-                npwp: payload.npwp,
-                logo: logoPath || undefined,
-            });
+                npwp: payload.npwp || '',
+                logo: logoPath || '',
+            };
+            customer.merge(updateData);
             await customer.save();
+            await customer.refresh();
             await ProductCustomer.query({ client: trx })
                 .where('customer_id', customer.id)
                 .delete();
@@ -219,6 +221,29 @@ export default class CustomersController {
                 }, { client: trx });
             }
             await trx.commit();
+            const updatedCustomer = await Customer.query()
+                .where('id', customer.id)
+                .preload('products', (query) => query.preload('unit'))
+                .first();
+            if (updatedCustomer) {
+                const customerJSON = updatedCustomer.serialize();
+                const productList = updatedCustomer.products.map((p) => {
+                    return {
+                        id: p.id,
+                        productId: p.id,
+                        name: p.name,
+                        sku: p.sku,
+                        priceSell: p.$extras.pivot_price_sell,
+                        unit: p.unit,
+                    };
+                });
+                customerJSON.customerProducts = productList;
+                delete customerJSON.products;
+                return response.ok({
+                    message: 'Customer berhasil diperbarui',
+                    data: customerJSON,
+                });
+            }
             return response.ok({
                 message: 'Customer berhasil diperbarui',
                 data: customer,

@@ -230,6 +230,108 @@ export default class StockOutsController {
             });
         }
     }
+    async postAllStockOut({ request, response, auth }) {
+        const trx = await db.transaction();
+        try {
+            const { ids } = request.body();
+            if (!Array.isArray(ids) || ids.length === 0) {
+                await trx.rollback();
+                return response.badRequest({ message: 'ID Stock Out harus berupa array dan tidak boleh kosong.' });
+            }
+            const results = {
+                success: [],
+                failed: []
+            };
+            for (const id of ids) {
+                try {
+                    const stockOut = await StockOut.query({ client: trx })
+                        .where('id', id)
+                        .preload('stockOutDetails', (detailQuery) => {
+                        detailQuery.preload('product');
+                    })
+                        .first();
+                    if (!stockOut) {
+                        results.failed.push({
+                            id,
+                            reason: 'Stock Out tidak ditemukan'
+                        });
+                        continue;
+                    }
+                    if (stockOut.status === 'posted') {
+                        results.failed.push({
+                            id,
+                            reason: 'Stock Out sudah di-post'
+                        });
+                        continue;
+                    }
+                    if (!stockOut.stockOutDetails || stockOut.stockOutDetails.length === 0) {
+                        results.failed.push({
+                            id,
+                            reason: 'Stock Out tidak memiliki detail item untuk di-post'
+                        });
+                        continue;
+                    }
+                    const productQuantities = new Map();
+                    for (const detail of stockOut.stockOutDetails) {
+                        const productId = detail.productId;
+                        const currentQty = productQuantities.get(productId) || 0;
+                        productQuantities.set(productId, currentQty + Number(detail.quantity));
+                    }
+                    for (const [productId, totalQty] of productQuantities) {
+                        const existingStock = await Stock
+                            .query({ client: trx })
+                            .where('product_id', productId)
+                            .andWhere('warehouse_id', stockOut.warehouseId)
+                            .first();
+                        if (existingStock) {
+                            if (Number(existingStock.quantity) < totalQty) {
+                                results.failed.push({
+                                    id,
+                                    reason: `Stock barang ${existingStock.product?.name || productId} tidak mencukupi. Tersedia: ${existingStock.quantity}, dibutuhkan: ${totalQty}`
+                                });
+                                continue;
+                            }
+                            existingStock.quantity = Number(existingStock.quantity) - totalQty;
+                            await existingStock.useTransaction(trx).save();
+                        }
+                        else {
+                            results.failed.push({
+                                id,
+                                reason: `Stock untuk produk ID ${productId} tidak ditemukan di warehouse`
+                            });
+                            continue;
+                        }
+                    }
+                    stockOut.status = 'posted';
+                    stockOut.postedAt = new Date();
+                    stockOut.postedBy = auth.user?.id || 0;
+                    await stockOut.useTransaction(trx).save();
+                    results.success.push({
+                        id,
+                        noSo: stockOut.noSo
+                    });
+                }
+                catch (error) {
+                    results.failed.push({
+                        id,
+                        reason: error.message || 'Terjadi kesalahan saat memposting'
+                    });
+                }
+            }
+            await trx.commit();
+            return response.ok({
+                message: `Berhasil memposting ${results.success.length} Stock Out, gagal ${results.failed.length}`,
+                results
+            });
+        }
+        catch (error) {
+            await trx.rollback();
+            return response.internalServerError({
+                message: 'Gagal memposting Stock Out',
+                error: error.message,
+            });
+        }
+    }
     async getTotalStockOut({ response }) {
         try {
             const totalStockOut = await StockOut.query().count('id as total');

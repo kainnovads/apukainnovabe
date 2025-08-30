@@ -176,4 +176,89 @@ export default class StocksController {
       })
     }
   }
+
+  async exportExcel({ request, response }: HttpContext) {
+    try {
+      const search = request.input('search', '')
+      const searchValue = search || request.input('search.value', '')
+      const productId = request.input('productId')
+      const warehouseId = request.input('warehouseId')
+      const all = request.input('all')
+
+      // Ambil data perusahaan untuk header
+      const Perusahaan = (await import('#models/perusahaan')).default
+      const perusahaan = await Perusahaan.first()
+      const nmPerusahaan = perusahaan?.nmPerusahaan || ''
+
+      let dataQuery = Stock.query()
+
+      if (productId) {
+        dataQuery.where('product_id', productId)
+      }
+
+      if (warehouseId) {
+        dataQuery.where('warehouse_id', warehouseId)
+      }
+
+      if (searchValue) {
+        // Pencarian tidak case sensitive di kolom terkait product & warehouse
+        const lowerSearch = searchValue.toLowerCase()
+        dataQuery.where((query) => {
+          query
+            // cari di product: name atau sku
+            .orWhereHas('product', (pQuery) => {
+              pQuery
+                .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                .orWhereRaw('LOWER(sku) LIKE ?', [`%${lowerSearch}%`])
+            })
+            // cari di warehouse: name atau code
+            .orWhereHas('warehouse', (wQuery) => {
+              wQuery
+                .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                .orWhereRaw('LOWER(code) LIKE ?', [`%${lowerSearch}%`])
+            })
+        })
+      }
+
+      const queryWithPreloads = dataQuery
+        .preload('warehouse')
+        .preload('product', (productQuery) => {
+          productQuery.preload('unit')
+        })
+
+      // Ambil semua data tanpa pagination untuk export
+      const stocks = await queryWithPreloads.orderBy('id', 'desc')
+
+      // Format data untuk Excel - menggunakan struktur nested object yang sesuai dengan frontend
+      const excelData = stocks.map((stock) => ({
+        id: stock.id,
+        product: {
+          sku: stock.product?.sku || '-',
+          name: stock.product?.name || '-',
+          unit: {
+            name: stock.product?.unit?.name || '-',
+          },
+        },
+        warehouse: {
+          code: stock.warehouse?.code || '-',
+          name: stock.warehouse?.name || '-',
+        },
+        quantity: Math.floor(stock.quantity),
+        createdAt: stock.createdAt.toFormat('dd/MM/yyyy HH:mm'),
+        updatedAt: stock.updatedAt.toFormat('dd/MM/yyyy HH:mm'),
+      }))
+
+      return response.ok({
+        data: excelData,
+        total: stocks.length,
+        nmPerusahaan: nmPerusahaan,
+      })
+    } catch (error) {
+      console.error('Export Excel error:', error)
+      return response.internalServerError({
+        message: 'Gagal export data stock ke Excel',
+        error: error.message,
+      })
+    }
+  }
 }

@@ -95,6 +95,7 @@ export default class PegawaiController {
                     id_pegawai: pegawai.id_pegawai,
                     nm_pegawai: pegawai.nm_pegawai,
                     email: pegawai.users?.email || '-',
+                    username: pegawai.users?.username || '-',
                     tgl_lahir_pegawai: pegawai.tgl_lahir_pegawai,
                     no_tlp_pegawai: pegawai.no_tlp_pegawai,
                     tmp_lahir_pegawai: pegawai.tmp_lahir_pegawai,

@@ -11,6 +11,26 @@ export default class PegawaiService {
     constructor() {
         this.storageService = new StorageService();
     }
+    async generateUsername(fullName) {
+        const firstName = fullName.trim().split(' ')[0];
+        let username = firstName.toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .replace(/\s+/g, '');
+        if (!username) {
+            username = 'user';
+        }
+        let finalUsername = username;
+        let counter = 1;
+        while (true) {
+            const existingUser = await User.findBy('username', finalUsername);
+            if (!existingUser) {
+                break;
+            }
+            finalUsername = `${username}${counter}`;
+            counter++;
+        }
+        return finalUsername;
+    }
     async createPegawaiWithUser(pegawaiData, historyData, avatar, email) {
         try {
             return await db.transaction(async (trx) => {
@@ -53,17 +73,21 @@ export default class PegawaiService {
                         };
                     }
                 }
+                console.log('[PegawaiService] Generating username...');
+                const username = await this.generateUsername(pegawaiData.nm_pegawai);
+                console.log(`[PegawaiService] Generated username: ${username}`);
                 console.log('[PegawaiService] Creating User...');
                 const user = new User();
                 user.useTransaction(trx);
                 user.fill({
+                    username: username,
                     fullName: pegawaiData.nm_pegawai,
                     email: email,
                     password: 'password123',
                     isActive: true,
                 });
                 await user.save();
-                console.log(`[PegawaiService] User created with ID: ${user.id}`);
+                console.log(`[PegawaiService] User created with ID: ${user.id} and username: ${username}`);
                 const guestRole = await Role.findBy('name', 'guest');
                 if (guestRole) {
                     console.log('[PegawaiService] Assigning role to user...');

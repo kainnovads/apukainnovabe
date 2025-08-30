@@ -200,6 +200,7 @@ export default class ProductsController {
             }
             const product = await Product.create({
                 ...payload,
+                name: payload.name.toUpperCase(),
                 image: imagePath || '',
             });
             return response.created(product);
@@ -244,8 +245,9 @@ export default class ProductsController {
                 }
             }
             const dataUpdate = {
-                name: payload.name ?? product.name,
+                name: payload.name ? payload.name.toUpperCase() : product.name,
                 sku: payload.sku ?? product.sku,
+                noInterchange: payload.noInterchange ?? product.noInterchange,
                 unitId: payload.unitId ?? product.unitId,
                 categoryId: payload.categoryId ?? product.categoryId,
                 stockMin: payload.stockMin ?? product.stockMin,
@@ -332,6 +334,89 @@ export default class ProductsController {
         catch (error) {
             return response.internalServerError({
                 message: 'Gagal menghapus product',
+                error: error.message,
+            });
+        }
+    }
+    async totalProducts({ response }) {
+        try {
+            const result = await Product.query().count('* as total');
+            return response.ok({ total: Number(result[0].$extras.total) });
+        }
+        catch (error) {
+            return response.internalServerError({
+                message: 'Gagal mengambil total produk',
+                error: error.message,
+            });
+        }
+    }
+    async exportExcel({ request, response }) {
+        try {
+            const search = request.input('search', '');
+            const warehouseId = request.input('warehouseId');
+            const includeStocks = request.input('includeStocks', false);
+            const Perusahaan = (await import('#models/perusahaan')).default;
+            const perusahaan = await Perusahaan.first();
+            const nmPerusahaan = perusahaan?.nmPerusahaan || '';
+            let dataQuery = Product.query()
+                .preload('unit', (query) => {
+                query.select(['id', 'name', 'symbol']);
+            })
+                .preload('category', (query) => {
+                query.select(['id', 'name']);
+            });
+            if (search) {
+                const lowerSearch = search.toLowerCase();
+                dataQuery = dataQuery.where((query) => {
+                    query
+                        .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+                        .orWhereRaw('LOWER(sku) LIKE ?', [`%${lowerSearch}%`]);
+                });
+            }
+            if (warehouseId && includeStocks) {
+                dataQuery.preload('stocks', (stockQuery) => {
+                    stockQuery
+                        .select(['id', 'product_id', 'warehouse_id', 'quantity'])
+                        .where('warehouse_id', warehouseId);
+                });
+                dataQuery.whereExists((stockQuery) => {
+                    stockQuery
+                        .from('stocks')
+                        .whereColumn('stocks.product_id', 'products.id')
+                        .where('warehouse_id', warehouseId)
+                        .where('quantity', '>', 0);
+                });
+            }
+            else if (includeStocks) {
+                dataQuery.preload('stocks', (stockQuery) => {
+                    stockQuery.select(['id', 'product_id', 'warehouse_id', 'quantity']);
+                });
+            }
+            const products = await dataQuery.orderBy('id', 'desc');
+            const excelData = products.map(product => ({
+                sku: product.sku,
+                noInterchange: product.noInterchange,
+                name: product.name,
+                berat: product.berat ? `${product.berat} ${product.unit?.name || ''}` : '-',
+                stockMin: Math.round(product.stockMin),
+                priceBuy: product.priceBuy,
+                priceSell: product.priceSell,
+                isService: product.isService,
+                category: product.category?.name || '-',
+                kondisi: product.kondisi,
+                createdAt: product.createdAt.toFormat('dd/MM/yyyy HH:mm'),
+                updatedAt: product.updatedAt.toFormat('dd/MM/yyyy HH:mm')
+            }));
+            return response.ok({
+                data: excelData,
+                total: products.length,
+                nmPerusahaan: nmPerusahaan
+            });
+        }
+        catch (error) {
+            console.error('Export Excel error:', error);
+            return response.internalServerError({
+                message: 'Gagal export data produk ke Excel',
                 error: error.message,
             });
         }

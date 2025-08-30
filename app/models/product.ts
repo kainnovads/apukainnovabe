@@ -23,6 +23,9 @@ export default class Product extends BaseModel {
   declare name: string
 
   @column()
+  declare noInterchange: string
+
+  @column()
   declare sku: string
 
   @column()

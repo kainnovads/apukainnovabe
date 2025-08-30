@@ -25,7 +25,7 @@ import SalesReturn from '#models/sales_return';
 import SuratJalan from '#models/surat_jalan';
 import Quotation from '#models/quotation';
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-    uids: ['email'],
+    uids: ['email', 'username'],
     passwordColumnName: 'password',
 });
 export default class User extends compose(BaseModel, AuthFinder) {
@@ -35,6 +35,10 @@ __decorate([
     column({ isPrimary: true }),
     __metadata("design:type", Number)
 ], User.prototype, "id", void 0);
+__decorate([
+    column(),
+    __metadata("design:type", String)
+], User.prototype, "username", void 0);
 __decorate([
     column({ columnName: 'full_name' }),
     __metadata("design:type", Object)
@@ -66,7 +70,9 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "roles", void 0);
 __decorate([
-    hasOne(() => Pegawai),
+    hasOne(() => Pegawai, {
+        foreignKey: 'user_id',
+    }),
     __metadata("design:type", Object)
 ], User.prototype, "pegawai", void 0);
 __decorate([

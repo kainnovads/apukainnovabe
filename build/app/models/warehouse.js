@@ -50,6 +50,10 @@ __decorate([
     __metadata("design:type", String)
 ], Warehouse.prototype, "email", void 0);
 __decorate([
+    column(),
+    __metadata("design:type", Boolean)
+], Warehouse.prototype, "isActive", void 0);
+__decorate([
     hasMany(() => Stock),
     __metadata("design:type", Object)
 ], Warehouse.prototype, "stocks", void 0);

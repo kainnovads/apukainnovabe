@@ -34,7 +34,7 @@ export default class AuthController {
   async login({ request, response }: HttpContext) {
     console.log('Login method hit!')
     const data = await request.validateUsing(loginValidator)
-    const { username, password } = data
+    const { username, password, remember_me } = data
 
     console.log('Login attempt for username:', username)
 
@@ -65,8 +65,19 @@ export default class AuthController {
         return response.unauthorized({ message: 'Username atau password salah' })
       }
 
-      // 4. Generate token
-      const token = await User.accessTokens.create(user)
+      // 4. Generate token dengan durasi yang berbeda berdasarkan remember_me
+      let token
+      if (remember_me) {
+        // Token berlaku 30 hari jika remember me dicentang
+        token = await User.accessTokens.create(user, {
+          expiresAt: DateTime.now().plus({ days: 30 }).toISO()
+        })
+      } else {
+        // Token berlaku 15 menit jika remember me tidak dicentang
+        token = await User.accessTokens.create(user, {
+          expiresAt: DateTime.now().plus({ minutes: 15 }).toISO()
+        })
+      }
 
       // Ambil role user
       await user.load('roles')
