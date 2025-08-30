@@ -44,13 +44,23 @@ export default class AuthController {
             }
             let token;
             if (remember_me) {
-                token = await User.accessTokens.create(user, {
-                    expiresAt: DateTime.now().plus({ days: 30 }).toISO()
+                token = await AccessToken.create({
+                    tokenableId: user.id,
+                    type: 'api',
+                    name: 'login_token',
+                    hash: crypto.randomBytes(32).toString('hex'),
+                    abilities: '["*"]',
+                    expiresAt: DateTime.now().plus({ days: 30 })
                 });
             }
             else {
-                token = await User.accessTokens.create(user, {
-                    expiresAt: DateTime.now().plus({ minutes: 15 }).toISO()
+                token = await AccessToken.create({
+                    tokenableId: user.id,
+                    type: 'api',
+                    name: 'login_token',
+                    hash: crypto.randomBytes(32).toString('hex'),
+                    abilities: '["*"]',
+                    expiresAt: DateTime.now().plus({ minutes: 15 })
                 });
             }
             await user.load('roles');
@@ -59,7 +69,7 @@ export default class AuthController {
                 message: 'Login berhasil',
                 token: {
                     type: 'bearer',
-                    token: token.value?.release(),
+                    token: token.hash,
                     expires_at: token.expiresAt,
                 },
                 user: {

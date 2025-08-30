@@ -34,6 +34,10 @@ __decorate([
     __metadata("design:type", String)
 ], AuthAccessToken.prototype, "hash", void 0);
 __decorate([
+    column(),
+    __metadata("design:type", String)
+], AuthAccessToken.prototype, "abilities", void 0);
+__decorate([
     column.dateTime(),
     __metadata("design:type", DateTime)
 ], AuthAccessToken.prototype, "expiresAt", void 0);

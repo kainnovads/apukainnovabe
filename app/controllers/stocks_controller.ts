@@ -183,7 +183,6 @@ export default class StocksController {
       const searchValue = search || request.input('search.value', '')
       const productId = request.input('productId')
       const warehouseId = request.input('warehouseId')
-      const all = request.input('all')
 
       // Ambil data perusahaan untuk header
       const Perusahaan = (await import('#models/perusahaan')).default

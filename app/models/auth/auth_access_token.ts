@@ -21,6 +21,9 @@ export default class AuthAccessToken extends BaseModel {
   @column()
   declare hash: string
 
+  @column()
+  declare abilities: string
+
   @column.dateTime()
   declare expiresAt: DateTime
 

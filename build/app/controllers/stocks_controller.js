@@ -150,6 +150,7 @@ export default class StocksController {
     async exportExcel({ request, response }) {
         try {
             const search = request.input('search', '');
+            const searchValue = search || request.input('search.value', '');
             const productId = request.input('productId');
             const warehouseId = request.input('warehouseId');
             const Perusahaan = (await import('#models/perusahaan')).default;
@@ -162,8 +163,8 @@ export default class StocksController {
             if (warehouseId) {
                 dataQuery.where('warehouse_id', warehouseId);
             }
-            if (search) {
-                const lowerSearch = search.toLowerCase();
+            if (searchValue) {
+                const lowerSearch = searchValue.toLowerCase();
                 dataQuery.where((query) => {
                     query
                         .orWhereHas('product', (pQuery) => {
@@ -178,26 +179,33 @@ export default class StocksController {
                     });
                 });
             }
-            const stocks = await dataQuery
+            const queryWithPreloads = dataQuery
                 .preload('warehouse')
                 .preload('product', (productQuery) => {
                 productQuery.preload('unit');
-            })
-                .orderBy('id', 'desc');
-            const excelData = stocks.map(stock => ({
-                'product.sku': stock.product?.sku || '-',
-                'product.name': stock.product?.name || '-',
-                'warehouse.code': stock.warehouse?.code || '-',
-                'warehouse.name': stock.warehouse?.name || '-',
+            });
+            const stocks = await queryWithPreloads.orderBy('id', 'desc');
+            const excelData = stocks.map((stock) => ({
+                id: stock.id,
+                product: {
+                    sku: stock.product?.sku || '-',
+                    name: stock.product?.name || '-',
+                    unit: {
+                        name: stock.product?.unit?.name || '-',
+                    },
+                },
+                warehouse: {
+                    code: stock.warehouse?.code || '-',
+                    name: stock.warehouse?.name || '-',
+                },
                 quantity: Math.floor(stock.quantity),
-                'product.unit.name': stock.product?.unit?.name || '-',
                 createdAt: stock.createdAt.toFormat('dd/MM/yyyy HH:mm'),
-                updatedAt: stock.updatedAt.toFormat('dd/MM/yyyy HH:mm')
+                updatedAt: stock.updatedAt.toFormat('dd/MM/yyyy HH:mm'),
             }));
             return response.ok({
                 data: excelData,
                 total: stocks.length,
-                nmPerusahaan: nmPerusahaan
+                nmPerusahaan: nmPerusahaan,
             });
         }
         catch (error) {
