@@ -154,11 +154,14 @@ router
 
   // Sales Invoice Router
   router.group(() => {
+    router.get('/sales-invoices/statistics', [SalesInvoicesController, 'getInvoiceStatistics'])
     router.resource('sales-invoices', SalesInvoicesController).apiOnly()
   })
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasPermission(['view_sales_invoice', 'edit_sales_invoice', 'delete_sales_invoice', 'create_sales_invoice', 'approve_sales_invoice', 'reject_sales_invoice', 'show_sales_invoice']))
+
+
 
   // Surat Jalan Router
   router.group(() => {
