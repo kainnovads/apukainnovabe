@@ -65,28 +65,14 @@ export default class AuthController {
         return response.unauthorized({ message: 'Username atau password salah' })
       }
 
-      // 4. Generate token dengan durasi yang berbeda berdasarkan remember_me
+      // 4. Generate token menggunakan AdonisJS Auth yang benar
       let token
       if (remember_me) {
         // Token berlaku 30 hari jika remember me dicentang
-        token = await AccessToken.create({
-          tokenableId: user.id,
-          type: 'api',
-          name: 'login_token',
-          hash: crypto.randomBytes(32).toString('hex'),
-          abilities: '["*"]',
-          expiresAt: DateTime.now().plus({ days: 30 })
-        })
+        token = await User.accessTokens.create(user)
       } else {
         // Token berlaku 15 menit jika remember me tidak dicentang
-        token = await AccessToken.create({
-          tokenableId: user.id,
-          type: 'api',
-          name: 'login_token',
-          hash: crypto.randomBytes(32).toString('hex'),
-          abilities: '["*"]',
-          expiresAt: DateTime.now().plus({ minutes: 15 })
-        })
+        token = await User.accessTokens.create(user)
       }
 
       // Ambil role user
@@ -103,7 +89,7 @@ export default class AuthController {
         message: 'Login berhasil',
         token: {
           type: 'bearer',
-          token: token.hash,
+          token: token.value!.release(),
           expires_at: token.expiresAt,
         },
         user: {
