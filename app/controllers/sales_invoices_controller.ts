@@ -5,6 +5,93 @@ import SalesInvoice from '#models/sales_invoice'
 import SalesInvoiceItem from '#models/sales_invoice_item'
 
 export default class SalesInvoicesController {
+  // ✅ NEW: Method untuk mendapatkan statistik invoice
+  async getInvoiceStatistics({ response }: HttpContext) {
+    try {
+      // Hitung total invoice
+      const totalInvoices = await SalesInvoice.query().count('* as total')
+      
+      // Hitung invoice berdasarkan status
+      const unpaidInvoices = await SalesInvoice.query()
+        .where('status', 'unpaid')
+        .count('* as total')
+      
+      const partialInvoices = await SalesInvoice.query()
+        .where('status', 'partial')
+        .count('* as total')
+      
+      const paidInvoices = await SalesInvoice.query()
+        .where('status', 'paid')
+        .count('* as total')
+
+      // Hitung total nilai invoice berdasarkan status
+      const unpaidTotal = await SalesInvoice.query()
+        .where('status', 'unpaid')
+        .sum('total as total')
+      
+      const partialTotal = await SalesInvoice.query()
+        .where('status', 'partial')
+        .sum('total as total')
+      
+      const paidTotal = await SalesInvoice.query()
+        .where('status', 'paid')
+        .sum('total as total')
+
+      // Hitung total nilai semua invoice
+      const grandTotal = await SalesInvoice.query()
+        .sum('total as total')
+
+      // Perbaiki cara mengakses hasil count dan sum
+      const totalCount = totalInvoices[0]?.$extras?.total || totalInvoices[0]?.total || 0
+      const unpaidCount = unpaidInvoices[0]?.$extras?.total || unpaidInvoices[0]?.total || 0
+      const partialCount = partialInvoices[0]?.$extras?.total || partialInvoices[0]?.total || 0
+      const paidCount = paidInvoices[0]?.$extras?.total || paidInvoices[0]?.total || 0
+
+      const unpaidAmount = unpaidTotal[0]?.$extras?.total || unpaidTotal[0]?.total || 0
+      const partialAmount = partialTotal[0]?.$extras?.total || partialTotal[0]?.total || 0
+      const paidAmount = paidTotal[0]?.$extras?.total || paidTotal[0]?.total || 0
+      const grandAmount = grandTotal[0]?.$extras?.total || grandTotal[0]?.total || 0
+
+      // Hitung total outstanding (unpaid + partial)
+      const outstandingTotal = Number(unpaidAmount) + Number(partialAmount)
+
+      return response.ok({
+        message: 'Statistik invoice berhasil diambil',
+        data: {
+          counts: {
+            total: Number(totalCount),
+            unpaid: Number(unpaidCount),
+            partial: Number(partialCount),
+            paid: Number(paidCount)
+          },
+          amounts: {
+            total: Number(grandAmount),
+            unpaid: Number(unpaidAmount),
+            partial: Number(partialAmount),
+            paid: Number(paidAmount),
+            outstanding: outstandingTotal
+          },
+          percentages: {
+            unpaid: totalCount > 0 ? Math.round((Number(unpaidCount) / Number(totalCount)) * 100) : 0,
+            partial: totalCount > 0 ? Math.round((Number(partialCount) / Number(totalCount)) * 100) : 0,
+            paid: totalCount > 0 ? Math.round((Number(paidCount) / Number(totalCount)) * 100) : 0
+          }
+        }
+      })
+    } catch (error) {
+      console.error('❌ Error getting invoice statistics:', error)
+      return response.internalServerError({
+        message: 'Terjadi kesalahan saat mengambil statistik invoice',
+        error: {
+          name: error.name,
+          status: error.status || 500,
+          code: error.code,
+          message: error.message,
+        },
+      })
+    }
+  }
+
   async index({ request, response }: HttpContext) {
     try {
       const page         = parseInt(request.input('page', '1'), 10) || 1

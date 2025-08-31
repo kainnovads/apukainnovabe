@@ -114,6 +114,7 @@ router.group(() => {
     .use(middleware.auth())
     .use(middleware.hasPermission(['approve_sales_order', 'reject_sales_order', 'edit_sales_order', 'delete_sales_order', 'view_sales_order', 'approve_sales_order_item', 'reject_sales_order_item', 'edit_sales_order_item', 'delete_sales_order_item', 'view_sales_order_item', 'show_sales_order']));
 router.group(() => {
+    router.get('/sales-invoices/statistics', [SalesInvoicesController, 'getInvoiceStatistics']);
     router.resource('sales-invoices', SalesInvoicesController).apiOnly();
 })
     .prefix('/api')
