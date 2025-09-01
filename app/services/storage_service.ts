@@ -22,13 +22,17 @@ export default class StorageService {
   ): Promise<{ url: string; path: string }> {
     if (this.storageDriver === 's3') {
       try {
+        console.log(`[StorageService] Attempting S3 upload to folder: ${folder}`)
         const result = await this.uploadToS3(file, folder, isPublic)
+        console.log(`[StorageService] S3 upload successful: ${result.url}`)
         return result
       } catch (error) {
-        console.warn('S3 upload failed, fallback to local:', error.message)
+        console.warn(`[StorageService] S3 upload failed, fallback to local: ${error.message}`)
+        console.log(`[StorageService] Attempting local upload to folder: ${folder}`)
         return await this.uploadToLocal(file, folder)
       }
     } else {
+      console.log(`[StorageService] Using local storage for folder: ${folder}`)
       return await this.uploadToLocal(file, folder)
     }
   }
@@ -59,6 +63,16 @@ export default class StorageService {
     const fileName = `${Date.now()}_${file.clientName}`
     const uploadPath = app.publicPath(`uploads/${folder}`)
     
+    // Pastikan direktori upload ada
+    try {
+      const fs = await import('fs/promises')
+      await fs.mkdir(uploadPath, { recursive: true })
+      console.log(`[StorageService] Created directory: ${uploadPath}`)
+    } catch (error) {
+      console.error(`[StorageService] Failed to create directory: ${uploadPath}`, error)
+      throw new Error(`Gagal membuat direktori upload: ${error.message}`)
+    }
+    
     await file.move(uploadPath, {
       name: fileName,
       overwrite: true,
@@ -76,6 +90,7 @@ export default class StorageService {
       url = `${host}/${path}`
     }
 
+    console.log(`[StorageService] Local upload successful: ${url}`)
     return {
       url,
       path

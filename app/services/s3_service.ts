@@ -7,11 +7,13 @@ export default class S3Service {
   private s3Client: S3Client | null = null
   private bucketName: string
   private region: string
+  private endpoint: string
   private isInitialized: boolean = false
 
   constructor() {
-    this.region = env.get('AWS_REGION', 'us-east-1')
+    this.region = env.get('AWS_REGION', 'us-east1')
     this.bucketName = env.get('AWS_S3_BUCKET_NAME', '')
+    this.endpoint = env.get('AWS_S3_ENDPOINT', '')
 
     this.initializeS3Client()
   }
@@ -34,15 +36,25 @@ export default class S3Service {
         return
       }
 
-      this.s3Client = new S3Client({
+      // Konfigurasi untuk Google Cloud Storage
+      const clientConfig: any = {
         region: this.region,
         credentials: {
           accessKeyId,
           secretAccessKey,
         },
-      })
+        forcePathStyle: false, // Gunakan virtual-hosted style untuk GCS
+      }
+
+      // Tambahkan endpoint jika ada (untuk Google Cloud Storage)
+      if (this.endpoint) {
+        clientConfig.endpoint = this.endpoint
+      }
+
+      this.s3Client = new S3Client(clientConfig)
 
       this.isInitialized = true
+      console.log('S3 Service initialized successfully for bucket:', this.bucketName)
     } catch (error) {
       console.error('S3 Service initialization failed:', error)
       this.isInitialized = false
@@ -83,7 +95,7 @@ export default class S3Service {
 
       // Return public URL jika public, atau signed URL jika private
       if (isPublic) {
-        const url = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`
+        const url = this.getPublicUrl(key)
         return url
       } else {
         const signedUrl = await this.getSignedUrl(key)
@@ -192,6 +204,11 @@ export default class S3Service {
    * Get public URL untuk file
    */
   getPublicUrl(key: string): string {
+    // Untuk Google Cloud Storage, gunakan endpoint yang benar
+    if (this.endpoint && this.endpoint.includes('storage.googleapis.com')) {
+      return `${this.endpoint}/${this.bucketName}/${key}`
+    }
+    // Fallback ke AWS S3 format
     return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`
   }
 

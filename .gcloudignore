@@ -15,3 +15,18 @@
 
 # Node.js dependencies:
 node_modules/
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Build artifacts (tapi jangan ignore public/uploads)
+build/
+dist/
+*.log
+
+# Pastikan direktori public dan uploads tetap ada
+!public/
+!public/uploads/
+!public/uploads/**

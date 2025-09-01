@@ -12,7 +12,9 @@
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "setup-production": "./scripts/setup-production.sh",
+    "deploy": "npm run build && npm run setup-production"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",
