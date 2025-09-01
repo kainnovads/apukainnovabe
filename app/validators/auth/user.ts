@@ -3,6 +3,7 @@ import vine from '@vinejs/vine'
 
 export const userValidator = vine.compile(
   vine.object({
+    username: vine.string().minLength(3).maxLength(50),
     full_name: vine.string(),
     email: vine.string().email(),
     password: vine.string().minLength(8).maxLength(32),
@@ -13,6 +14,7 @@ export const userValidator = vine.compile(
 
 export const updateUserValidator = vine.compile(
   vine.object({
+    username: vine.string().minLength(3).maxLength(50),
     full_name: vine.string(),
     email: vine.string().email(),
     password: vine.string().minLength(8).maxLength(32).optional(),

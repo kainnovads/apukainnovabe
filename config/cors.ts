@@ -10,8 +10,8 @@ const corsConfig = defineConfig({
   enabled: true,
 
   origin: [
-    'http://development.kainnovadigital.com', 
-    'https://development.kainnovadigital.com', 
+    'http://apu.kainnovadigital.com', 
+    'https://apu.kainnovadigital.com', 
     'http://localhost:3000',
   ],
 

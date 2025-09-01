@@ -113,6 +113,20 @@ export default class UsersController {
 
       const data = await request.validateUsing(updateUserValidator)
 
+      // Cek apakah username sudah digunakan oleh user lain
+      if (data.username !== user.username) {
+        const existingUser = await User.findBy('username', data.username)
+        if (existingUser && existingUser.id !== user.id) {
+          return response.status(422).send({
+            message: 'Username sudah digunakan oleh user lain',
+            errors: {
+              username: ['Username sudah digunakan oleh user lain']
+            }
+          })
+        }
+      }
+
+      user.username = data.username
       user.fullName = data.full_name
       user.email = data.email
       if (data.password) {
