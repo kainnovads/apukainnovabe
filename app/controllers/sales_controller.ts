@@ -1053,4 +1053,51 @@ export default class SalesController {
       })
     }
   }
+
+  async getTopProducts({ request, response }: HttpContext) {
+    try {
+      const limit = Math.min(Number(request.input('limit', 10)) || 10, 10)
+      const period = request.input('period', '1m')
+
+      // Tentukan rentang tanggal optional (default 1 bulan terakhir)
+      let dateFrom: string | null = null
+      const now = DateTime.now()
+      if (period === '1m') {
+        dateFrom = now.minus({ months: 1 }).toISODate()
+      } else if (period === '3m') {
+        dateFrom = now.minus({ months: 3 }).toISODate()
+      } else if (period === '6m') {
+        dateFrom = now.minus({ months: 6 }).toISODate()
+      }
+
+      // Ambil produk terlaris berdasarkan qty terkirim (delivered orders)
+      const query = db
+        .from('sales_order_items as soi')
+        .leftJoin('sales_orders as so', 'soi.sales_order_id', 'so.id')
+        .leftJoin('products as p', 'soi.product_id', 'p.id')
+        .where('so.status', 'delivered')
+        .groupBy('soi.product_id', 'p.name', 'p.sku')
+        .select('soi.product_id as product_id', 'p.name as product_name', 'p.sku as product_sku')
+        .select(db.raw('SUM(soi.quantity) as total_qty'))
+
+      if (dateFrom) {
+        query.where('so.created_at', '>=', dateFrom)
+      }
+
+      const rows = await query.orderByRaw('SUM(soi.quantity) DESC').limit(limit)
+
+      return response.ok(rows.map((r) => ({
+        productId: Number(r.product_id),
+        name: r.product_name || `#${r.product_id}`,
+        sku: r.product_sku || null,
+        totalQty: Number(r.total_qty) || 0,
+      })))
+    } catch (error) {
+      console.error('Error getting top products:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil produk terlaris',
+        error: error.message,
+      })
+    }
+  }
 }

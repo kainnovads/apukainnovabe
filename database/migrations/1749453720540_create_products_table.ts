@@ -14,7 +14,7 @@ export default class extends BaseSchema {
       table.decimal('price_sell', 14, 2).defaultTo(0)
       table.boolean('is_service').defaultTo(false)
       table.string('image').nullable()
-      table.integer('berat').nullable()
+      table.decimal('berat', 12, 2).nullable()
       table.enum('kondisi', ['baru', 'bekas', 'rusak', 'servis']).notNullable().defaultTo('baru')
       table.integer('unit_id').unsigned().references('id').inTable('units').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('category_id').unsigned().references('id').inTable('categories').onDelete('CASCADE').onUpdate('CASCADE')
