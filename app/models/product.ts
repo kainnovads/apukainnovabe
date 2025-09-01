@@ -8,6 +8,7 @@ import StockOutDetail from '#models/stock_out_detail'
 import Customer from '#models/customer'
 import Stock from '#models/stock'
 import ProductCustomer from '#models/product_customer'
+import User from '#models/auth/user'
 
 export default class Product extends BaseModel {
   @column({ isPrimary: true })
@@ -55,6 +56,12 @@ export default class Product extends BaseModel {
   @column()
   declare kondisi: string
 
+  @column()
+  declare createdBy: number | null
+
+  @column()
+  declare satuanItem: string | null
+
   @belongsTo(() => Unit)
   declare unit: BelongsTo<typeof Unit>
 
@@ -72,6 +79,11 @@ export default class Product extends BaseModel {
 
   @hasMany(() => ProductCustomer)
   declare productCustomer: HasMany<typeof ProductCustomer>
+
+  @belongsTo(() => User, {
+    foreignKey: 'createdBy',
+  })
+  declare createdByUser: BelongsTo<typeof User>
 
   @manyToMany(() => Customer, {
     pivotTable: 'product_customers',

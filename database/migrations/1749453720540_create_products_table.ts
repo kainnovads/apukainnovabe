@@ -18,6 +18,9 @@ export default class extends BaseSchema {
       table.enum('kondisi', ['baru', 'bekas', 'rusak', 'servis']).notNullable().defaultTo('baru')
       table.integer('unit_id').unsigned().references('id').inTable('units').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('category_id').unsigned().references('id').inTable('categories').onDelete('CASCADE').onUpdate('CASCADE')
+      table.string('satuan_item').nullable()
+      table.integer('created_by').unsigned().references('id').inTable('users').onDelete('CASCADE').onUpdate('CASCADE')
+      
 
       table.timestamp('created_at')
       table.timestamp('updated_at')

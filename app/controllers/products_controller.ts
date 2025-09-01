@@ -3,8 +3,6 @@ import { productValidator } from '#validators/product'
 import Product from '#models/product'
 import StorageService from '#services/storage_service'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
-
-
 export default class ProductsController {
     private storageService: StorageService
 
@@ -15,22 +13,25 @@ export default class ProductsController {
 
     async index({ request, response }: HttpContext) {
     try {
-      const page        = request.input('page', 1)
-      const limit       = request.input('rows', 10)
-      const search      = request.input('search', '')
+      const page = request.input('page', 1)
+      const limit = request.input('rows', 10)
+      const search = request.input('search', '')
       const searchValue = search || request.input('search.value', '')
-      const sortField   = request.input('sortField')
-      const sortOrder   = request.input('sortOrder')
+      const sortField = request.input('sortField')
+      const sortOrder = request.input('sortOrder')
       const warehouseId = request.input('warehouseId')
       const includeStocks = request.input('includeStocks', false)
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = Product.query()
-        .preload('unit', (query) => {
+        .preload('unit', (query: any) => {
           query.select(['id', 'name', 'symbol'])
         })
-        .preload('category', (query) => {
+        .preload('category', (query: any) => {
           query.select(['id', 'name'])
+        })
+        .preload('createdByUser', (query: any) => {
+          query.select(['id', 'fullName', 'email'])
         })
 
       if (searchValue) {
@@ -46,14 +47,14 @@ export default class ProductsController {
       // ✅ OPTIMASI: Conditional warehouse filtering dengan efficient preload
              if (warehouseId) {
          if (includeStocks) {
-           dataQuery.preload('stocks', (stockQuery) => {
+           dataQuery.preload('stocks', (stockQuery: any) => {
              stockQuery
                .select(['id', 'product_id', 'warehouse_id', 'quantity'])
                .where('warehouse_id', warehouseId)
            })
          }
 
-                 // ✅ Filter produk hanya yang ada di warehouse tertentu dan ada stok
+          // ✅ Filter produk hanya yang ada di warehouse tertentu dan ada stok
          dataQuery.whereExists((stockQuery) => {
            stockQuery
              .from('stocks')
@@ -63,7 +64,7 @@ export default class ProductsController {
          })
              } else if (includeStocks) {
          // ✅ TAMBAHAN: Preload stocks untuk semua warehouse jika includeStocks=true tanpa warehouseId
-         dataQuery.preload('stocks', (stockQuery) => {
+         dataQuery.preload('stocks', (stockQuery: any) => {
            stockQuery.select(['id', 'product_id', 'warehouse_id', 'quantity'])
          })
        }
@@ -78,9 +79,16 @@ export default class ProductsController {
           const dbColumn = toSnakeCase(column)
 
           // ✅ OPTIMASI: Efficient joins dengan nama tabel yang benar
-          const relationJoinInfo: Record<string, { table: string, foreignKey: string, primaryKey: string }> = {
+          const relationJoinInfo: Record<
+            string,
+            { table: string; foreignKey: string; primaryKey: string }
+          > = {
             unit: { table: 'units', foreignKey: 'products.unit_id', primaryKey: 'units.id' },
-            category: { table: 'categories', foreignKey: 'products.category_id', primaryKey: 'categories.id' },
+            category: {
+              table: 'categories',
+              foreignKey: 'products.category_id',
+              primaryKey: 'categories.id',
+            },
           }
 
           if (relation in relationJoinInfo) {
@@ -112,8 +120,8 @@ export default class ProductsController {
         ...product.toJSON(),
         _meta: {
           queryTime: queryTime,
-          totalQueries: 'optimized'
-        }
+          totalQueries: 'optimized',
+        },
       })
     } catch (error) {
       console.error(error)
@@ -132,18 +140,18 @@ export default class ProductsController {
       // ✅ OPTIMASI: Select specific fields dan eager loading dengan limit
       const product = await Product.query()
         .where('id', params.id)
-        .preload('unit', (query) => {
+        .preload('unit', (query: any) => {
           query.select(['id', 'name', 'symbol'])
         })
-        .preload('category', (query) => {
+        .preload('category', (query: any) => {
           query.select(['id', 'name'])
         })
-        .preload('stocks', (query) => {
+        .preload('stocks', (query: any) => {
           query
             .select(['id', 'product_id', 'warehouse_id', 'quantity'])
             .where('quantity', '>', 0) // ✅ OPTIMASI: Hanya ambil stock yang ada
             .limit(50) // ✅ OPTIMASI: Batasi jumlah stock yang dimuat
-            .preload('warehouse', (warehouseQuery) => {
+            .preload('warehouse', (warehouseQuery: any) => {
               warehouseQuery.select(['id', 'name'])
             })
         })
@@ -168,8 +176,15 @@ export default class ProductsController {
         _meta: {
           queryTime: queryTime,
           stocksLoaded: product.stocks?.length || 0,
-          performanceLevel: queryTime < 100 ? 'excellent' : queryTime < 500 ? 'good' : queryTime < 1000 ? 'fair' : 'poor'
-        }
+          performanceLevel:
+            queryTime < 100
+              ? 'excellent'
+              : queryTime < 500
+                ? 'good'
+                : queryTime < 1000
+                  ? 'fair'
+                  : 'poor',
+        },
       })
     } catch (error) {
       console.error('Product.show error:', error)
@@ -180,7 +195,7 @@ export default class ProductsController {
     }
   }
 
-    async store({ request, response }: HttpContext) {
+    async store({ request, response, auth }: HttpContext) {
     try {
       // Validasi data product (kecuali image)
       const payload = await request.validateUsing(productValidator)
@@ -191,8 +206,19 @@ export default class ProductsController {
         return response.status(422).json({
           message: 'Part Number sudah ada, silakan gunakan Part Number lain.',
           errors: {
-            sku: ['Part Number sudah ada, silakan gunakan Part Number lain.']
-          }
+            sku: ['Part Number sudah ada, silakan gunakan Part Number lain.'],
+          },
+        })
+      }
+
+      // Cek apakah No Interchange sudah ada
+      const existingProductNoInterchange = await Product.findBy('noInterchange', payload.noInterchange)
+      if (existingProductNoInterchange) {
+        return response.status(422).json({
+          message: 'No Interchange sudah ada, silakan gunakan No Interchange lain.',
+          errors: {
+            noInterchange: ['No Interchange sudah ada, silakan gunakan No Interchange lain.'],
+          },
         })
       }
 
@@ -217,7 +243,7 @@ export default class ProductsController {
             'image/x-png',
             'image/gif',
             'image/webp',
-            'image/svg+xml'
+            'image/svg+xml',
           ]
 
           const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
@@ -226,7 +252,9 @@ export default class ProductsController {
           const isValidExtension = allowedExtensions.includes(fileExtension)
 
           if (!isValidMimeType && !isValidExtension) {
-            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+            throw new Error(
+              `File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`,
+            )
           }
 
           // Validasi file size
@@ -247,7 +275,7 @@ export default class ProductsController {
           console.error('Image upload failed:', err)
           return response.internalServerError({
             message: 'Gagal menyimpan file gambar',
-            error: err.message,
+            error: (err as Error).message,
           })
         }
       }
@@ -257,29 +285,21 @@ export default class ProductsController {
         ...payload,
         name: payload.name.toUpperCase(), // Konversi nama ke huruf kapital
         image: imagePath || '',
+        createdBy: auth?.user?.id || null,
       })
 
       return response.created(product)
     } catch (error) {
-      // Cek error duplikat SKU
-      if (error.code === '23505' && error.detail && error.detail.includes('products_sku_unique')) {
-        return response.status(422).json({
-          message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
-          errors: {
-            sku: ['SKU sudah digunakan, silakan gunakan SKU lain.']
-          }
-        })
-      }
       // Handle validation errors specifically
-      if (error.messages) {
+      if ((error as any).messages) {
         return response.status(422).json({
           message: 'Gagal validasi data product',
-          errors: error.messages,
+          errors: (error as any).messages,
         })
       }
       return response.badRequest({
         message: 'Gagal membuat product',
-        error: error.message,
+        error: (error as Error).message,
       })
     }
   }
@@ -301,24 +321,24 @@ export default class ProductsController {
           return response.status(422).json({
             message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
             errors: {
-              sku: ['SKU sudah digunakan, silakan gunakan SKU lain.']
-            }
+              sku: ['SKU sudah digunakan, silakan gunakan SKU lain.'],
+            },
           })
         }
       }
 
       const dataUpdate = {
-        name      : payload.name ? payload.name.toUpperCase() : product.name, // Konversi nama ke huruf kapital jika ada
-        sku       : payload.sku ?? product.sku,
+        name: payload.name ? payload.name.toUpperCase() : product.name, // Konversi nama ke huruf kapital jika ada
+        sku: payload.sku ?? product.sku,
         noInterchange: payload.noInterchange ?? product.noInterchange,
-        unitId    : payload.unitId ?? product.unitId,
+        unitId: payload.unitId ?? product.unitId,
         categoryId: payload.categoryId ?? product.categoryId,
-        stockMin  : payload.stockMin ?? product.stockMin,
-        priceBuy  : payload.priceBuy ?? product.priceBuy,
-        priceSell : payload.priceSell ?? product.priceSell,
-        isService : payload.isService ?? product.isService,
-        kondisi   : payload.kondisi ?? product.kondisi,
-        berat     : payload.berat ?? product.berat,
+        stockMin: payload.stockMin ?? product.stockMin,
+        priceBuy: payload.priceBuy ?? product.priceBuy,
+        priceSell: payload.priceSell ?? product.priceSell,
+        isService: payload.isService ?? product.isService,
+        kondisi: payload.kondisi ?? product.kondisi,
+        berat: payload.berat ?? product.berat,
       }
 
       // Proses upload image jika ada file image baru
@@ -342,7 +362,7 @@ export default class ProductsController {
             'image/x-png',
             'image/gif',
             'image/webp',
-            'image/svg+xml'
+            'image/svg+xml',
           ]
 
           const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
@@ -351,7 +371,9 @@ export default class ProductsController {
           const isValidExtension = allowedExtensions.includes(fileExtension)
 
           if (!isValidMimeType && !isValidExtension) {
-            throw new Error(`File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`)
+            throw new Error(
+              `File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`,
+            )
           }
 
           // Validasi file size
@@ -372,7 +394,7 @@ export default class ProductsController {
           console.error('Image upload failed:', err)
           return response.internalServerError({
             message: 'Gagal menyimpan file gambar',
-            error: err.message,
+            error: (err as Error).message,
           })
         }
       }
@@ -387,24 +409,24 @@ export default class ProductsController {
       return response.ok(product)
     } catch (error) {
       // Cek error duplikat SKU
-      if (error.code === '23505' && error.detail && error.detail.includes('products_sku_unique')) {
+      if ((error as any).code === '23505' && (error as any).detail && (error as any).detail.includes('products_sku_unique')) {
         return response.status(422).json({
           message: 'SKU sudah digunakan, silakan gunakan SKU lain.',
           errors: {
-            sku: ['SKU sudah digunakan, silakan gunakan SKU lain.']
-          }
+            sku: ['SKU sudah digunakan, silakan gunakan SKU lain.'],
+          },
         })
       }
       // Handle validation errors specifically
-      if (error.messages) {
+      if ((error as any).messages) {
         return response.status(422).json({
           message: 'Gagal validasi data product',
-          errors: error.messages,
+          errors: (error as any).messages,
         })
       }
       return response.badRequest({
         message: 'Gagal memperbarui product',
-        error: error.message,
+        error: (error as Error).message,
       })
     }
   }
@@ -420,7 +442,7 @@ export default class ProductsController {
     } catch (error) {
       return response.internalServerError({
         message: 'Gagal menghapus product',
-        error: error.message,
+        error: (error as Error).message,
       })
     }
   }
@@ -432,7 +454,7 @@ export default class ProductsController {
     } catch (error) {
       return response.internalServerError({
         message: 'Gagal mengambil total produk',
-        error: error.message,
+        error: (error as Error).message,
       })
     }
   }
@@ -444,19 +466,22 @@ export default class ProductsController {
       const includeStocks = request.input('includeStocks', false)
 
       // Ambil data perusahaan untuk header
-      const Perusahaan = (await import('#models/perusahaan')).default
+      const perusahaanModule = await import('#models/perusahaan')
+      const Perusahaan = perusahaanModule.default
       const perusahaan = await Perusahaan.first()
       const nmPerusahaan = perusahaan?.nmPerusahaan || ''
 
       // Query untuk mengambil semua data produk
       let dataQuery = Product.query()
-        .preload('unit', (query) => {
+        .preload('unit', (query: any) => {
           query.select(['id', 'name', 'symbol'])
         })
-        .preload('category', (query) => {
+        .preload('category', (query: any) => {
           query.select(['id', 'name'])
         })
-
+        .preload('createdByUser', (query: any) => {
+          query.select(['id', 'fullName', 'email'])
+        })
       if (search) {
         const lowerSearch = search.toLowerCase()
         dataQuery = dataQuery.where((query) => {
@@ -467,7 +492,7 @@ export default class ProductsController {
       }
 
       if (warehouseId && includeStocks) {
-        dataQuery.preload('stocks', (stockQuery) => {
+        dataQuery.preload('stocks', (stockQuery: any) => {
           stockQuery
             .select(['id', 'product_id', 'warehouse_id', 'quantity'])
             .where('warehouse_id', warehouseId)
@@ -481,7 +506,7 @@ export default class ProductsController {
             .where('quantity', '>', 0)
         })
       } else if (includeStocks) {
-        dataQuery.preload('stocks', (stockQuery) => {
+        dataQuery.preload('stocks', (stockQuery: any) => {
           stockQuery.select(['id', 'product_id', 'warehouse_id', 'quantity'])
         })
       }
@@ -489,7 +514,7 @@ export default class ProductsController {
       const products = await dataQuery.orderBy('id', 'desc')
 
       // Format data untuk Excel - menggunakan field names yang sesuai dengan frontend
-      const excelData = products.map(product => ({
+      const excelData = products.map((product) => ({
         sku: product.sku,
         noInterchange: product.noInterchange,
         name: product.name,
@@ -500,20 +525,21 @@ export default class ProductsController {
         isService: product.isService,
         category: product.category?.name || '-',
         kondisi: product.kondisi,
+        createdBy: product.createdByUser?.fullName || '-',
         createdAt: product.createdAt.toFormat('dd/MM/yyyy HH:mm'),
-        updatedAt: product.updatedAt.toFormat('dd/MM/yyyy HH:mm')
+        updatedAt: product.updatedAt.toFormat('dd/MM/yyyy HH:mm'),
       }))
 
       return response.ok({
         data: excelData,
         total: products.length,
-        nmPerusahaan: nmPerusahaan
+        nmPerusahaan: nmPerusahaan,
       })
     } catch (error) {
       console.error('Export Excel error:', error)
       return response.internalServerError({
         message: 'Gagal export data produk ke Excel',
-        error: error.message,
+        error: (error as Error).message,
       })
     }
   }
