@@ -6,11 +6,13 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary()
-      table.string('code').notNullable().unique()
-      table.string('name').notNullable()
-      table.enum('type', ['asset', 'liability', 'equity', 'revenue', 'expense']).notNullable()
+      table.string('code').unique().notNullable()       // misal 1-1001
+      table.string('name').notNullable()                // Kas Besar
+      table.enum('category', ['asset', 'liability', 'equity', 'revenue', 'expense']).notNullable()
+      table.enum('normal_balance', ['debit', 'credit']).notNullable()
       table.boolean('is_parent').defaultTo(false)
-      table.uuid('parent_id').references('id').inTable('accounts').onDelete('SET NULL')
+      table.uuid('parent_id').nullable().references('id').inTable('accounts').onDelete('SET NULL')
+      table.integer('level').defaultTo(1)
       
       table.timestamp('created_at')
       table.timestamp('updated_at')

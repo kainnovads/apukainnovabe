@@ -46,6 +46,17 @@ import QuotationsController from '#controllers/quotations_controller'
 import UserSessionsController from '#controllers/user_sessions_controller'
 import ImportController from '#controllers/import_controller'
 
+// Finance Controllers
+import BankAccountsController from '#controllers/bank_accounts_controller'
+import TaxesController from '#controllers/taxes_controller'
+import ExpensesController from '#controllers/expenses_controller'
+import ApPaymentsController from '#controllers/ap_payments_controller'
+import ArReceiptsController from '#controllers/ar_receipts_controller'
+import AssetsController from '#controllers/assets_controller'
+import FinanceDashboardController from '#controllers/finance_dashboard_controller'
+import AccountsController from '#controllers/accounts_controller'
+import JournalsController from '#controllers/journals_controller'
+
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
 })
@@ -69,6 +80,11 @@ router
   router.get('/sales-order/countByStatus', [SalesOrdersController, 'countByStatus'])
   router.get('/sales-order/statistics', [SalesOrdersController, 'getSalesStatistics'])
   router.get('/sales-order/salesByCustomer', [SalesOrdersController, 'getSalesByCustomer'])
+  
+  // Finance Dashboard Routes
+  router.get('/finance/dashboard', [FinanceDashboardController, 'index'])
+  router.get('/finance/cash-flow', [FinanceDashboardController, 'getCashFlow'])
+  router.get('/finance/tax-report', [FinanceDashboardController, 'getTaxReport'])
 })
 .prefix('/api')
 .use(middleware.auth())
@@ -407,3 +423,83 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasRole(['superadmin', 'admin']))
+
+  // Bank Accounts Router
+  router.group(() => {
+    router.resource('/accounting/bank-accounts', BankAccountsController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_bank_account', 'edit_bank_account', 'delete_bank_account', 'create_bank_account', 'show_bank_account']))
+
+  // Taxes Router
+  router.group(() => {
+    router.get('/accounting/taxes/active', [TaxesController, 'getActive'])
+    router.resource('/accounting/taxes', TaxesController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_tax', 'edit_tax', 'delete_tax', 'create_tax', 'show_tax']))
+
+  // Expenses Router
+  router.group(() => {
+    router.get('/accounting/expenses/summary', [ExpensesController, 'getSummary'])
+    router.resource('/accounting/expenses', ExpensesController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_expenses', 'edit_expenses', 'delete_expenses', 'create_expenses', 'show_expenses']))
+
+  // AP Payments Router (Pembayaran Hutang)
+  router.group(() => {
+    router.get('/accounting/ap-payments/summary', [ApPaymentsController, 'getSummary'])
+    router.resource('/accounting/ap-payments', ApPaymentsController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_ap_payment', 'edit_ap_payment', 'delete_ap_payment', 'create_ap_payment', 'show_ap_payment']))
+
+  // AR Receipts Router (Penerimaan Piutang)
+  router.group(() => {
+    router.get('/accounting/ar-receipts/summary', [ArReceiptsController, 'getSummary'])
+    router.resource('/accounting/ar-receipts', ArReceiptsController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_ar_receipt', 'edit_ar_receipt', 'delete_ar_receipt', 'create_ar_receipt', 'show_ar_receipt']))
+
+  // Assets Router
+  router.group(() => {
+    router.get('/accounting/assets/categories', [AssetsController, 'getCategories'])
+    router.get('/accounting/assets/summary', [AssetsController, 'getSummary'])
+    router.get('/accounting/assets/:id/calculate-depreciation', [AssetsController, 'calculateDepreciation'])
+    router.resource('/accounting/assets', AssetsController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_asset', 'edit_asset', 'delete_asset', 'create_asset', 'show_asset']))
+
+  // Accounts Router (Chart of Accounts)
+  router.group(() => {
+    router.get('/accounting/accounts/chart-of-accounts', [AccountsController, 'getChartOfAccounts'])
+    router.get('/accounting/accounts/category/:category', [AccountsController, 'getByCategory'])
+    router.get('/accounting/accounts/parent-accounts', [AccountsController, 'getParentAccounts'])
+    router.get('/accounting/accounts/summary', [AccountsController, 'getSummary'])
+    router.resource('/accounting/accounts', AccountsController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_account', 'edit_account', 'delete_account', 'create_account', 'show_account']))
+
+  // Journals Router
+  router.group(() => {
+    router.get('/accounting/journals/summary', [JournalsController, 'getSummary'])
+    router.get('/accounting/journals/trial-balance', [JournalsController, 'getTrialBalance'])
+    router.get('/accounting/journals/generate-number', [JournalsController, 'generateJournalNumber'])
+    router.patch('/accounting/journals/:id/post', [JournalsController, 'post'])
+    router.patch('/accounting/journals/:id/cancel', [JournalsController, 'cancel'])
+    router.resource('/accounting/journals', JournalsController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_journal', 'edit_journal', 'delete_journal', 'create_journal', 'show_journal', 'post_journal', 'cancel_journal']))

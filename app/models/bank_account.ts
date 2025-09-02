@@ -1,14 +1,19 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, hasMany, belongsTo } from '@adonisjs/lucid/orm'
-import type { HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
-import JournalLine from '#models/journal_line'
+import { BaseModel, column, beforeCreate, belongsTo } from '@adonisjs/lucid/orm'
+import { randomUUID } from 'node:crypto'
 import User from '#models/auth/user'
+import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 
-export default class Journal extends BaseModel {
-  public static table = 'journals'
+export default class BankAccount extends BaseModel {
+  public static table = 'bank_accounts'
 
   @column({ isPrimary: true })
   declare id: string
+
+  @beforeCreate()
+  static assignUuid(bankAccount: BankAccount) {
+    bankAccount.id = randomUUID()
+  }
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -17,32 +22,26 @@ export default class Journal extends BaseModel {
   declare updatedAt: DateTime
 
   @column()
-  declare journalNumber: string
+  declare bankName: string
 
   @column()
-  declare date: Date
+  declare accountNumber: string
+  
+  @column()
+  declare accountName: string
+  
+  @column()
+  declare currency: string
 
   @column()
-  declare description: string
-
-  @column()
-  declare status: 'draft' | 'posted' | 'cancelled'
-
-  @column()
-  declare referenceType: string | null
-
-  @column()
-  declare referenceId: string | null
+  declare openingBalance: number
 
   @column()
   declare createdBy: number
 
   @column()
   declare updatedBy: number
-
-  @hasMany(() => JournalLine)
-  declare journalLines: HasMany<typeof JournalLine>
-
+  
   @belongsTo(() => User, {
     foreignKey: 'createdBy',
   })

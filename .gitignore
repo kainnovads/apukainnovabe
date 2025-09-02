@@ -28,6 +28,9 @@ yarn-error.log
 public/uploads
 
 app.yaml
+finance_flowchart_final.pdf
+database_schema_diagram.md
+finance_flowchart.py
 
 # Security: Environment files with credentials
 .ebextensions/*_credentials.config
