@@ -311,8 +311,14 @@ export default class ProductsController {
         return response.notFound({ message: 'Product tidak ditemukan' })
       }
 
+      // Debug: Log payload yang diterima
+      console.log('Payload yang diterima:', request.all())
+
       // Validasi data (kecuali image)
       const payload = await request.validateUsing(productValidator)
+      
+      // Debug: Log payload setelah validasi
+      console.log('Payload setelah validasi:', payload)
 
       // Cek duplikasi SKU hanya jika SKU berubah
       if (payload.sku && payload.sku !== product.sku) {
@@ -339,7 +345,13 @@ export default class ProductsController {
         isService: payload.isService ?? product.isService,
         kondisi: payload.kondisi ?? product.kondisi,
         berat: payload.berat ?? product.berat,
+        satuanItem: payload.satuanItem ?? product.satuanItem,
       }
+      
+      // Debug: Log data yang akan diupdate
+      console.log('Data yang akan diupdate:', dataUpdate)
+      console.log('Data satuanItem dari payload:', payload.satuanItem)
+      console.log('Data satuanItem dari product lama:', product.satuanItem)
 
       // Proses upload image jika ada file image baru
       let imagePath = product.image // default: image lama
@@ -405,7 +417,14 @@ export default class ProductsController {
         image: imagePath || '',
       })
 
+      // Debug: Log data sebelum save
+      console.log('Data product sebelum save:', product.toJSON())
+      
       await product.save()
+      
+      // Debug: Log data setelah save
+      console.log('Data product setelah save:', product.toJSON())
+      
       return response.ok(product)
     } catch (error) {
       // Cek error duplikat SKU
