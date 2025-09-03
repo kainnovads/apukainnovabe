@@ -56,6 +56,7 @@ import AssetsController from '#controllers/assets_controller'
 import FinanceDashboardController from '#controllers/finance_dashboard_controller'
 import AccountsController from '#controllers/accounts_controller'
 import JournalsController from '#controllers/journals_controller'
+import PurchaseInvoicesController from '#controllers/purchase_invoices_controller'
 
 router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
@@ -151,6 +152,15 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasPermission(['approve_purchase_order', 'reject_purchase_order', 'edit_purchase_order', 'delete_purchase_order', 'view_purchase_order', 'approve_purchase_order_item', 'reject_purchase_order_item', 'edit_purchase_order_item', 'delete_purchase_order_item', 'view_purchase_order_item', 'show_purchase_order']))
+
+  // Purchase Invoice Router
+  router.group(() => {
+    router.get('/purchase-invoice/statistics', [PurchaseInvoicesController, 'getInvoiceStatistics'])
+    router.resource('purchase-invoice', PurchaseInvoicesController).apiOnly()
+  })
+  .prefix('/api')
+  .use(middleware.auth())
+  .use(middleware.hasPermission(['view_purchase_invoice', 'edit_purchase_invoice', 'delete_purchase_invoice', 'create_purchase_invoice', 'approve_purchase_invoice', 'reject_purchase_invoice', 'show_purchase_invoice']))
 
   // Sales Order Router
   router.group(() => {

@@ -282,14 +282,26 @@ export default class AccountsController {
 
   async getChartOfAccounts({ response }: HttpContext) {
     try {
-      // Ambil semua akun parent (level 1)
-      const chartOfAccounts = await Account.query()
-        .where('isParent', true)
-        .whereNull('parentId')
-        .preload('children', (query) => {
-          query.preload('children')
-        })
+      
+      // Ambil semua akun top-level (level 1, parent_id: null)
+      const topLevelAccounts = await Account.query()
+        .where('level', 1)
+        .whereNull('parent_id')  // Gunakan snake_case untuk database
         .orderBy('code', 'asc')
+
+      // Untuk setiap top-level account, load children secara recursive
+      const chartOfAccounts = await Promise.all(
+        topLevelAccounts.map(async (account) => {
+          const children = await this.getRecursiveChildren(account.id)
+          
+          const result = {
+            ...account.toJSON(),
+            children: children
+          }
+          
+          return result
+        })
+      )
 
       return response.ok({
         status: 'success',
@@ -297,6 +309,7 @@ export default class AccountsController {
         message: 'Chart of Accounts berhasil diambil'
       })
     } catch (error) {
+      console.error('Error in getChartOfAccounts:', error)
       return response.internalServerError({
         status: 'error',
         message: 'Terjadi kesalahan saat mengambil Chart of Accounts'
@@ -380,6 +393,40 @@ export default class AccountsController {
         status: 'error',
         message: 'Terjadi kesalahan saat mengambil ringkasan akun'
       })
+    }
+  }
+
+  // Helper method untuk mendapatkan children secara recursive
+  private async getRecursiveChildren(parentId: string): Promise<any[]> {
+    try {
+      if (!parentId) {
+        return []
+      }
+      
+      const directChildren = await Account.query()
+        .where('parent_id', parentId)  // Gunakan snake_case untuk database
+        .orderBy('code', 'asc')
+
+      const allChildren = []
+      
+      for (const child of directChildren) {
+        const childData = child.toJSON()
+        
+        // Cek apakah child ini memiliki children sendiri
+        const grandchildren = await this.getRecursiveChildren(child.id)
+        
+        if (grandchildren.length > 0) {
+          childData.children = grandchildren
+        }
+        
+        allChildren.push(childData)
+      }
+      
+      return allChildren
+      
+    } catch (error) {
+      console.error(`Error in getRecursiveChildren for parentId ${parentId}:`, error)
+      return []
     }
   }
 }

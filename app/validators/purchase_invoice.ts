@@ -1,0 +1,71 @@
+import vine from '@vinejs/vine'
+
+export const purchaseInvoiceValidator = vine.compile(
+  vine.object({
+    noInvoice           : vine.string().unique({ table: 'purchase_invoices', column: 'no_invoice' }).optional(),
+    up                  : vine.string().optional(),
+    email               : vine.string().optional(),
+    vendorId            : vine.number(),
+    perusahaanId        : vine.number().optional(),
+    cabangId            : vine.number().optional(),
+    purchaseOrderId     : vine.string().optional(),
+    paymentDate         : vine.date(),
+    discountPercent     : vine.number().optional(),
+    taxPercent          : vine.number().optional(),
+    dpp                 : vine.number().optional(),
+    total               : vine.number(),
+    paidAmount          : vine.number().optional(),
+    remainingAmount     : vine.number().optional(),
+    paymentMethod       : vine.enum(['cash', 'transfer', 'qris', 'card'] as const),
+    status              : vine.enum(['unpaid', 'partial', 'paid'] as const).optional(),
+    description         : vine.string().optional(),
+    createdBy           : vine.number().optional(),
+    updatedBy           : vine.number().optional(),
+    purchaseInvoiceItems: vine.array(vine.object({
+      purchaseOrderItemId: vine.string().optional(),
+      productId          : vine.number(),
+      warehouseId        : vine.number().optional(),
+      quantity           : vine.number(),
+      price              : vine.number(),
+      subtotal           : vine.number(),
+      description        : vine.string().optional(),
+      receivedQty        : vine.number().optional(),
+      isReturned         : vine.boolean().optional(),
+    })).optional(),
+  })
+)
+
+export const updatePurchaseInvoiceValidator = vine.compile(
+  vine.object({
+    noInvoice           : vine.string().unique({ table: 'purchase_invoices', column: 'no_invoice' }).optional(),
+    up                  : vine.string().optional(),
+    email               : vine.string().optional(),
+    vendorId            : vine.number().optional(),
+    perusahaanId        : vine.number().optional(),
+    cabangId            : vine.number().optional(),
+    purchaseOrderId     : vine.string().optional(),
+    paymentDate         : vine.date().optional(),
+    discountPercent     : vine.number().optional(),
+    taxPercent          : vine.number().optional(),
+    dpp                 : vine.number().optional(),
+    total               : vine.number().optional(),
+    paidAmount          : vine.number().optional(),
+    remainingAmount     : vine.number().optional(),
+    paymentMethod       : vine.enum(['cash', 'transfer', 'qris', 'card'] as const).optional(),
+    status              : vine.enum(['unpaid', 'partial', 'paid'] as const).optional(),
+    description         : vine.string().optional(),
+    createdBy           : vine.number().optional(),
+    updatedBy           : vine.number().optional(),
+    purchaseInvoiceItems: vine.array(vine.object({
+      purchaseOrderItemId: vine.string().optional(),
+      productId          : vine.number(),
+      warehouseId        : vine.number().optional(),
+      quantity           : vine.number(),
+      price              : vine.number(),
+      subtotal           : vine.number(),
+      description        : vine.string().optional(),
+      receivedQty        : vine.number().optional(),
+      isReturned         : vine.boolean().optional(),
+    })).optional(),
+  })
+)
