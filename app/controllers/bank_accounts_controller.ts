@@ -6,22 +6,55 @@ import db from '@adonisjs/lucid/services/db'
 
 @inject()
 export default class BankAccountsController {
-  async index({ response }: HttpContext) {
+  async index({ request, response }: HttpContext) {
     try {
-      const bankAccounts = await BankAccount.query()
-        .preload('createdByUser')
-        .preload('updatedByUser')
-        .orderBy('createdAt', 'desc')
+      const page = request.input('page', 1)
+      const rows = request.input('rows', 10)
+      const sortField = request.input('sortField', 'created_at')
+      const sortOrder = request.input('sortOrder', 'desc')
+      const search = request.input('search', '')
+
+      let query = BankAccount.query()
+        // .preload('createdByUser')
+        // .preload('updatedByUser')
+
+      // Apply search if provided
+      if (search) {
+        query = query.where((builder) => {
+          builder
+            .where('account_name', 'like', `%${search}%`)
+            .orWhere('account_number', 'like', `%${search}%`)
+            .orWhere('bank_name', 'like', `%${search}%`)
+        })
+      }
+
+      // Get total count for pagination
+      const total = await query.clone().count('* as count').first()
+      const totalCount = total?.$extras.count || 0
+
+      // Apply sorting and pagination
+      query = query
+        .orderBy(sortField, sortOrder === 'asc' ? 'asc' : 'desc')
+        .offset((page - 1) * rows)
+        .limit(rows)
+
+      const bankAccounts = await query
 
       return response.ok({
-        status: 'success',
         data: bankAccounts,
-        message: 'Daftar rekening bank berhasil diambil'
+        meta: {
+          total: totalCount,
+          page: parseInt(page),
+          rows: parseInt(rows),
+          lastPage: Math.ceil(totalCount / rows)
+        }
       })
     } catch (error) {
+      console.error('Error in bank accounts controller:', error)
       return response.internalServerError({
         status: 'error',
-        message: 'Terjadi kesalahan saat mengambil daftar rekening bank'
+        message: `Terjadi kesalahan saat mengambil daftar rekening bank: ${error.message}`,
+        error: error.message
       })
     }
   }

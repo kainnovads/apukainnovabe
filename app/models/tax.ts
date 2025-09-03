@@ -27,10 +27,10 @@ export default class Tax extends BaseModel {
   @column()
   declare code: string
   
-  @column()
+  @column({ columnName: 'created_by' })
   declare createdBy: number
 
-  @column()
+  @column({ columnName: 'updated_by' })
   declare updatedBy: number
 
   @column()

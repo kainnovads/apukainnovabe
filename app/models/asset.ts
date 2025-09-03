@@ -3,11 +3,14 @@ import { BaseModel, beforeCreate, belongsTo, column } from '@adonisjs/lucid/orm'
 import { randomUUID } from 'node:crypto'
 import User from '#models/auth/user'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import Perusahaan from '#models/perusahaan'
+import Cabang from '#models/cabang'
+import Vendor from '#models/vendor'
 
 export default class Asset extends BaseModel {
   public static table = 'assets'
 
-  @column({ isPrimary: true })
+  @column({ isPrimary: true, columnName: 'id' })
   declare id: string
 
   @beforeCreate()
@@ -15,52 +18,88 @@ export default class Asset extends BaseModel {
     asset.id = randomUUID()
   }
 
-  @column.dateTime({ autoCreate: true })
+  @column.dateTime({ autoCreate: true, columnName: 'createdAt' })
   declare createdAt: DateTime
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  @column.dateTime({ autoCreate: true, autoUpdate: true, columnName: 'updatedAt' })
   declare updatedAt: DateTime
 
-  @column()
+  @column({ columnName: 'assetCode' })
   declare assetCode: string
 
-  @column()
+  @column({ columnName: 'name' })
   declare name: string
 
-  @column()
+  @column({ columnName: 'category' })
   declare category: string
 
-  @column()
+  @column({ columnName: 'acquisitionDate' })
   declare acquisitionDate: Date
 
-  @column()
+  @column({ columnName: 'acquisitionCost' })
   declare acquisitionCost: number
   
-  @column()
+  @column({ columnName: 'usefulLife' })
   declare usefulLife: number
 
-  @column()
+  @column({ columnName: 'depreciationMethod' })
   declare depreciationMethod: string
 
-  @column()
+  @column({ columnName: 'residualValue' })
   declare residualValue: number
   
-  @column()
-  declare isActive: boolean
+  @column({ columnName: 'status' })
+  declare status: 'active' | 'inactive' | 'sold' | 'trashed'
 
-  @column()
+  @column({ columnName: 'location' })
+  declare location: string
+
+  @column({ columnName: 'description' })
+  declare description: string
+
+  @column({ columnName: 'serialNumber' })
+  declare serialNumber: string
+
+  @column({ columnName: 'warrantyExpiry' })
+  declare warrantyExpiry: Date
+
+  @column({ columnName: 'createdBy' })
   declare createdBy: number
 
-  @column()
+  @column({ columnName: 'updatedBy' })
   declare updatedBy: number
+ 
+  @column({ columnName: 'perusahaanId' })
+  declare perusahaanId: number | null
   
-  @belongsTo(() => User, {
-    foreignKey: 'updatedBy',
-  })
-  declare updatedByUser: BelongsTo<typeof User>
+  @column({ columnName: 'cabangId' })
+  declare cabangId: number | null
+
+  @column({ columnName: 'vendorId' })
+  declare vendorId: number | null
 
   @belongsTo(() => User, {
     foreignKey: 'createdBy',
   })
   declare createdByUser: BelongsTo<typeof User>
+
+  @belongsTo(() => User, {
+    foreignKey: 'updatedBy',
+  })
+  declare updatedByUser: BelongsTo<typeof User>
+
+  @belongsTo(() => Perusahaan, {
+    foreignKey: 'perusahaanId',
+  })
+  declare perusahaan: BelongsTo<typeof Perusahaan>
+
+  @belongsTo(() => Cabang, {
+    foreignKey: 'cabangId',
+  })
+  declare cabang: BelongsTo<typeof Cabang>
+
+  @belongsTo(() => Vendor, {
+    foreignKey: 'vendorId',
+  })
+  declare vendor: BelongsTo<typeof Vendor>
 }

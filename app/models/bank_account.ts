@@ -18,28 +18,28 @@ export default class BankAccount extends BaseModel {
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  @column.dateTime({ autoUpdate: true })
   declare updatedAt: DateTime
 
-  @column()
+  @column({ columnName: 'bank_name' })
   declare bankName: string
 
-  @column()
+  @column({ columnName: 'account_number' })
   declare accountNumber: string
   
-  @column()
+  @column({ columnName: 'account_name' })
   declare accountName: string
   
   @column()
   declare currency: string
 
-  @column()
-  declare openingBalance: number
+  @column({ columnName: 'opening_balance' })
+  declare openingBalance: number | string
 
-  @column()
+  @column({ columnName: 'created_by' })
   declare createdBy: number
 
-  @column()
+  @column({ columnName: 'updated_by' })
   declare updatedBy: number
   
   @belongsTo(() => User, {
@@ -51,4 +51,15 @@ export default class BankAccount extends BaseModel {
     foreignKey: 'updatedBy',
   })
   declare updatedByUser: BelongsTo<typeof User>
+
+  // Serialize untuk frontend
+  serializeExtras() {
+    return {
+      account_name: this.accountName,
+      account_number: this.accountNumber,
+      bank_name: this.bankName,
+      currency: this.currency,
+      opening_balance: Number(this.openingBalance) || 0
+    }
+  }
 }

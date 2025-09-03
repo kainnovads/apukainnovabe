@@ -7,8 +7,6 @@ export const createTaxValidator = vine.compile(
     rate: vine.number().positive().max(100),
     type: vine.string().trim().minLength(1).maxLength(50),
     isActive: vine.boolean(),
-    createdBy: vine.number().positive(),
-    updatedBy: vine.number().positive(),
   })
 )
 
@@ -19,6 +17,5 @@ export const updateTaxValidator = vine.compile(
     rate: vine.number().positive().max(100).optional(),
     type: vine.string().trim().minLength(1).maxLength(50).optional(),
     isActive: vine.boolean().optional(),
-    updatedBy: vine.number().positive(),
   })
 )

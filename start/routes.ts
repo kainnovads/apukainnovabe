@@ -430,7 +430,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_bank_account', 'edit_bank_account', 'delete_bank_account', 'create_bank_account', 'show_bank_account']))
+  .use(middleware.hasPermission(['view_bank_account', 'edit_bank_account', 'delete_bank_account', 'create_bank_account', 'show_bank_account', 'approve_bank_account', 'reject_bank_account']))
 
   // Taxes Router
   router.group(() => {
@@ -439,7 +439,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_tax', 'edit_tax', 'delete_tax', 'create_tax', 'show_tax']))
+  .use(middleware.hasPermission(['view_tax', 'edit_tax', 'delete_tax', 'create_tax', 'show_tax', 'approve_tax', 'reject_tax']))
 
   // Expenses Router
   router.group(() => {
@@ -448,7 +448,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_expenses', 'edit_expenses', 'delete_expenses', 'create_expenses', 'show_expenses']))
+  .use(middleware.hasPermission(['view_expenses', 'edit_expenses', 'delete_expenses', 'create_expenses', 'show_expenses', 'approve_expenses', 'reject_expenses']))
 
   // AP Payments Router (Pembayaran Hutang)
   router.group(() => {
@@ -457,7 +457,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_ap_payment', 'edit_ap_payment', 'delete_ap_payment', 'create_ap_payment', 'show_ap_payment']))
+  .use(middleware.hasPermission(['view_ap_payment', 'edit_ap_payment', 'delete_ap_payment', 'create_ap_payment', 'show_ap_payment', 'approve_ap_payment', 'reject_ap_payment']))
 
   // AR Receipts Router (Penerimaan Piutang)
   router.group(() => {
@@ -466,7 +466,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_ar_receipt', 'edit_ar_receipt', 'delete_ar_receipt', 'create_ar_receipt', 'show_ar_receipt']))
+  .use(middleware.hasPermission(['view_ar_receipt', 'edit_ar_receipt', 'delete_ar_receipt', 'create_ar_receipt', 'show_ar_receipt', 'approve_ar_receipt', 'reject_ar_receipt']))
 
   // Assets Router
   router.group(() => {
@@ -477,7 +477,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_asset', 'edit_asset', 'delete_asset', 'create_asset', 'show_asset']))
+  .use(middleware.hasPermission(['view_asset', 'edit_asset', 'delete_asset', 'create_asset', 'show_asset', 'approve_asset', 'reject_asset']))
 
   // Accounts Router (Chart of Accounts)
   router.group(() => {
@@ -489,7 +489,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_account', 'edit_account', 'delete_account', 'create_account', 'show_account']))
+  .use(middleware.hasPermission(['view_account', 'edit_account', 'delete_account', 'create_account', 'show_account', 'approve_account', 'reject_account']))
 
   // Journals Router
   router.group(() => {
@@ -502,4 +502,4 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_journal', 'edit_journal', 'delete_journal', 'create_journal', 'show_journal', 'post_journal', 'cancel_journal']))
+  .use(middleware.hasPermission(['view_journal', 'edit_journal', 'delete_journal', 'create_journal', 'show_journal', 'post_journal', 'cancel_journal', 'approve_journal', 'reject_journal']))
