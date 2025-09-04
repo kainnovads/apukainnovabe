@@ -72,6 +72,9 @@ export default class PurchasesController {
                       })
                   })
               })
+              .preload('warehouse', (warehouseQuery) => {
+                warehouseQuery.select(['id', 'name', 'code'])
+              })
             })
           }
 
@@ -193,6 +196,9 @@ export default class PurchasesController {
           .preload('purchaseOrderItems', (purchaseOrderItemsQuery) => {
               purchaseOrderItemsQuery.preload('product', (productQuery) => {
                 productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku', 'description'])
+              })
+              .preload('warehouse', (warehouseQuery) => {
+                warehouseQuery.select(['id', 'name', 'code'])
               })
           })
           .preload('createdByUser', (createdByUserQuery) => {
@@ -605,6 +611,9 @@ export default class PurchasesController {
       .preload('purchaseOrderItems', (purchaseOrderItemsQuery) => {
           purchaseOrderItemsQuery.preload('product', (productQuery) => {
             productQuery.select(['id', 'name', 'priceBuy', 'priceSell', 'sku'])
+          })
+          .preload('warehouse', (warehouseQuery) => {
+            warehouseQuery.select(['id', 'name', 'code'])
           })
       })
       .preload('createdByUser', (createdByUserQuery) => {

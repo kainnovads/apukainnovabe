@@ -33,6 +33,10 @@ export default class SalesController {
       const startDate    = request.input('startDate')
       const endDate      = request.input('endDate')
       const includeItems = request.input('includeItems', false)
+      
+      // Debug logging untuk melihat parameter yang diterima
+      console.log('🔍 Sales Controller - includeItems:', includeItems)
+      console.log('🔍 Sales Controller - All params:', request.all())
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = SalesOrder.query()
@@ -51,14 +55,17 @@ export default class SalesController {
         .preload('quotation', (query) => {
           query.select(['id', 'noQuotation', 'description'])
         })
-      // ✅ OPTIMASI: Conditional preloading untuk performance
-      if (includeItems) {
-        dataQuery.preload('salesOrderItems', (query) => {
-          query.preload('product', (productQuery) => {
-            productQuery.select(['id', 'name', 'price', 'sku'])
-          })
+      // ✅ TEMP: Always preload salesOrderItems for debugging
+      dataQuery.preload('salesOrderItems', (query) => {
+        query.preload('product', (productQuery) => {
+          productQuery.select(['id', 'name', 'priceSell', 'sku'])
         })
-      }
+        .preload('warehouse', (warehouseQuery) => {
+          warehouseQuery.select(['id', 'name', 'code'])
+        })
+      })
+      
+      console.log('🔍 Sales Controller - Always preloading salesOrderItems for debugging')
 
       // ✅ PRELOAD: Selalu preload users karena kolom ini ditampilkan di frontend
       dataQuery.preload('approvedByUser', (query) => {
@@ -181,14 +188,39 @@ export default class SalesController {
 
       // ✅ Log sorting info untuk debugging
       console.log(`📊 Sales Orders sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`)
+      
+      // Debug: Log data setelah query
+      const salesOrdersData = salesOrders.toJSON()
+      if (salesOrdersData.data && salesOrdersData.data.length > 0) {
+        console.log('🔍 Sales Controller - First SO after query:', {
+          id: salesOrdersData.data[0].id,
+          noSo: salesOrdersData.data[0].noSo,
+          itemsCount: salesOrdersData.data[0].salesOrderItems?.length || 0,
+          items: salesOrdersData.data[0].salesOrderItems
+        })
+      } else {
+        console.log('🔍 Sales Controller - No sales orders found or data is undefined')
+      }
 
-      return response.ok({
+      const responseData = {
         ...salesOrders.toJSON(),
         _meta: {
           queryTime: queryTime,
           totalQueries: 'optimized'
         }
+      }
+      
+      // Debug logging untuk melihat data yang dikirim
+      console.log('🔍 Sales Controller - Response data structure:', {
+        hasData: !!responseData.data,
+        dataLength: responseData.data?.length || 0,
+        meta: responseData.meta
       })
+      if (responseData.data && responseData.data.length > 0) {
+        console.log('🔍 Sales Controller - First SO items:', responseData.data[0]?.salesOrderItems)
+      }
+      
+      return response.ok(responseData)
     } catch (error) {
       return response.internalServerError({
           message: 'Terjadi kesalahan saat mengambil data sales order',
@@ -680,7 +712,11 @@ export default class SalesController {
         .preload('salesOrderItems', (query) => {
           query.preload('product', (productQuery) => {
             productQuery.select(['id', 'name', 'priceSell', 'sku'])
-          }).preload('salesReturnItems', (sriQuery) => {
+          })
+          .preload('warehouse', (warehouseQuery) => {
+            warehouseQuery.select(['id', 'name', 'code'])
+          })
+          .preload('salesReturnItems', (sriQuery) => {
             sriQuery.preload('salesReturn', (srQuery) => {
               srQuery.select(['id', 'status', 'returnDate'])
             })
