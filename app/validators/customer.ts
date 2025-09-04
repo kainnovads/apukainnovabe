@@ -3,6 +3,7 @@ import vine from '@vinejs/vine'
 export const customerValidator = vine.compile(
   vine.object({
     name: vine.string().minLength(1).maxLength(30),
+    code: vine.string().minLength(1).maxLength(30).optional(),
     address: vine.string().minLength(1).maxLength(255),
     email: vine.string().minLength(1).maxLength(30),
     phone: vine.string().minLength(1).maxLength(30),

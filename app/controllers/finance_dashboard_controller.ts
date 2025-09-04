@@ -19,7 +19,7 @@ export default class FinanceDashboardController {
         .select('bankName', 'accountNumber', 'openingBalance')
         .orderBy('bankName', 'asc')
 
-      const totalBankBalance = bankAccounts.reduce((sum, account) => sum + account.openingBalance, 0)
+      const totalBankBalance = bankAccounts.reduce((sum, account) => sum + (Number(account.openingBalance) || 0), 0)
 
       // Data Expenses
       const expenseQuery = Expense.query()

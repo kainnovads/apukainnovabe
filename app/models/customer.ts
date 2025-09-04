@@ -20,6 +20,9 @@ export default class Customer extends BaseModel {
   declare name: string
 
   @column()
+  declare code: string
+
+  @column()
   declare email: string
 
   @column()

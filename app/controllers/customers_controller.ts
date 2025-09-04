@@ -33,6 +33,7 @@ export default class CustomersController {
         dataQuery = dataQuery.where((query) => {
           query
             .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
+            .orWhereRaw('LOWER(code) LIKE ?', [`%${lowerSearch}%`])
             .orWhereRaw('LOWER(address) LIKE ?', [`%${lowerSearch}%`])
             .orWhereRaw('LOWER(email) LIKE ?', [`%${lowerSearch}%`])
             .orWhereRaw('LOWER(phone) LIKE ?', [`%${lowerSearch}%`])
@@ -166,6 +167,7 @@ export default class CustomersController {
     try {
       const customer = await Customer.create({
         name           : payload.name,
+        code           : payload.code,
         email          : payload.email,
         phone          : payload.phone,
         address        : payload.address,
@@ -270,6 +272,7 @@ export default class CustomersController {
       // Update Customer utama
       const updateData = {
         name: payload.name,
+        code: payload.code,
         email: payload.email,
         phone: payload.phone,
         address: payload.address,
