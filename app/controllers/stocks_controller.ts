@@ -260,4 +260,23 @@ export default class StocksController {
       })
     }
   }
+
+  async destroy({ params, response }: HttpContext) {
+    try {
+      const stock = await Stock.findOrFail(params.id)
+      
+      await stock.delete()
+
+      return response.ok({
+        message: 'Stock berhasil dihapus',
+        data: { id: stock.id }
+      })
+    } catch (error) {
+      console.error('Delete stock error:', error)
+      return response.internalServerError({
+        message: 'Gagal menghapus stock',
+        error: error.message,
+      })
+    }
+  }
 }

@@ -70,6 +70,11 @@ export default class StockInsController {
         }
       }
 
+      // ✅ Default ordering: yang paling baru di atas
+      if (!sortField || !sortOrder) {
+        dataQuery.orderBy('created_at', 'desc').orderBy('id', 'desc')
+      }
+
       const stockIns = await dataQuery
         .preload('warehouse')
         .preload('postedByUser')

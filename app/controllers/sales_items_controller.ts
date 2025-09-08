@@ -444,36 +444,34 @@ export default class SalesItemsController {
 
       let totalStockOutsCreated = 0
 
-      // ✅ LOGIKA BARU: Buat Stock Out individual untuk setiap unit dari setiap produk
+      // ✅ LOGIKA BARU: Buat 1 Stock Out yang berisi semua produk dengan pending quantity
       if (productsWithPendingQty.length > 0) {
+        // Ambil warehouse dari item pertama (asumsi sama). Jika berbeda, tetap gunakan yang pertama.
+        const warehouseId = productsWithPendingQty[0].item.warehouseId
 
+        // Buat satu Stock Out untuk batch deliver all
+        const stockOut = await StockOut.create({
+          noSo: generateNo(),
+          salesOrderId: salesOrder.id,
+          warehouseId: warehouseId,
+          postedBy: auth.user?.id,
+          date: DateTime.now().toJSDate(),
+          status: 'draft',
+          description: `Deliver All - ${productsWithPendingQty.length} products`,
+        }, { client: trx })
+
+        // Tambahkan detail untuk setiap produk yang memiliki pending quantity
         for (const productData of productsWithPendingQty) {
           const { item, pendingQty } = productData
-
-          // Buat Stock Out individual untuk setiap unit pending
-          for (let i = 0; i < pendingQty; i++) {
-            const stockOut = await StockOut.create({
-              noSo: generateNo(),
-              salesOrderId: salesOrder.id,
-              warehouseId: item.warehouseId,
-              postedBy: auth.user?.id,
-              date: DateTime.now().toJSDate(),
-              status: 'draft',
-              description: `Deliver All - ${item.product?.name || item.productId} - Unit ${i + 1}/${pendingQty}`,
-            }, { client: trx })
-
-            // Buat 1 StockOutDetail untuk Stock Out ini dengan quantity = 1
-            await StockOutDetail.create({
-              stockOutId: stockOut.id,
-              productId: item.productId,
-              quantity: 1, // SELALU 1 unit per Stock Out untuk konsistensi
-              description: `Deliver All - ${item.product?.name || 'Product'} - Unit ${i + 1}`,
-            }, { client: trx })
-
-            totalStockOutsCreated++
-          }
+          await StockOutDetail.create({
+            stockOutId: stockOut.id,
+            productId: item.productId,
+            quantity: pendingQty,
+            description: `Deliver All - ${item.product?.name || 'Product'} (${pendingQty} units to complete ${productData.orderedQty})`,
+          }, { client: trx })
         }
-      } else {
+
+        totalStockOutsCreated = 1
       }
 
       // ✅ LOGIKA STATUS: Update status Sales Order sesuai kondisi
@@ -503,7 +501,7 @@ export default class SalesItemsController {
 
       // ✅ RESPONSE MESSAGE: Update untuk mencerminkan logika baru
       const responseMessage = totalStockOutsCreated > 0
-        ? `Berhasil deliver semua item. ${totalStockOutsCreated} Stock Out dibuat untuk ${productsWithPendingQty.length} produk.`
+        ? `Berhasil deliver semua item. 1 Stock Out dibuat berisi ${productsWithPendingQty.length} produk.`
         : 'Semua item sudah di-deliver sebelumnya.'
 
       return response.ok({

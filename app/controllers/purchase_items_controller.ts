@@ -87,7 +87,7 @@ export default class PurchaseItemsController {
                 return `SI-${timestamp}-${random}`
             }
 
-            // ✅ LOGIKA BARU: Hanya buat Stock In jika receivedQty berubah (naik/turun)
+            // ✅ LOGIKA BARU: Setiap kali receivedQty bertambah, buat 1 StockIn baru dengan 1 item
             const item = purchaseOrderItem
             const currentReceivedQty = Number(item.receivedQty || 0)
 
@@ -97,26 +97,29 @@ export default class PurchaseItemsController {
             if (qtyDifference !== 0) {
 
                 if (qtyDifference > 0) {
-                    // ✅ RECEIVEDQTY BERTAMBAH: Buat Stock In baru untuk produk ini saja
+                    // ✅ RECEIVEDQTY BERTAMBAH: Buat 1 StockIn baru untuk setiap unit yang ditambahkan
+                    // Jika user klik + 5 kali, maka akan ada 5 StockIn yang dibuat
+                    
+                    for (let i = 0; i < qtyDifference; i++) {
+                        // Buat 1 Stock In untuk setiap unit
+                        const stockIn = await StockIn.create({
+                            noSi: generateNo(),
+                            purchaseOrderId: purchaseOrder.id,
+                            warehouseId: item.warehouseId || 0,
+                            postedBy: auth.user?.id,
+                            date: DateTime.now().toJSDate(),
+                            status: 'draft',
+                            description: `Received 1 unit of ${item.product?.name || 'Unknown Product'} (${oldReceivedQty + i + 1}/${item.quantity})`,
+                        }, { client: trx })
 
-                    // Buat 1 Stock In yang menampung semua perubahan untuk produk ini
-                    const stockIn = await StockIn.create({
-                        noSi: generateNo(),
-                        purchaseOrderId: purchaseOrder.id,
-                        warehouseId: item.warehouseId || 0,
-                        postedBy: auth.user?.id,
-                        date: DateTime.now().toJSDate(),
-                        status: 'draft',
-                        description: `Received ${qtyDifference} unit(s) for ${item.product?.name || 'Unknown Product'}`,
-                    }, { client: trx })
-
-                    // Buat 1 StockInDetail dengan quantity sesuai perubahan
-                    await StockInDetail.create({
-                        stockInId: stockIn.id,
-                        productId: item.productId,
-                        quantity: qtyDifference, // Quantity sesuai dengan perubahan receivedQty
-                        description: `${item.description || ''} - Received ${qtyDifference} units (total: ${currentReceivedQty})`,
-                    }, { client: trx })
+                        // Buat 1 StockInDetail dengan quantity = 1
+                        await StockInDetail.create({
+                            stockInId: stockIn.id,
+                            productId: item.productId,
+                            quantity: 1, // Selalu 1 unit per StockIn
+                            description: `${item.description || ''} - Received 1 unit (total: ${oldReceivedQty + i + 1}/${item.quantity})`,
+                        }, { client: trx })
+                    }
 
                 } else if (qtyDifference < 0) {
                     // ✅ RECEIVEDQTY BERKURANG: Hapus Stock In yang berlebihan (hanya yang masih draft)
