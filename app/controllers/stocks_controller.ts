@@ -17,11 +17,13 @@ export default class StocksController {
       let dataQuery = Stock.query()
 
       if (productId) {
-        dataQuery.where('product_id', productId)
+        const productIdNum = Number(productId)
+        dataQuery.where('product_id', productIdNum)
       }
 
       if (warehouseId) {
-        dataQuery.where('warehouse_id', warehouseId)
+        const warehouseIdNum = Number(warehouseId)
+        dataQuery.where('warehouse_id', warehouseIdNum)
       }
 
       if (searchValue) {
@@ -86,7 +88,6 @@ export default class StocksController {
       }
 
       const stocks = await queryWithPreloads.paginate(page, limit)
-
       return response.ok(stocks.toJSON())
     } catch (error) {
       return response.internalServerError({
@@ -279,4 +280,5 @@ export default class StocksController {
       })
     }
   }
+
 }
