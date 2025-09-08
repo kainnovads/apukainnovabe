@@ -65,6 +65,7 @@ export default class RolePermissionSeeder extends BaseSeeder {
       { name: 'access_product_data' },
       { name: 'access_customer_data' },
       { name: 'access_vendor_data' },
+      { name: 'access_departemen_data' },
     ]
 
     const dynamicallyGeneratedPermissions = new Set(permissionsToCreate.map((p) => p.name))

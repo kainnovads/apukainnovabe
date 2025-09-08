@@ -418,10 +418,11 @@ router
     router.get('/data/product', [AssociationsController, 'getProductData'])
     router.get('/data/customer', [AssociationsController, 'getCustomerData'])
     router.get('/data/vendor', [AssociationsController, 'getVendorData'])
+    router.get('/data/departemen', [AssociationsController, 'getDepartemenData'])
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['access_perusahaan', 'access_cabang', 'access_warehouse', 'access_product', 'access_customer', 'access_vendor']))
+  .use(middleware.hasPermission(['access_perusahaan', 'access_cabang', 'access_warehouse', 'access_product', 'access_customer', 'access_vendor', 'access_departemen']))
 
   // User Session Router - untuk monitoring user yang sedang online
   router.group(() => {

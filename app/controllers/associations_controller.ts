@@ -7,6 +7,7 @@ import Warehouse from '#models/warehouse'
 import Product from '#models/product'
 import Customer from '#models/customer'
 import Vendor from '#models/vendor'
+import Departemen from '#models/departemen'
 
 function getSubsets<T>(array: T[]): T[][] {
   const subsets = [[]] as T[][]
@@ -204,6 +205,21 @@ export default class AssociationsController {
     } catch (error) {
       return response.internalServerError({
         message: 'Gagal mengambil data vendor',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getDepartemenData({ response }: HttpContext) {
+    try {
+      const departemens = await Departemen.query()
+        .select(['id', 'nm_departemen'])
+        .orderBy('nm_departemen', 'asc')
+
+      return response.ok(departemens)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data departemen',
         error: error.message,
       })
     }

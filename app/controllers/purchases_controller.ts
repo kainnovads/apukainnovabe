@@ -515,7 +515,7 @@ export default class PurchasesController {
           await PurchaseOrderItem.create({
                   purchaseOrderId: po.id,
                   productId      : item.productId,
-                  warehouseId    : item.warehouseId,
+                  warehouseId    : item.warehouseId || null,
                   quantity       : item.quantity,
                   price          : item.price,
                   description    : item.description,
