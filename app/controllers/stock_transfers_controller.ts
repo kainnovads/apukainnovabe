@@ -24,7 +24,7 @@ export default class StockTransfersController {
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = StockTransfer.query()
         .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan'])
+          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'perusahaanId'])
@@ -167,7 +167,7 @@ export default class StockTransfersController {
       const stockTransfer = await StockTransfer.query()
         .where('id', params.id)
         .preload('perusahaan', (query) => {
-          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan'])
+          query.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
         })
         .preload('cabang', (query) => {
           query.select(['id', 'nmCabang', 'alamatCabang'])

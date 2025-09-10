@@ -148,7 +148,7 @@ export default class MenuGroupsController {
     }
   }
 
-  // Method baru untuk menampilkan semua menu groups tanpa filter permission
+  // Method untuk menampilkan semua menu groups dengan filter permission yang tepat
   async getAll({ request, response, auth }: HttpContext) {
     try {
       // ✅ VALIDASI: Pastikan user ter-autentikasi
@@ -158,6 +158,16 @@ export default class MenuGroupsController {
           code: 'UNAUTHORIZED'
         })
       }
+
+      const user = auth.user!
+      await user.load('roles', (rolesQuery) => {
+        rolesQuery.preload('permissions')
+      })
+
+      const userPermissions = user.roles.flatMap((role) =>
+        role.permissions.map((permission) => permission.id)
+      )
+
       const page = request.input('page', 1)
       const limit = request.input('rows', 10)
       const search = request.input('search', '')
@@ -166,6 +176,21 @@ export default class MenuGroupsController {
       const sortOrder = request.input('sortOrder')
 
       let dataQuery = MenuGroup.query()
+
+      // Filter berdasarkan permission user (kecuali untuk superadmin)
+      if (!user.roles.some(role => role.name === 'superadmin')) {
+        dataQuery.where((builder) => {
+          builder
+            .whereHas('permissions', (query) => {
+              query.whereIn('permissions.id', userPermissions)
+            })
+            .orWhereHas('menuDetails', (detailsQuery) => {
+              detailsQuery.whereHas('permissions', (permissionQuery) => {
+                permissionQuery.whereIn('permissions.id', userPermissions)
+              })
+            })
+        })
+      }
 
       if (searchValue) {
         const lowerSearch = searchValue.toLowerCase()
@@ -195,18 +220,25 @@ export default class MenuGroupsController {
       }
 
       const menuGroups = await dataQuery
-        .preload('menuDetails')
+        .preload('menuDetails', (detailsQuery) => {
+          // Filter menu details berdasarkan permission (kecuali untuk superadmin)
+          if (!user.roles.some(role => role.name === 'superadmin')) {
+            detailsQuery.whereHas('permissions', (query) => {
+              query.whereIn('permissions.id', userPermissions)
+            })
+          }
+        })
         .paginate(page, limit)
 
       return response.ok(menuGroups.toJSON())
     } catch (error) {
-      console.error('❌ Error in MenuGroupsController.index:', error)
+      console.error('❌ Error in MenuGroupsController.getAll:', error)
       return response.internalServerError({
         message: 'Terjadi kesalahan saat mengambil data menu groups',
         error: {
           name: error.name,
           message: error.message,
-          code: error.code || 'MENU_GROUP_INDEX_ERROR'
+          code: error.code || 'MENU_GROUP_GETALL_ERROR'
         }
       })
     }

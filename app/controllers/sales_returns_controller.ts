@@ -47,7 +47,7 @@ export default class SalesReturnsController {
         dataQuery.preload('salesReturnItems', (query) => {
           query
             .preload('product', (productQuery) => {
-              productQuery.select(['id', 'name', 'sku', 'price'])
+              productQuery.select(['id', 'name', 'sku', 'priceSell'])
             })
             .preload('warehouse', (warehouseQuery) => {
               warehouseQuery.select(['id', 'name'])
@@ -308,14 +308,14 @@ export default class SalesReturnsController {
 
       for (const item of items) {
           await SalesReturnItem.create({
-          salesReturnId: sr.id,
+          salesReturnId   : sr.id,
           salesOrderItemId: item.salesOrderItemId,
-          productId    : item.productId,
-          warehouseId  : item.warehouseId,
-          quantity     : item.quantity,
-          price        : item.price,
-          reason       : item.reason,
-          description  : item.description,
+          productId       : item.productId,
+          warehouseId     : item.warehouseId,
+          quantity        : item.quantity,
+          price           : item.price,
+          reason          : item.reason,
+          description     : item.description,
           }, { client: trx })
       }
 

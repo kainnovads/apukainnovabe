@@ -18,7 +18,7 @@ export const salesInvoiceValidator = vine.compile(
     paidAmount       : vine.number().optional(),
     remainingAmount  : vine.number().optional(),
     status           : vine.enum(['unpaid', 'partial', 'paid'] as const).optional(),
-    description      : vine.string().optional(),
+    description      : vine.string(),
     salesInvoiceItems: vine.array(vine.object({
       salesOrderItemId: vine.string().optional(),
       productId       : vine.number(),
@@ -51,7 +51,7 @@ export const updateSalesInvoiceValidator = vine.compile(
     paidAmount       : vine.number().optional(),
     remainingAmount  : vine.number().optional(),
     status           : vine.enum(['unpaid', 'partial', 'paid'] as const).optional(),
-    description      : vine.string().optional(),
+    description      : vine.string(),
     salesInvoiceItems: vine.array(vine.object({
       salesOrderItemId: vine.string().optional(),
       productId       : vine.number(),

@@ -20,7 +20,7 @@ export default class extends BaseSchema {
       table.decimal('paid_amount', 14, 2).defaultTo(0)
       table.decimal('remaining_amount', 14, 2).defaultTo(0)
       table.enum('status', ['unpaid', 'partial', 'paid']).defaultTo('unpaid')
-      table.text('description').nullable()
+      table.text('description').notNullable()
 
       table.timestamp('created_at')
       table.timestamp('updated_at')
