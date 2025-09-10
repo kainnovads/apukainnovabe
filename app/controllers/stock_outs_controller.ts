@@ -176,6 +176,62 @@ export default class StockOutsController {
     }
   }
 
+  async getNotifications({ request, response }: HttpContext) {
+    try {
+      const limit = request.input('limit', 10)
+      const status = request.input('status', 'not_posted')
+
+      let query = StockOut.query()
+        .preload('warehouse')
+        .preload('postedByUser')
+        .preload('stockOutDetails')
+        .preload('salesOrder', (soQuery) => {
+          soQuery.preload('createdByUser')
+        })
+        .orderBy('created_at', 'desc')
+
+      // Filter berdasarkan status
+      if (status === 'not_posted') {
+        query = query.where('status', '!=', 'posted')
+      } else if (status) {
+        query = query.where('status', status)
+      }
+
+      const stockOuts = await query.limit(limit)
+
+      const notifications = stockOuts.map(stockOut => {
+        // Hitung total quantity dari stockOutDetails
+        const totalQuantity = stockOut.stockOutDetails?.reduce((sum, detail) => {
+          return sum + (Number(detail.quantity) || 0)
+        }, 0) || 0
+
+        return {
+          id: stockOut.id,
+          type: 'stock_out',
+          noSo: stockOut.noSo,
+          quantity: totalQuantity,
+          status: stockOut.status,
+          createdAt: stockOut.createdAt,
+          createdBy: stockOut.salesOrder?.createdBy || '',
+          createdByName: stockOut.salesOrder?.createdByUser?.fullName || 'Unknown',
+          warehouseName: stockOut.warehouse?.name || 'Unknown Warehouse',
+          description: stockOut.description || ''
+        }
+      })
+
+      return response.ok({
+        message: 'Notifikasi stock out berhasil diambil',
+        data: notifications
+      })
+    } catch (error) {
+      console.error('Error fetching stock out notifications:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil notifikasi stock out',
+        error: error.message
+      })
+    }
+  }
+
   async postStockOut({ params, response, auth }: HttpContext) {
     const trx = await db.transaction()
     try {

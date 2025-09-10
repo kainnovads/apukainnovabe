@@ -6,7 +6,7 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.uuid('id').primary()
-      table.string('journal_number').unique().notNullable()  // Nomor jurnal
+      table.string('journal_number').unique().notNullable()
       table.date('date').notNullable()
       table.string('description').notNullable()
       table.enum('status', ['draft', 'posted', 'cancelled']).defaultTo('draft')

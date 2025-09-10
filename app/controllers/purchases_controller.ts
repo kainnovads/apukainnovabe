@@ -681,4 +681,51 @@ export default class PurchasesController {
       });
     }
   }
+
+  async getNotifications({ request, response }: HttpContext) {
+    try {
+      const limit = request.input('limit', 10)
+      const status = request.input('status', 'draft')
+
+      let query = PurchaseOrder.query()
+        .preload('vendor')
+        .preload('createdByUser')
+        .preload('approvedByUser')
+        .preload('rejectedByUser')
+        .orderBy('created_at', 'desc')
+
+      // Filter berdasarkan status yang memerlukan approval
+      if (status === 'draft') {
+        query = query.where('status', 'draft')
+      } else if (status) {
+        query = query.where('status', status)
+      }
+
+      const purchaseOrders = await query.limit(limit)
+
+      const notifications = purchaseOrders.map(po => ({
+        id: po.id,
+        type: 'purchase_order',
+        noPo: po.noPo,
+        status: po.status,
+        createdAt: po.createdAt,
+        createdBy: po.createdBy || '',
+        createdByName: po.createdByUser?.fullName || 'Unknown',
+        vendorName: po.vendor?.name || 'Unknown Vendor',
+        total: po.total || 0,
+        description: po.description || ''
+      }))
+
+      return response.ok({
+        message: 'Notifikasi purchase order berhasil diambil',
+        data: notifications
+      })
+    } catch (error) {
+      console.error('Error fetching purchase order notifications:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil notifikasi purchase order',
+        error: error.message
+      })
+    }
+  }
 }

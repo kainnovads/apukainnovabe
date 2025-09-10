@@ -143,6 +143,7 @@ router
     router.post('/purchase-order/:id', [PurchasesController, 'update'])
     router.get('/purchase-order/getPurchaseOrderDetails/:id', [PurchasesController, 'getPurchaseOrderDetails'])
     router.get('/purchase-order/countByStatus', [PurchasesController, 'countByStatus'])
+    router.get('/purchase-order/notifications', [PurchasesController, 'getNotifications'])
     router.resource('purchase-order', PurchasesController).except(['update']).apiOnly()
 
     // Purchase Order Item Router
@@ -169,6 +170,7 @@ router
     router.post('/sales-order/:id', [SalesOrdersController, 'update'])
     router.get('/sales-order/getSalesOrderDetails/:id', [SalesOrdersController, 'getSalesOrderDetails'])
     router.get('/sales-order/topProducts', [SalesOrdersController, 'getTopProducts'])
+    router.get('/sales-order/notifications', [SalesOrdersController, 'getNotifications'])
     router.resource('sales-order', SalesOrdersController).except(['update']).apiOnly()
 
     // Sales Order Item Router
@@ -363,6 +365,7 @@ router
     router.get('/stock-in/getTotalStockIn', [StockInsController, 'getTotalStockIn'])
     router.get('/stock-in/getStockInDetails/:id', [StockInsController, 'getStockInDetails'])
     router.get('/stock-in/export', [StockInsController, 'getAllForExport'])
+    router.get('/stock-in/notifications', [StockInsController, 'getNotifications'])
     router.resource('stock-in', StockInsController).apiOnly()
   })
   .prefix('/api')
@@ -376,6 +379,7 @@ router
     router.get('/stock-out/getTotalStockOut', [StockOutsController, 'getTotalStockOut'])
     router.get('/stock-out/getStockOutDetails/:id', [StockOutsController, 'getStockOutDetails'])
     router.get('/stock-out/export', [StockOutsController, 'getAllForExport'])
+    router.get('/stock-out/notifications', [StockOutsController, 'getNotifications'])
     router.resource('stock-out', StockOutsController).apiOnly()
   })
   .prefix('/api')

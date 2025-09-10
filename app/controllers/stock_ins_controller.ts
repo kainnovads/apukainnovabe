@@ -78,6 +78,7 @@ export default class StockInsController {
       const stockIns = await dataQuery
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('receivedByUser')
         .preload('stockInDetails', (stockInDetailQuery) => {
           stockInDetailQuery.preload('product')
         })
@@ -107,6 +108,7 @@ export default class StockInsController {
         .where('id', params.id)
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('receivedByUser')
         .preload('stockInDetails', (stockInDetailQuery) => {
           stockInDetailQuery.preload('product')
         })
@@ -137,6 +139,7 @@ export default class StockInsController {
         .where('id', params.id)
         .preload('warehouse')
         .preload('postedByUser')
+        .preload('receivedByUser')
         .preload('stockInDetails', (stockInDetailQuery) => {
           stockInDetailQuery.preload('product')
         })
@@ -195,6 +198,55 @@ export default class StockInsController {
       return response.internalServerError({
         message: 'Gagal menghapus Stock In',
         error: error.message,
+      })
+    }
+  }
+
+  async getNotifications({ request, response }: HttpContext) {
+    try {
+      const limit = request.input('limit', 10)
+      const status = request.input('status', 'not_posted')
+
+      let query = StockIn.query()
+        .preload('warehouse')
+        .preload('postedByUser')
+        .preload('receivedByUser')
+        .preload('purchaseOrder', (poQuery) => {
+          poQuery.preload('createdByUser')
+        })
+        .orderBy('created_at', 'desc')
+
+      // Filter berdasarkan status
+      if (status === 'not_posted') {
+        query = query.where('status', '!=', 'posted')
+      } else if (status) {
+        query = query.where('status', status)
+      }
+
+      const stockIns = await query.limit(limit)
+
+      const notifications = stockIns.map(stockIn => ({
+        id: stockIn.id,
+        type: 'stock_in',
+        noSi: stockIn.noSi,
+        quantity: stockIn.quantity,
+        status: stockIn.status,
+        createdAt: stockIn.createdAt,
+        createdBy: stockIn.purchaseOrder?.createdBy || '',
+        createdByName: stockIn.purchaseOrder?.createdByUser?.fullName || 'Unknown',
+        warehouseName: stockIn.warehouse?.name || 'Unknown Warehouse',
+        description: stockIn.description || ''
+      }))
+
+      return response.ok({
+        message: 'Notifikasi stock in berhasil diambil',
+        data: notifications
+      })
+    } catch (error) {
+      console.error('Error fetching stock in notifications:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil notifikasi stock in',
+        error: error.message
       })
     }
   }

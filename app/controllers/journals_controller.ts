@@ -170,6 +170,9 @@ export default class JournalsController {
     } catch (error) {
       await trx.rollback()
       
+      console.error('Journal creation error:', error)
+      console.error('Error stack:', error.stack)
+      
       if (error.messages) {
         return response.badRequest({
           status: 'error',
@@ -180,7 +183,9 @@ export default class JournalsController {
 
       return response.internalServerError({
         status: 'error',
-        message: 'Terjadi kesalahan saat membuat jurnal'
+        message: 'Terjadi kesalahan saat membuat jurnal',
+        error: error.message,
+        stack: error.stack
       })
     }
   }

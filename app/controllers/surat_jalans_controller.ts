@@ -310,7 +310,7 @@ export default class SuratJalansController {
     const tahun       = String(now.getFullYear()).slice(-2)
     const bulanRomawi = toRoman(bulan)
 
-    // Ambil customer untuk mendapatkan abbreviation
+    // Ambil customer untuk mendapatkan code
     const customer = await Customer.find(payload.customerId)
     if (!customer) {
       return response.badRequest({
@@ -318,13 +318,8 @@ export default class SuratJalansController {
       })
     }
 
-    // Generate customer abbreviation (ambil 3 huruf pertama dari nama customer)
-    const customerAbbreviation = customer.name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .substring(0, 3)
-      .padEnd(3, 'X')
+    // Gunakan customer.code dari database
+    const customerCode = customer.code || 'XXX'
 
     // Hitung nomor urut surat jalan bulan ini
     const currentMonthPattern = `/${bulanRomawi}/${tahun}`
@@ -337,7 +332,7 @@ export default class SuratJalansController {
 
     let nextNumber = 1
     if (lastNumber && lastNumber.noSuratJalan) {
-      // Extract nomor urut dari format 0001/SJ/ABC/VI/24
+      // Extract nomor urut dari format 0001/SJ/CODE/VI/24
       const match = lastNumber.noSuratJalan.match(/^(\d{4})\//)
       if (match) {
         nextNumber = parseInt(match[1], 10) + 1
@@ -345,7 +340,7 @@ export default class SuratJalansController {
     }
 
     const noUrut = String(nextNumber).padStart(4, '0')
-    const noSuratJalan = `${noUrut}/SJ/${customerAbbreviation}/${bulanRomawi}/${tahun}`
+    const noSuratJalan = `${noUrut}/SJ/${customerCode}/${bulanRomawi}/${tahun}`
 
     const trx = await db.transaction()
 

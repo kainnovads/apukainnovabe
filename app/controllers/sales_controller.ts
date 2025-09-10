@@ -1136,4 +1136,51 @@ export default class SalesController {
       })
     }
   }
+
+  async getNotifications({ request, response }: HttpContext) {
+    try {
+      const limit = request.input('limit', 10)
+      const status = request.input('status', 'draft')
+
+      let query = SalesOrder.query()
+        .preload('customer')
+        .preload('createdByUser')
+        .preload('approvedByUser')
+        .preload('rejectedByUser')
+        .orderBy('created_at', 'desc')
+
+      // Filter berdasarkan status yang memerlukan approval
+      if (status === 'draft') {
+        query = query.where('status', 'draft')
+      } else if (status) {
+        query = query.where('status', status)
+      }
+
+      const salesOrders = await query.limit(limit)
+
+      const notifications = salesOrders.map(so => ({
+        id: so.id,
+        type: 'sales_order',
+        noSo: so.noSo,
+        status: so.status,
+        createdAt: so.createdAt,
+        createdBy: so.createdBy || '',
+        createdByName: so.createdByUser?.fullName || 'Unknown',
+        customerName: so.customer?.name || 'Unknown Customer',
+        total: so.total || 0,
+        description: so.description || ''
+      }))
+
+      return response.ok({
+        message: 'Notifikasi sales order berhasil diambil',
+        data: notifications
+      })
+    } catch (error) {
+      console.error('Error fetching sales order notifications:', error)
+      return response.internalServerError({
+        message: 'Gagal mengambil notifikasi sales order',
+        error: error.message
+      })
+    }
+  }
 }

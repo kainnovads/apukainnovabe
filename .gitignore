@@ -3,6 +3,8 @@ node_modules
 build
 tmp
 uploads
+docs
+scripts
 
 # Secrets
 .env
