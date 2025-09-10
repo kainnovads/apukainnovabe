@@ -4,7 +4,6 @@ import type { HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 import JournalLine from '#models/journal_line'
 import User from '#models/auth/user'
 import { randomUUID } from 'node:crypto'
-import db from '@adonisjs/lucid/services/db'
 
 export default class Journal extends BaseModel {
   public static table = 'journals'

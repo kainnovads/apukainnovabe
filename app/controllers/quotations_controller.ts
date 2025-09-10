@@ -195,36 +195,36 @@ export default class QuotationsController {
     }
 
     async store({ request, response }: HttpContext) {
-        // Fungsi generateNo untuk no_quot dengan format 0000/APU/QUOT/Bulan dalam angka romawi/tahun
-        async function generateNo() {
-            // Ambil nomor urut terakhir dari QUOT bulan ini
-            const now   = new Date()
-            const bulan = now.getMonth() + 1
-            const tahun = now.getFullYear()
+        // Fungsi generateNo untuk no_quot dengan format 0000/QUO/customer.code/tahun dengan romawi
+        async function generateNo(customerId: string) {
+          // Ambil data customer terlebih dahulu
+          const customer = await Customer.findOrFail(customerId)
+          
+          // Ambil nomor urut terakhir dari QUOT untuk customer ini
+          const now         = new Date()
+          const tahun       = now.getFullYear()
+          const tahunRomawi = toRoman(parseInt(tahun.toString().slice(-2)))  // 2 digit terakhir tahun
 
-            // Konversi bulan ke angka romawi
-            const bulanRomawi = toRoman(bulan)
+          // Cari nomor urut terakhir untuk customer dan tahun ini
+          const lastQuotation = await Quotation
+              .query()
+              .where('customer_id', customerId)
+              .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [tahun])
+              .orderBy('no_quotation', 'desc')
+              .first()
 
-            // Cari nomor urut terakhir untuk bulan dan tahun ini
-            const lastQuotation = await Quotation
-                .query()
-                .whereRaw('EXTRACT(MONTH FROM created_at) = ?', [bulan])
-                .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [tahun])
-                .orderBy('no_quotation', 'desc')
-                .first()
+          let lastNumber = 0
+          if (lastQuotation && lastQuotation.noQuotation) {
+              // Ambil 4 digit pertama dari no_quot terakhir
+              const match = lastQuotation.noQuotation.match(/^(\d{4})/)
+              if (match) {
+                  lastNumber = parseInt(match[1], 10)
+              }
+          }
+          const nextNumber = (lastNumber + 1).toString().padStart(4, '0')
 
-            let lastNumber = 0
-            if (lastQuotation && lastQuotation.noQuotation) {
-                // Ambil 4 digit pertama dari no_quot terakhir
-                const match = lastQuotation.noQuotation.match(/^(\d{4})/)
-                if (match) {
-                    lastNumber = parseInt(match[1], 10)
-                }
-            }
-            const nextNumber = (lastNumber + 1).toString().padStart(4, '0')
-
-            // Format: 0000/APU/QUOT/BULAN_ROMAWI/TAHUN
-            return `${nextNumber}/APU/QUOT/${bulanRomawi}/${tahun}`
+          // Format: 0000/QUO/customer.code/TAHUN_ROMAWI
+          return `${nextNumber}/QUO/${customer.code}/${tahunRomawi}`
         }
 
         const payload = await request.validateUsing(quotationValidator)
@@ -271,7 +271,7 @@ export default class QuotationsController {
                 customerId         : payload.customerId,
                 perusahaanId     : payload.perusahaanId,
                 cabangId         : payload.cabangId,
-                noQuotation      : await generateNo(),
+                noQuotation      : await generateNo(payload.customerId.toString()),
                 up               : payload.up,
                 date             : payload.date,
                 validUntil       : payload.validUntil,

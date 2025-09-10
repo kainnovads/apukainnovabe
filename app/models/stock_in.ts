@@ -50,9 +50,6 @@ export default class StockIn extends BaseModel {
   @column()
   declare postedBy: number
 
-  @column()
-  declare receivedBy: number
-
   @hasMany(() => StockInDetail)
   declare stockInDetails: HasMany<typeof StockInDetail>
 
@@ -78,9 +75,4 @@ export default class StockIn extends BaseModel {
     foreignKey: 'postedBy',
   })
   declare postedByUser: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'receivedBy',
-  })
-  declare receivedByUser: BelongsTo<typeof User>
 }

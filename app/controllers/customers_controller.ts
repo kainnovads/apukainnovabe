@@ -63,7 +63,7 @@ export default class CustomersController {
     try {
       const customer = await Customer.query()
         .where('id', params.id)
-        .preload('products', (query) => query.preload('unit'))
+        .preload('products', (query) => query.preload('unit').orderBy('product_customers.created_at', 'asc'))
         .first()
 
       if (!customer) {
@@ -104,6 +104,19 @@ export default class CustomersController {
 
     if (!Array.isArray(items) || items.length === 0) {
       return response.badRequest({ message: 'items tidak boleh kosong' })
+    }
+
+    // Validasi unik productId
+    const productIds = items.map(item => item.productId)
+    const uniqueProductIds = [...new Set(productIds)]
+    
+    if (productIds.length !== uniqueProductIds.length) {
+      return response.badRequest({ 
+        message: 'Produk yang sama tidak boleh ditambahkan lebih dari sekali',
+        errors: {
+          customerProducts: ['Produk yang sama tidak boleh dipilih lebih dari sekali']
+        }
+      })
     }
 
     let logoPath: string | null = null
@@ -209,6 +222,20 @@ export default class CustomersController {
       return response.badRequest({ message: 'Items tidak boleh kosong' })
     }
 
+    // Validasi unik productId
+    const productIds = items.map(item => item.productId)
+    const uniqueProductIds = [...new Set(productIds)]
+    
+    if (productIds.length !== uniqueProductIds.length) {
+      await trx.rollback()
+      return response.badRequest({ 
+        message: 'Produk yang sama tidak boleh ditambahkan lebih dari sekali',
+        errors: {
+          customerProducts: ['Produk yang sama tidak boleh dipilih lebih dari sekali']
+        }
+      })
+    }
+
     try {
       const customer = await Customer.findOrFail(params.id, { client: trx })
 
@@ -304,7 +331,7 @@ export default class CustomersController {
       // Reload customer dengan products untuk response yang lengkap
       const updatedCustomer = await Customer.query()
         .where('id', customer.id)
-        .preload('products', (query) => query.preload('unit'))
+        .preload('products', (query) => query.preload('unit').orderBy('product_customers.created_at', 'asc'))
         .first()
 
       if (updatedCustomer) {

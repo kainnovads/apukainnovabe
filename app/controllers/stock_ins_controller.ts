@@ -3,6 +3,7 @@ import StockIn from '#models/stock_in'
 import Stock from '#models/stock'
 import db from '@adonisjs/lucid/services/db'
 import { updateStockInValidator } from '#validators/stock_in'
+import { DateTime } from 'luxon'
 
 export default class StockInsController {
 
@@ -47,22 +48,17 @@ export default class StockInsController {
             dataQuery
               .leftJoin('purchase_orders', 'stock_ins.purchase_order_id', 'purchase_orders.id')
               .orderBy(`purchase_orders.${dbColumn}`, actualSortOrder)
-              .select('stock_ins.*')
+              .select('stock_ins.id', 'stock_ins.no_si', 'stock_ins.date', 'stock_ins.warehouse_id', 'stock_ins.posted_by', 'stock_ins.status', 'stock_ins.created_at', 'stock_ins.updated_at')
           } else if (relation === 'warehouse') {
             dataQuery
               .leftJoin('warehouses', 'stock_ins.warehouse_id', 'warehouses.id')
               .orderBy(`warehouses.${dbColumn}`, actualSortOrder)
-              .select('stock_ins.*')
+              .select('stock_ins.id', 'stock_ins.no_si', 'stock_ins.date', 'stock_ins.warehouse_id', 'stock_ins.posted_by', 'stock_ins.status', 'stock_ins.created_at', 'stock_ins.updated_at')
           } else if (relation === 'postedByUser') {
             dataQuery
               .leftJoin('users', 'stock_ins.posted_by', 'users.id')
               .orderBy(`users.${dbColumn}`, actualSortOrder)
-              .select('stock_ins.*')
-          } else if (relation === 'receivedByUser') {
-            dataQuery
-              .leftJoin('users', 'stock_ins.received_by', 'users.id')
-              .orderBy(`users.${dbColumn}`, actualSortOrder)
-              .select('stock_ins.*')
+              .select('stock_ins.id', 'stock_ins.no_si', 'stock_ins.date', 'stock_ins.warehouse_id', 'stock_ins.posted_by', 'stock_ins.status', 'stock_ins.created_at', 'stock_ins.updated_at')
           }
         } else {
           const dbColumn = toSnakeCase(sortField)
@@ -78,7 +74,6 @@ export default class StockInsController {
       const stockIns = await dataQuery
         .preload('warehouse')
         .preload('postedByUser')
-        .preload('receivedByUser')
         .preload('stockInDetails', (stockInDetailQuery) => {
           stockInDetailQuery.preload('product')
         })
@@ -108,7 +103,6 @@ export default class StockInsController {
         .where('id', params.id)
         .preload('warehouse')
         .preload('postedByUser')
-        .preload('receivedByUser')
         .preload('stockInDetails', (stockInDetailQuery) => {
           stockInDetailQuery.preload('product')
         })
@@ -139,7 +133,6 @@ export default class StockInsController {
         .where('id', params.id)
         .preload('warehouse')
         .preload('postedByUser')
-        .preload('receivedByUser')
         .preload('stockInDetails', (stockInDetailQuery) => {
           stockInDetailQuery.preload('product')
         })
@@ -210,7 +203,6 @@ export default class StockInsController {
       let query = StockIn.query()
         .preload('warehouse')
         .preload('postedByUser')
-        .preload('receivedByUser')
         .preload('purchaseOrder', (poQuery) => {
           poQuery.preload('createdByUser')
         })
@@ -302,7 +294,7 @@ export default class StockInsController {
       }
 
       stockIn.status   = 'posted'
-      stockIn.postedAt = new Date()
+      stockIn.postedAt = DateTime.now().toJSDate()
       stockIn.postedBy = auth.user?.id || 0
       await stockIn.useTransaction(trx).save()
       await trx.commit()
@@ -398,7 +390,7 @@ export default class StockInsController {
           }
 
           stockIn.status   = 'posted'
-          stockIn.postedAt = new Date()
+          stockIn.postedAt = DateTime.now().toJSDate()
           stockIn.postedBy = auth.user?.id || 0
           await stockIn.useTransaction(trx).save()
 

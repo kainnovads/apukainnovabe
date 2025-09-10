@@ -188,7 +188,7 @@ export default class PurchasesController {
             vendorQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
           })
           .preload('perusahaan', (perusahaanQuery) => {
-            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
+            perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan', 'npwpPerusahaan'])
           })
           .preload('cabang', (cabangQuery) => {
             cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
@@ -603,7 +603,7 @@ export default class PurchasesController {
         vendorQuery.select(['id', 'name', 'email', 'phone', 'address', 'npwp'])
       })
       .preload('perusahaan', (perusahaanQuery) => {
-        perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan'])
+        perusahaanQuery.select(['id', 'nmPerusahaan', 'alamatPerusahaan', 'tlpPerusahaan', 'emailPerusahaan', 'logoPerusahaan', 'npwpPerusahaan'])
       })
       .preload('cabang', (cabangQuery) => {
         cabangQuery.select(['id', 'nmCabang', 'alamatCabang', 'perusahaanId'])
