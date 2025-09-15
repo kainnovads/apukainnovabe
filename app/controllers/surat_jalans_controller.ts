@@ -36,7 +36,10 @@ export default class SuratJalansController {
           soQuery.preload('salesOrderItems', (soiQuery) => {
             soiQuery.where('statusPartial', true)
             soiQuery.preload('product', (productQuery) => {
-              productQuery.select(['id', 'name', 'priceSell', 'sku'])
+              productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
+            })
+            soiQuery.preload('warehouse', (warehouseQuery) => {
+              warehouseQuery.select(['id', 'name'])
             })
           })
         })
@@ -50,7 +53,7 @@ export default class SuratJalansController {
         // ✅ PRELOAD: Surat Jalan Items dengan relationships
         .preload('suratJalanItems', (siiQuery) => {
           siiQuery.preload('product', (productQuery) => {
-            productQuery.select(['id', 'name', 'priceSell', 'sku'])
+            productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
           })
           siiQuery.preload('warehouse', (warehouseQuery) => {
             warehouseQuery.select(['id', 'name'])
@@ -136,16 +139,20 @@ export default class SuratJalansController {
         const suratJalans = await dataQuery.paginate(page, limit)
         const queryTime = Date.now() - startTime
 
+        // ✅ SIMPLIFIED: Return data directly without complex unit loading
+        const serializedData = suratJalans.toJSON()
+
         // ✅ Log slow queries untuk monitoring
         if (queryTime > 1000) {
           console.warn(`🐌 Slow Query Alert: Surat Jalans took ${queryTime}ms`)
         }
 
         return response.ok({
-          ...suratJalans.toJSON(),
+          ...serializedData,
           _meta: {
             queryTime: queryTime,
-            totalQueries: 'optimized'
+            totalQueries: 'optimized',
+            unitsLoaded: unitIds.size
           }
         })
       } catch (preloadError) {
@@ -159,7 +166,10 @@ export default class SuratJalansController {
             soQuery.preload('salesOrderItems', (soiQuery) => {
               soiQuery.where('statusPartial', true)
               soiQuery.preload('product', (productQuery) => {
-                productQuery.select(['id', 'name', 'priceSell', 'sku'])
+                productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
+              })
+              soiQuery.preload('warehouse', (warehouseQuery) => {
+                warehouseQuery.select(['id', 'name'])
               })
             })
           })
@@ -257,9 +267,6 @@ export default class SuratJalansController {
           soQuery.preload('salesOrderItems', (soiQuery) => {
             soiQuery.where('statusPartial', true)
             soiQuery.preload('product', (productQuery) => {
-              productQuery.preload('unit', (unitQuery) => {
-                unitQuery.select(['id', 'name'])
-              })
               productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
             })
           })
@@ -273,9 +280,6 @@ export default class SuratJalansController {
         // ✅ PRELOAD: Surat Jalan Items dengan relationships
         .preload('suratJalanItems', (siiQuery) => {
           siiQuery.preload('product', (productQuery) => {
-            productQuery.preload('unit', (unitQuery) => {
-              unitQuery.select(['id', 'name'])
-            })
             productQuery.select(['id', 'name', 'priceSell', 'sku', 'unitId'])
           })
           siiQuery.preload('warehouse', (warehouseQuery) => {
@@ -288,8 +292,11 @@ export default class SuratJalansController {
         })
         .firstOrFail()
 
+      // ✅ SIMPLIFIED: Return data directly without complex unit loading
+      const serializedData = suratJalan.serialize()
+
       return response.ok({
-        data: suratJalan.serialize()
+        data: serializedData
       })
     } catch (error) {
       return response.notFound({
