@@ -151,8 +151,7 @@ export default class SuratJalansController {
           ...serializedData,
           _meta: {
             queryTime: queryTime,
-            totalQueries: 'optimized',
-            unitsLoaded: unitIds.size
+            totalQueries: 'optimized'
           }
         })
       } catch (preloadError) {

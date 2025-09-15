@@ -63,6 +63,7 @@ export default class UsersController {
       const data = await request.validateUsing(userValidator)
 
       const user = await User.create({
+        username: data.username,
         fullName: data.full_name,
         email   : data.email,
         password: data.password,

@@ -195,15 +195,16 @@ export default class QuotationsController {
     }
 
     async store({ request, response }: HttpContext) {
-        // Fungsi generateNo untuk no_quot dengan format 0000/QUO/customer.code/tahun dengan romawi
+        // Fungsi generateNo untuk no_quot dengan format 0000/QUO/customer.code/BULAN_ROMAWI/YY
         async function generateNo(customerId: string) {
           // Ambil data customer terlebih dahulu
           const customer = await Customer.findOrFail(customerId)
           
           // Ambil nomor urut terakhir dari QUOT untuk customer ini
           const now         = new Date()
+          const bulanRomawi = toRoman(now.getMonth() + 1)  // bulan 1-12 dalam angka Romawi
           const tahun       = now.getFullYear()
-          const tahunRomawi = toRoman(parseInt(tahun.toString().slice(-2)))  // 2 digit terakhir tahun
+          const tahun2Digit = tahun.toString().slice(-2)
 
           // Cari nomor urut terakhir untuk customer dan tahun ini
           const lastQuotation = await Quotation
@@ -223,8 +224,8 @@ export default class QuotationsController {
           }
           const nextNumber = (lastNumber + 1).toString().padStart(4, '0')
 
-          // Format: 0000/QUO/customer.code/TAHUN_ROMAWI
-          return `${nextNumber}/QUO/${customer.code}/${tahunRomawi}`
+          // Format: 0000/QUO/customer.code/BULAN_ROMAWI/YY
+          return `${nextNumber}/QUO/${customer.code}/${bulanRomawi}/${tahun2Digit}`
         }
 
         const payload = await request.validateUsing(quotationValidator)
