@@ -5,83 +5,64 @@ import PurchaseInvoice from '#models/purchase_invoice'
 import PurchaseInvoiceItem from '#models/purchase_invoice_item'
 
 export default class PurchaseInvoicesController {
-  // ✅ NEW: Method untuk mendapatkan statistik invoice
+  // ✅ OPTIMIZED: Single aggregate query for all purchase invoice statistics
   async getInvoiceStatistics({ response }: HttpContext) {
     try {
-      // Hitung total invoice
-      const totalInvoices = await PurchaseInvoice.query().count('* as total')
-      
-      // Hitung invoice berdasarkan status
-      const unpaidInvoices = await PurchaseInvoice.query()
-        .where('status', 'unpaid')
-        .count('* as total')
-      
-      const partialInvoices = await PurchaseInvoice.query()
-        .where('status', 'partial')
-        .count('* as total')
-      
-      const paidInvoices = await PurchaseInvoice.query()
-        .where('status', 'paid')
-        .count('* as total')
+      // ✅ Single query instead of 8 separate queries
+      const stats = await db
+        .from('purchase_invoices')
+        .select([
+          db.raw('COUNT(*) as total_count'),
+          db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as unpaid_count', ['unpaid']),
+          db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as partial_count', ['partial']),
+          db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as paid_count', ['paid']),
+          db.raw('SUM(CASE WHEN status = ? THEN total ELSE 0 END) as unpaid_total', ['unpaid']),
+          db.raw('SUM(CASE WHEN status = ? THEN total ELSE 0 END) as partial_total', ['partial']),
+          db.raw('SUM(CASE WHEN status = ? THEN total ELSE 0 END) as paid_total', ['paid']),
+          db.raw('SUM(total) as grand_total')
+        ])
+        .first()
 
-      // Hitung total nilai invoice berdasarkan status
-      const unpaidTotal = await PurchaseInvoice.query()
-        .where('status', 'unpaid')
-        .sum('total as total')
+      const totalCount = Number(stats.total_count) || 0
+      const unpaidCount = Number(stats.unpaid_count) || 0
+      const partialCount = Number(stats.partial_count) || 0
+      const paidCount = Number(stats.paid_count) || 0
       
-      const partialTotal = await PurchaseInvoice.query()
-        .where('status', 'partial')
-        .sum('total as total')
-      
-      const paidTotal = await PurchaseInvoice.query()
-        .where('status', 'paid')
-        .sum('total as total')
-
-      // Hitung total nilai semua invoice
-      const grandTotal = await PurchaseInvoice.query()
-        .sum('total as total')
-
-      // Perbaiki cara mengakses hasil count dan sum
-      const totalCount = totalInvoices[0]?.$extras?.total || totalInvoices[0]?.total || 0
-      const unpaidCount = unpaidInvoices[0]?.$extras?.total || unpaidInvoices[0]?.total || 0
-      const partialCount = partialInvoices[0]?.$extras?.total || partialInvoices[0]?.total || 0
-      const paidCount = paidInvoices[0]?.$extras?.total || paidInvoices[0]?.total || 0
-
-      const unpaidAmount = unpaidTotal[0]?.$extras?.total || unpaidTotal[0]?.total || 0
-      const partialAmount = partialTotal[0]?.$extras?.total || partialTotal[0]?.total || 0
-      const paidAmount = paidTotal[0]?.$extras?.total || paidTotal[0]?.total || 0
-      const grandAmount = grandTotal[0]?.$extras?.total || grandTotal[0]?.total || 0
+      const unpaidAmount = Number(stats.unpaid_total) || 0
+      const partialAmount = Number(stats.partial_total) || 0
+      const paidAmount = Number(stats.paid_total) || 0
+      const grandAmount = Number(stats.grand_total) || 0
 
       // Hitung total outstanding (unpaid + partial)
-      const outstandingTotal = Number(unpaidAmount) + Number(partialAmount)
+      const outstandingTotal = unpaidAmount + partialAmount
 
       return response.ok({
-        message: 'Statistik invoice berhasil diambil',
+        message: 'Statistik purchase invoice berhasil diambil',
         data: {
           counts: {
-            total: Number(totalCount),
-            unpaid: Number(unpaidCount),
-            partial: Number(partialCount),
-            paid: Number(paidCount)
+            total: totalCount,
+            unpaid: unpaidCount,
+            partial: partialCount,
+            paid: paidCount
           },
           amounts: {
-            total: Number(grandAmount),
-            unpaid: Number(unpaidAmount),
-            partial: Number(partialAmount),
-            paid: Number(paidAmount),
+            total: grandAmount,
+            unpaid: unpaidAmount,
+            partial: partialAmount,
+            paid: paidAmount,
             outstanding: outstandingTotal
           },
           percentages: {
-            unpaid: totalCount > 0 ? Math.round((Number(unpaidCount) / Number(totalCount)) * 100) : 0,
-            partial: totalCount > 0 ? Math.round((Number(partialCount) / Number(totalCount)) * 100) : 0,
-            paid: totalCount > 0 ? Math.round((Number(paidCount) / Number(totalCount)) * 100) : 0
+            unpaid: totalCount > 0 ? Math.round((unpaidCount / totalCount) * 100) : 0,
+            partial: totalCount > 0 ? Math.round((partialCount / totalCount) * 100) : 0,
+            paid: totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
           }
         }
       })
     } catch (error) {
-      console.error('❌ Error getting invoice statistics:', error)
+      console.error('❌ Error getting purchase invoice statistics:', error)
       return response.internalServerError({
-        message: 'Terjadi kesalahan saat mengambil statistik invoice',
+        message: 'Terjadi kesalahan saat mengambil statistik purchase invoice',
         error: {
           name: error.name,
           status: error.status || 500,

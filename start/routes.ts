@@ -194,6 +194,7 @@ router
 
   // Surat Jalan Router
   router.group(() => {
+    router.get('/surat-jalan/statistics', [SuratJalansController, 'getStatistics'])
     router.resource('surat-jalan', SuratJalansController).apiOnly()
   })
   .prefix('/api')
@@ -214,6 +215,7 @@ router
 
   // Quotation Router
   router.group(() => {
+    router.get('/quotation/statistics', [QuotationsController, 'getStatistics'])
     router.get('/quotation', [QuotationsController, 'index'])
     router.post('/quotation', [QuotationsController, 'store'])
     router.get('/quotation/:id', [QuotationsController, 'show'])

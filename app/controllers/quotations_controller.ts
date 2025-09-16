@@ -6,6 +6,7 @@ import { quotationValidator, updateQuotationValidator } from "#validators/quotat
 import type { HttpContext } from "@adonisjs/core/http"
 import db from "@adonisjs/lucid/services/db"
 import { toRoman } from '#helper/bulan_romawi'
+import { ValidationHelper } from '#helper/validation_helper'
 
 export default class QuotationsController {
     async index({ request, response }: HttpContext) {
@@ -236,23 +237,20 @@ export default class QuotationsController {
         return response.badRequest({ message: 'Items tidak boleh kosong ya' })
         }
 
-        // ✅ NEW: Validasi bahwa semua produk adalah produk customer
+        // ✅ OPTIMIZED: Use validation helper for better maintainability
         const customer = await Customer.find(payload.customerId)
         if (!customer) {
             return response.badRequest({ message: 'Customer tidak ditemukan' })
         }
 
-        // Ambil produk yang dimiliki customer
-        await customer.load('products')
-        const customerProductIds = customer.products.map((p: any) => p.id)
-
-        // Validasi setiap item
-        for (const item of items) {
-            if (!customerProductIds.includes(item.productId)) {
-                return response.badRequest({
-                    message: `Produk dengan ID ${item.productId} tidak dimiliki oleh customer yang dipilih`
-                })
-            }
+        // ✅ Efficient validation using helper method
+        const productIds = items.map(item => item.productId)
+        const invalidProducts = await ValidationHelper.validateCustomerProducts(payload.customerId, productIds)
+        
+        if (invalidProducts.length > 0) {
+          return response.badRequest({
+            message: `Produk dengan ID ${invalidProducts.join(', ')} tidak dimiliki oleh customer yang dipilih`
+          })
         }
 
         const trx = await db.transaction()
@@ -292,15 +290,19 @@ export default class QuotationsController {
                 description: payload.description,
             }, { client: trx })
 
-            for (const item of items) {
-                await QuotationItem.create({
-                quotationId: quotation.id,
-                productId      : item.productId,
-                quantity       : item.quantity,
-                price          : item.price,
-                description    : item.description,
-                subtotal       : item.subtotal,
-                }, { client: trx })
+            // ✅ OPTIMIZED: Bulk insert instead of loop
+            if (items.length > 0) {
+              await QuotationItem.createMany(
+                items.map(item => ({
+                  quotationId: quotation.id,
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  price: item.price,
+                  description: item.description,
+                  subtotal: item.subtotal,
+                })),
+                { client: trx }
+              )
             }
 
             await trx.commit()
@@ -333,23 +335,20 @@ export default class QuotationsController {
             return response.badRequest({ message: 'Items tidak boleh kosong' })
         }
 
-        // ✅ NEW: Validasi bahwa semua produk adalah produk customer
+        // ✅ OPTIMIZED: Use validation helper for better maintainability
         const customer = await Customer.find(payload.customerId)
         if (!customer) {
             return response.badRequest({ message: 'Customer tidak ditemukan' })
         }
 
-        // Ambil produk yang dimiliki customer
-        await customer.load('products')
-        const customerProductIds = customer.products.map((p: any) => p.id)
-
-        // Validasi setiap item
-        for (const item of items) {
-            if (!customerProductIds.includes(item.productId)) {
-                return response.badRequest({
-                    message: `Produk dengan ID ${item.productId} tidak dimiliki oleh customer yang dipilih`
-                })
-            }
+        // ✅ Efficient validation using helper method
+        const productIds = items.map(item => item.productId)
+        const invalidProducts = await ValidationHelper.validateCustomerProducts(payload.customerId, productIds)
+        
+        if (invalidProducts.length > 0) {
+          return response.badRequest({
+            message: `Produk dengan ID ${invalidProducts.join(', ')} tidak dimiliki oleh customer yang dipilih`
+          })
         }
 
         const trx = await db.transaction()
@@ -388,20 +387,24 @@ export default class QuotationsController {
             })
             await quotation.save()
 
-            // Hapus item lama lalu insert ulang
+            // ✅ OPTIMIZED: Bulk operations instead of loop
             await QuotationItem.query({ client: trx })
             .where('quotation_id', quotation.id)
             .delete()
 
-            for (const item of items) {
-            await QuotationItem.create({
-                    quotationId: quotation.id,
-                    productId      : item.productId,
-                    quantity       : item.quantity,
-                    price          : item.price,
-                    description    : item.description,
-                    subtotal       : item.subtotal,
-                }, { client: trx })
+            if (items.length > 0) {
+              // ✅ Single bulk insert instead of loop
+              await QuotationItem.createMany(
+                items.map(item => ({
+                  quotationId: quotation.id,
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  price: item.price,
+                  description: item.description,
+                  subtotal: item.subtotal,
+                })),
+                { client: trx }
+              )
             }
 
             await trx.commit()
@@ -528,5 +531,42 @@ export default class QuotationsController {
         .where('perusahaanId', perusahaanId)
 
         return response.ok(cabang)
+    }
+
+    async getStatistics({ response }: HttpContext) {
+        try {
+            // ✅ OPTIMIZED: Single aggregate query instead of multiple queries + loops
+            const stats = await db
+                .from('quotations')
+                .select([
+                    db.raw('COUNT(*) as total_quotations'),
+                    db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as approved_quotations', ['approved']),
+                    db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as draft_quotations', ['draft']),
+                    db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as rejected_quotations', ['rejected']),
+                    db.raw('SUM(CASE WHEN status = ? THEN total ELSE 0 END) as total_value', ['approved']),
+                    db.raw('SUM(total) as grand_total_value')
+                ])
+                .first()
+
+            const statistics = {
+                totalQuotations: Number(stats.total_quotations) || 0,
+                approvedQuotations: Number(stats.approved_quotations) || 0,
+                draftQuotations: Number(stats.draft_quotations) || 0,
+                rejectedQuotations: Number(stats.rejected_quotations) || 0,
+                totalValue: Number(stats.total_value) || 0,
+                grandTotalValue: Number(stats.grand_total_value) || 0
+            }
+
+            return response.ok({
+                message: 'Statistik quotation berhasil diambil',
+                data: statistics,
+            })
+        } catch (error) {
+            console.error('Error getting quotation statistics:', error)
+            return response.internalServerError({
+                message: 'Terjadi kesalahan saat mengambil statistik quotation',
+                error: error.message
+            })
+        }
     }
 }

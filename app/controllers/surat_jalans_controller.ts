@@ -548,4 +548,40 @@ export default class SuratJalansController {
       })
     }
   }
+
+  async getStatistics({ response }: HttpContext) {
+    try {
+      // ✅ OPTIMIZED: Single aggregate query instead of 5 separate queries
+      const stats = await db
+        .from('surat_jalans as sj')
+        .leftJoin('sales_orders as so', 'sj.sales_order_id', 'so.id')
+        .select([
+          db.raw('COUNT(*) as total_surat_jalans'),
+          db.raw('COUNT(CASE WHEN so.status = ? THEN 1 END) as with_approved_so', ['approved']),
+          db.raw('COUNT(CASE WHEN so.status = ? THEN 1 END) as with_partial_so', ['partial']),
+          db.raw('COUNT(CASE WHEN so.status = ? THEN 1 END) as with_delivered_so', ['delivered']),
+          db.raw('COUNT(CASE WHEN sj.sales_order_id IS NULL THEN 1 END) as manual_surat_jalans')
+        ])
+        .first()
+
+      const statistics = {
+        totalSuratJalans: Number(stats.total_surat_jalans) || 0,
+        withApprovedSO: Number(stats.with_approved_so) || 0,
+        withPartialSO: Number(stats.with_partial_so) || 0,
+        withDeliveredSO: Number(stats.with_delivered_so) || 0,
+        manualSuratJalans: Number(stats.manual_surat_jalans) || 0,
+      }
+
+      return response.ok({
+        message: 'Statistik Surat Jalan berhasil diambil',
+        data: statistics,
+      })
+    } catch (error) {
+      console.error('Error getting surat jalan statistics:', error)
+      return response.internalServerError({
+        message: 'Terjadi kesalahan saat mengambil statistik surat jalan',
+        error: error.message
+      })
+    }
+  }
 }

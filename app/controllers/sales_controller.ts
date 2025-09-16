@@ -444,18 +444,22 @@ export default class SalesController {
           attachment : attachmentPath || undefined,
       }, { client: trx })
 
-      for (const item of items) {
-          await SalesOrderItem.create({
-          salesOrderId : so.id,
-          productId    : item.productId,
-          warehouseId  : item.warehouseId,
-          quantity     : item.quantity,
-          price        : item.price,
-          description  : item.description,
-          subtotal     : item.subtotal,
-          statusPartial: item.statusPartial || false,
-          deliveredQty : item.deliveredQty || 0,
-          }, { client: trx })
+      // ✅ OPTIMIZED: Bulk insert instead of loop
+      if (items.length > 0) {
+        await SalesOrderItem.createMany(
+          items.map(item => ({
+            salesOrderId: so.id,
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            quantity: item.quantity,
+            price: item.price,
+            description: item.description,
+            subtotal: item.subtotal,
+            statusPartial: item.statusPartial || false,
+            deliveredQty: item.deliveredQty || 0,
+          })),
+          { client: trx }
+        )
       }
 
       await trx.commit()
@@ -591,23 +595,27 @@ export default class SalesController {
           createdInvoice = await this.createInvoiceForNewDelivery(so, newStatus)
         }
 
-        // Hapus item lama lalu insert ulang item baru
+        // ✅ OPTIMIZED: Bulk operations instead of loop
         await SalesOrderItem.query({ client: trx })
         .where('sales_order_id', so.id)
         .delete()
 
-        for (const item of items) {
-        await SalesOrderItem.create({
-                salesOrderId: so.id,
-                productId      : item.productId,
-                warehouseId    : item.warehouseId,
-                quantity       : item.quantity,
-                price          : item.price,
-                description    : item.description,
-                subtotal       : item.subtotal,
-                statusPartial  : item.statusPartial || false,
-                deliveredQty    : item.deliveredQty || 0,
-            }, { client: trx })
+        if (items.length > 0) {
+          // ✅ Single bulk insert instead of loop
+          await SalesOrderItem.createMany(
+            items.map(item => ({
+              salesOrderId: so.id,
+              productId: item.productId,
+              warehouseId: item.warehouseId,
+              quantity: item.quantity,
+              price: item.price,
+              description: item.description,
+              subtotal: item.subtotal,
+              statusPartial: item.statusPartial || false,
+              deliveredQty: item.deliveredQty || 0,
+            })),
+            { client: trx }
+          )
         }
 
         await trx.commit()

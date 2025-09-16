@@ -364,18 +364,22 @@ export default class PurchasesController {
               attachment : attachmentPath || null,
           }, { client: trx })
 
-          for (const item of items) {
-              await PurchaseOrderItem.create({
-              purchaseOrderId: po.id,
-              productId      : item.productId,
-              warehouseId    : item.warehouseId || null,
-              quantity       : item.quantity,
-              price          : item.price,
-              description    : item.description || null,
-              subtotal       : item.subtotal,
-              statusPartial  : item.statusPartial || false,
-              receivedQty    : item.receivedQty || 0,
-              }, { client: trx })
+          // ✅ OPTIMIZED: Bulk insert instead of loop
+          if (items.length > 0) {
+            await PurchaseOrderItem.createMany(
+              items.map(item => ({
+                purchaseOrderId: po.id,
+                productId: item.productId,
+                warehouseId: item.warehouseId || null,
+                quantity: item.quantity,
+                price: item.price,
+                description: item.description || null,
+                subtotal: item.subtotal,
+                statusPartial: item.statusPartial || false,
+                receivedQty: item.receivedQty || 0,
+              })),
+              { client: trx }
+            )
           }
 
           await trx.commit()
@@ -506,23 +510,27 @@ export default class PurchasesController {
           })
           await po.save()
 
-          // Hapus item lama lalu insert ulang
+          // ✅ OPTIMIZED: Bulk operations instead of loop
           await PurchaseOrderItem.query({ client: trx })
           .where('purchase_order_id', po.id)
           .delete()
 
-          for (const item of items) {
-          await PurchaseOrderItem.create({
-                  purchaseOrderId: po.id,
-                  productId      : item.productId,
-                  warehouseId    : item.warehouseId || null,
-                  quantity       : item.quantity,
-                  price          : item.price,
-                  description    : item.description,
-                  subtotal       : item.subtotal,
-                  statusPartial  : item.statusPartial || false,
-                  receivedQty    : item.receivedQty || 0,
-              }, { client: trx })
+          if (items.length > 0) {
+            // ✅ Single bulk insert instead of loop
+            await PurchaseOrderItem.createMany(
+              items.map(item => ({
+                purchaseOrderId: po.id,
+                productId: item.productId,
+                warehouseId: item.warehouseId || null,
+                quantity: item.quantity,
+                price: item.price,
+                description: item.description,
+                subtotal: item.subtotal,
+                statusPartial: item.statusPartial || false,
+                receivedQty: item.receivedQty || 0,
+              })),
+              { client: trx }
+            )
           }
 
           await trx.commit()
