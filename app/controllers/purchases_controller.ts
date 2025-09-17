@@ -87,6 +87,16 @@ export default class PurchasesController {
                   .orWhereRaw('LOWER(status) LIKE ?', [`%${lowerSearch}%`])
                   .orWhereRaw('LOWER(po_type) LIKE ?', [`%${lowerSearch}%`])
                   .orWhereRaw('LOWER(description) LIKE ?', [`%${lowerSearch}%`])
+                  // ✅ Tambah: cari produk berdasarkan SKU, NAME, atau NO_INTERCHANGE
+                  .orWhereExists((itemQuery) => {
+                    itemQuery
+                      .from('purchase_order_items as poi')
+                      .leftJoin('products as p', 'poi.product_id', 'p.id')
+                      .whereColumn('poi.purchase_order_id', 'purchase_orders.id')
+                      .whereRaw('LOWER(p.sku) LIKE ?', [`%${lowerSearch}%`])
+                      .orWhereRaw('LOWER(p.name) LIKE ?', [`%${lowerSearch}%`])
+                      .orWhereRaw('LOWER(p.no_interchange) LIKE ?', [`%${lowerSearch}%`])
+                  })
                   .orWhereExists((vendorQuery) => {
                     vendorQuery
                       .from('vendors')

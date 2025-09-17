@@ -113,6 +113,16 @@ export default class SalesController {
               .whereRaw('LOWER(no_so) LIKE ?', [`%${lowerSearch}%`])
               .orWhereRaw('LOWER(status) LIKE ?', [`%${lowerSearch}%`])
               .orWhereRaw('LOWER(description) LIKE ?', [`%${lowerSearch}%`])
+              // ✅ Tambah: cari produk berdasarkan SKU, NAME, atau NO_INTERCHANGE
+              .orWhereExists((itemQuery) => {
+                itemQuery
+                  .from('sales_order_items as soi')
+                  .leftJoin('products as p', 'soi.product_id', 'p.id')
+                  .whereColumn('soi.sales_order_id', 'sales_orders.id')
+                  .whereRaw('LOWER(p.sku) LIKE ?', [`%${lowerSearch}%`])
+                  .orWhereRaw('LOWER(p.name) LIKE ?', [`%${lowerSearch}%`])
+                  .orWhereRaw('LOWER(p.no_interchange) LIKE ?', [`%${lowerSearch}%`])
+              })
               .orWhereExists((customerQuery) => {
                 customerQuery
                   .from('customers')

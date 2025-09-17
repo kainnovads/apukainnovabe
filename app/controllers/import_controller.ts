@@ -223,6 +223,11 @@ export default class ImportController {
         console.log('Available Categories:', categories.map(c => c.name))
         console.log('Available Warehouses:', warehouses.map(w => w.code))
 
+        // Load existing SKUs dari database untuk optimasi
+        const existingProducts = await Product.query().select('sku', 'noInterchange')
+        const existingSkus = new Set(existingProducts.map(p => p.sku))
+        const existingInterchanges = new Set(existingProducts.map(p => p.noInterchange))
+
         // Proses Products
         for (let i = 0; i < productsRows.length; i++) {
           const row = productsRows[i]
@@ -233,6 +238,12 @@ export default class ImportController {
               sku, noInterchange, name, unitName, categoryName, 
               stockMin, priceBuy, priceSell, isService, kondisi, berat
             ] = row
+
+            // Skip baris kosong
+            if (!sku && !noInterchange && !name && !unitName) {
+              console.log(`Row ${rowNumber}: Skipping empty row`)
+              continue
+            }
 
             // Validasi data wajib
             if (!unitName) {
@@ -245,75 +256,59 @@ export default class ImportController {
             }
 
             // Fallback untuk field yang kosong
-            let finalSku = sku ? sku.toString() : 'unknown'
-            let finalNoInterchange = noInterchange ? noInterchange.toString() : 'unknown'
-            const finalName = name ? name.toString().toUpperCase() : 'unknown'
-            const finalCategoryName = categoryName ? categoryName.toString() : 'unknown'
+            let finalSku = sku ? sku.toString().trim() : ''
+            let finalNoInterchange = noInterchange ? noInterchange.toString().trim() : ''
+            const finalName = name ? name.toString().trim().toUpperCase() : 'UNKNOWN'
+            const finalCategoryName = categoryName ? categoryName.toString().trim() : 'unknown'
             
-            // Generate SKU otomatis jika kosong atau duplikat
-            if (!sku || finalSku === 'unknown') {
-              // Cari SKU yang unik
+            // Cek jika SKU sudah ada - SKIP jika sudah ada
+            if (finalSku && (existingSkus.has(finalSku) || generatedSkuCache.has(finalSku))) {
+              results.products.errors.push({
+                row: rowNumber,
+                message: `SKU "${finalSku}" sudah ada dalam database - data dilewati`
+              })
+              results.products.failed++
+              continue
+            }
+
+            // Generate SKU otomatis jika kosong
+            if (!finalSku) {
               let generatedSku = `unknown${unknownSkuCounter.toString().padStart(2, '0')}`
-              while (productCache.has(generatedSku) || generatedSkuCache.has(generatedSku) || await Product.findBy('sku', generatedSku)) {
+              while (existingSkus.has(generatedSku) || generatedSkuCache.has(generatedSku)) {
                 unknownSkuCounter++
                 generatedSku = `unknown${unknownSkuCounter.toString().padStart(2, '0')}`
               }
               finalSku = generatedSku
-              generatedSkuCache.add(generatedSku)
               unknownSkuCounter++
-            } else {
-              // Jika SKU sudah ada di database atau cache, generate SKU baru
-              const existingProduct = await Product.findBy('sku', finalSku)
-              if (existingProduct || generatedSkuCache.has(finalSku)) {
-                // Generate SKU baru untuk menghindari duplikasi
-                let generatedSku = `unknown${unknownSkuCounter.toString().padStart(2, '0')}`
-                while (productCache.has(generatedSku) || generatedSkuCache.has(generatedSku) || await Product.findBy('sku', generatedSku)) {
-                  unknownSkuCounter++
-                  generatedSku = `unknown${unknownSkuCounter.toString().padStart(2, '0')}`
-                }
-                finalSku = generatedSku
-                generatedSkuCache.add(generatedSku)
-                unknownSkuCounter++
-              } else {
-                // SKU unik, tambahkan ke cache
-                generatedSkuCache.add(finalSku)
-              }
             }
 
-            // Generate No Interchange otomatis jika kosong atau duplikat
-            if (!noInterchange || finalNoInterchange === 'unknown') {
-              // Cari No Interchange yang unik
+            // Cek jika No Interchange sudah ada - SKIP jika sudah ada
+            if (finalNoInterchange && (existingInterchanges.has(finalNoInterchange) || generatedInterchangeCache.has(finalNoInterchange))) {
+              results.products.errors.push({
+                row: rowNumber,
+                message: `No Interchange "${finalNoInterchange}" sudah ada dalam database - data dilewati`
+              })
+              results.products.failed++
+              continue
+            }
+
+            // Generate No Interchange otomatis jika kosong
+            if (!finalNoInterchange) {
               let generatedInterchange = `INT${unknownInterchangeCounter.toString().padStart(3, '0')}`
-              while (generatedInterchangeCache.has(generatedInterchange) || await Product.findBy('noInterchange', generatedInterchange)) {
+              while (existingInterchanges.has(generatedInterchange) || generatedInterchangeCache.has(generatedInterchange)) {
                 unknownInterchangeCounter++
                 generatedInterchange = `INT${unknownInterchangeCounter.toString().padStart(3, '0')}`
               }
               finalNoInterchange = generatedInterchange
-              generatedInterchangeCache.add(generatedInterchange)
               unknownInterchangeCounter++
-            } else {
-              // Jika No Interchange sudah ada di database atau cache, generate yang baru
-              const existingProductByInterchange = await Product.findBy('noInterchange', finalNoInterchange)
-              if (existingProductByInterchange || generatedInterchangeCache.has(finalNoInterchange)) {
-                // Generate No Interchange baru untuk menghindari duplikasi
-                let generatedInterchange = `INT${unknownInterchangeCounter.toString().padStart(3, '0')}`
-                while (generatedInterchangeCache.has(generatedInterchange) || await Product.findBy('noInterchange', generatedInterchange)) {
-                  unknownInterchangeCounter++
-                  generatedInterchange = `INT${unknownInterchangeCounter.toString().padStart(3, '0')}`
-                }
-                finalNoInterchange = generatedInterchange
-                generatedInterchangeCache.add(generatedInterchange)
-                unknownInterchangeCounter++
-              } else {
-                // No Interchange unik, tambahkan ke cache
-                generatedInterchangeCache.add(finalNoInterchange)
-              }
             }
+
+            // Tambahkan ke cache untuk tracking dalam batch ini
+            generatedSkuCache.add(finalSku)
+            generatedInterchangeCache.add(finalNoInterchange)
 
             // Debug: Log SKU dan No Interchange yang akan digunakan
             console.log(`Row ${rowNumber}: SKU=${finalSku}, NoInterchange=${finalNoInterchange}`)
-            
-            // SKU sudah di-generate otomatis dan unik, tidak perlu cek duplikasi lagi
 
             // Validasi unit
             const unitId = unitCache.get(unitName.toLowerCase())
@@ -377,19 +372,9 @@ export default class ImportController {
             
             results.products.errors.push({
               row: rowNumber,
-              message: error.message
+              message: `Error pada baris ${rowNumber}: ${error.message}`
             })
             results.products.failed++
-            
-            // Jika ada error duplikasi, rollback transaction dan stop import
-            if (error.message.includes('duplicate key value violates unique constraint')) {
-              console.error('Detected duplicate key error, rolling back transaction')
-              await trx.rollback()
-              return response.status(422).json({
-                message: 'Import gagal karena ada duplikasi data',
-                results: results
-              })
-            }
           }
         }
 
@@ -552,7 +537,7 @@ export default class ImportController {
           'Stok Minimum', 'Harga Beli', 'Harga Jual', 'Is Service', 
           'Kondisi', 'Berat'
         ],
-        // Contoh data dengan fallback: SKU kosong akan di-generate otomatis (unknown01, unknown02, dst), No Interchange kosong akan di-generate otomatis (INT001, INT002, dst), Nama Product kosong akan diisi 'unknown', Kategori kosong akan diisi 'unknown', Warehouse tidak ditemukan akan menggunakan 'APU 01', Quantity kosong akan diisi 0
+        // Contoh data: SKU yang sudah ada akan di-skip, SKU kosong akan di-generate otomatis (unknown01, unknown02, dst), No Interchange yang sudah ada akan di-skip, No Interchange kosong akan di-generate otomatis (INT001, INT002, dst), Nama Product kosong akan diisi 'UNKNOWN', Kategori kosong akan diisi 'unknown', Warehouse tidak ditemukan akan menggunakan 'APU 01', Quantity kosong akan diisi 0
         [
           'PRD001', 'INT001', 'LAPTOP ASUS ROG', 'PCS', 'Komputer',
           10, 15000000, 18000000, false, 'baru', 2.5

@@ -41,6 +41,7 @@ export default class ProductsController {
           query
             .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
             .orWhereRaw('LOWER(sku) LIKE ?', [`%${lowerSearch}%`])
+            .orWhereRaw('LOWER(no_interchange) LIKE ?', [`%${lowerSearch}%`])
         })
       }
 
@@ -507,6 +508,7 @@ export default class ProductsController {
           query
             .whereRaw('LOWER(name) LIKE ?', [`%${lowerSearch}%`])
             .orWhereRaw('LOWER(sku) LIKE ?', [`%${lowerSearch}%`])
+            .orWhereRaw('LOWER(no_interchange) LIKE ?', [`%${lowerSearch}%`])
         })
       }
 

@@ -529,10 +529,12 @@ export default class SalesInvoicesController {
       }
     } catch (validationError) {
       console.error('❌ Validation Error:', validationError)
-      return response.badRequest({
+      
+      // ✅ VineJS Error Structure: Return proper validation errors
+      return response.unprocessableEntity({
         message: 'Data yang dikirim tidak valid',
         error: 'validation_failed',
-        details: validationError.messages || validationError.message
+        errors: validationError.messages || []
       })
     }
   }

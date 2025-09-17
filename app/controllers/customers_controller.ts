@@ -63,7 +63,12 @@ export default class CustomersController {
     try {
       const customer = await Customer.query()
         .where('id', params.id)
-        .preload('products', (query) => query.preload('unit').orderBy('product_customers.created_at', 'asc'))
+        .preload('products', (query) =>
+          query
+            .select(['id', 'name', 'sku', 'no_interchange', 'unit_id', 'created_at', 'updated_at'])
+            .preload('unit')
+            .orderBy('product_customers.created_at', 'asc')
+        )
         .first()
 
       if (!customer) {
@@ -78,6 +83,7 @@ export default class CustomersController {
           productId: p.id,
           name: p.name,
           sku: p.sku,
+          noInterchange: p.noInterchange,
           priceSell: p.$extras.pivot_price_sell,
           unit: p.unit,
         }
@@ -331,7 +337,12 @@ export default class CustomersController {
       // Reload customer dengan products untuk response yang lengkap
       const updatedCustomer = await Customer.query()
         .where('id', customer.id)
-        .preload('products', (query) => query.preload('unit').orderBy('product_customers.created_at', 'asc'))
+        .preload('products', (query) =>
+          query
+            .select(['id', 'name', 'sku', 'no_interchange', 'unit_id', 'created_at', 'updated_at'])
+            .preload('unit')
+            .orderBy('product_customers.created_at', 'asc')
+        )
         .first()
 
       if (updatedCustomer) {
@@ -343,6 +354,7 @@ export default class CustomersController {
             productId: p.id,
             name: p.name,
             sku: p.sku,
+            noInterchange: p.noInterchange,
             priceSell: p.$extras.pivot_price_sell,
             unit: p.unit,
           }

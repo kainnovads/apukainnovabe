@@ -63,6 +63,16 @@ export default class QuotationsController {
                     .whereRaw('LOWER(no_quotation) LIKE ?', [`%${lowerSearch}%`])
                     .orWhereRaw('LOWER(status) LIKE ?', [`%${lowerSearch}%`])
                     .orWhereRaw('LOWER(description) LIKE ?', [`%${lowerSearch}%`])
+                    // ✅ Tambah: cari produk berdasarkan SKU, NAME, atau NO_INTERCHANGE
+                    .orWhereExists((itemQuery) => {
+                      itemQuery
+                        .from('quotation_items as qi')
+                        .leftJoin('products as p', 'qi.product_id', 'p.id')
+                        .whereColumn('qi.quotation_id', 'quotations.id')
+                        .whereRaw('LOWER(p.sku) LIKE ?', [`%${lowerSearch}%`])
+                        .orWhereRaw('LOWER(p.name) LIKE ?', [`%${lowerSearch}%`])
+                        .orWhereRaw('LOWER(p.no_interchange) LIKE ?', [`%${lowerSearch}%`])
+                    })
                     .orWhereExists((customerQuery) => {
                       customerQuery
                         .from('customers')
