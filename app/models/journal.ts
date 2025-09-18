@@ -77,10 +77,10 @@ export default class Journal extends BaseModel {
   declare referenceId: string | null
 
   @column({ columnName: 'created_by' })
-  declare createdBy: number
+  declare createdBy: number | null
 
   @column({ columnName: 'updated_by' })
-  declare updatedBy: number
+  declare updatedBy: number | null
 
   @hasMany(() => JournalLine)
   declare journalLines: HasMany<typeof JournalLine>

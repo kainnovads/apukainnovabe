@@ -76,10 +76,10 @@ export default class PurchaseInvoice extends BaseModel {
   declare description: string
 
   @column()
-  declare createdBy: number
+  declare createdBy: number | null
 
   @column()
-  declare updatedBy: number
+  declare updatedBy: number | null
 
   @belongsTo(() => PurchaseOrder)
   declare purchaseOrder: BelongsTo<typeof PurchaseOrder>

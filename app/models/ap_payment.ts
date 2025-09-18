@@ -18,7 +18,7 @@ export default class ApPayment extends BaseModel {
     po.id = randomUUID()
   }
 
-  @column()
+  @column({ columnName: 'vendor_id' })
   declare vendorId: number
 
   @belongsTo(() => Vendor)
@@ -27,19 +27,18 @@ export default class ApPayment extends BaseModel {
   @column()
   declare date: Date
 
-  @column()
-  declare dueDate: Date
-
-  @column()
+  @column({ columnName: 'payment_number' })
   declare paymentNumber: string
 
-  @column()
-  declare purchaseInvoiceId: string
+  @column({ columnName: 'purchase_invoice_id' })
+  declare invoiceId: string
 
-  @belongsTo(() => PurchaseInvoice)
+  @belongsTo(() => PurchaseInvoice, {
+    foreignKey: 'invoiceId'
+  })
   declare purchaseInvoice: BelongsTo<typeof PurchaseInvoice>
 
-  @column()
+  @column({ columnName: 'bank_account_id' })
   declare bankAccountId: string
 
   @belongsTo(() => BankAccount)
@@ -49,16 +48,16 @@ export default class ApPayment extends BaseModel {
   declare description: string
 
   @column()
-  declare createdBy: number
-
-  @column()
   declare amount: number
 
   @column()
   declare method: string
 
-  @column()
-  declare updatedBy: number
+  @column({ columnName: 'created_by' })
+  declare createdBy: number | null
+
+  @column({ columnName: 'updated_by' })
+  declare updatedBy: number | null
 
   @belongsTo(() => User, {
     foreignKey: 'createdBy',

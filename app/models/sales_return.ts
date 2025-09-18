@@ -58,7 +58,7 @@ export default class SalesReturn extends BaseModel {
   declare attachment: string
 
   @column()
-  declare createdBy: number
+  declare createdBy: number | null
 
   @column()
   declare approvedBy: number

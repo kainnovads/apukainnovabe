@@ -68,7 +68,7 @@ export default class PurchaseOrder extends BaseModel {
   declare taxPercent: number
 
   @column()
-  declare createdBy: number
+  declare createdBy: number | null
 
   @column()
   declare approvedBy: number | null

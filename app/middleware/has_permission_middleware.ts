@@ -8,8 +8,16 @@ export default class HasPermissionMiddleware {
     next: NextFn,
     permissions: string[]
   ) {
+    
     const { auth } = ctx
-    const user = auth.user!
+    
+    if (!auth.user) {
+      return ctx.response.unauthorized({
+        errors: [{ message: 'Unauthorized access' }]
+      })
+    }
+    
+    const user = auth.user
 
     await user.load('roles', (query) => {
       query.preload('permissions')
@@ -21,7 +29,7 @@ export default class HasPermissionMiddleware {
 
     if (!hasPermission) {
       return ctx.response.unauthorized({
-        error: `You are not authorized to perform this action. Required permissions: ${permissions.join(', ')}`,
+        errors: [{ message: 'Unauthorized access' }]
       })
     }
 

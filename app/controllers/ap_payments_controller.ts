@@ -7,6 +7,7 @@ import db from '@adonisjs/lucid/services/db'
 @inject()
 export default class ApPaymentsController {
   async index({ request, response }: HttpContext) {
+    console.log('🔍 AP Payment Index - Starting...')
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 10)
@@ -14,18 +15,19 @@ export default class ApPaymentsController {
       const startDate = request.input('startDate')
       const endDate = request.input('endDate')
       const vendorId = request.input('vendorId')
+      
+      console.log('🔍 AP Payment Index - Request params:', { page, limit, search, startDate, endDate, vendorId })
 
       const query = ApPayment.query()
         .preload('vendor')
-        .preload('purchaseInvoice')
         .preload('bankAccount')
-        .preload('createdByUser')
-        .preload('updatedByUser')
+        .preload('createdByUser', (q) => q.select(['id', 'fullName', 'email']))
+        .preload('updatedByUser', (q) => q.select(['id', 'fullName', 'email']))
 
       if (search) {
         query.where((subQuery) => {
           subQuery
-            .whereILike('paymentNumber', `%${search}%`)
+            .whereILike('payment_number', `%${search}%`)
             .orWhereILike('description', `%${search}%`)
         })
       }
@@ -35,7 +37,7 @@ export default class ApPaymentsController {
       }
 
       if (vendorId) {
-        query.where('vendorId', vendorId)
+        query.where('vendor_id', vendorId)
       }
 
       const payments = await query
@@ -48,9 +50,14 @@ export default class ApPaymentsController {
         message: 'Daftar pembayaran hutang berhasil diambil'
       })
     } catch (error) {
+      console.error('❌ AP Payment Index Error:', error)
+      console.error('❌ AP Payment Index Error Message:', error.message)
+      console.error('❌ AP Payment Index Error Stack:', error.stack)
+      
       return response.internalServerError({
         status: 'error',
-        message: 'Terjadi kesalahan saat mengambil daftar pembayaran hutang'
+        message: 'Terjadi kesalahan saat mengambil daftar pembayaran hutang',
+        error: error.message
       })
     }
   }
@@ -62,8 +69,8 @@ export default class ApPaymentsController {
         .preload('vendor')
         .preload('purchaseInvoice')
         .preload('bankAccount')
-        .preload('createdByUser')
-        .preload('updatedByUser')
+        .preload('createdByUser', (q) => q.select(['id', 'fullName', 'email']))
+        .preload('updatedByUser', (q) => q.select(['id', 'fullName', 'email']))
         .firstOrFail()
 
       return response.ok({
@@ -79,19 +86,53 @@ export default class ApPaymentsController {
     }
   }
 
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
+    console.log('🔍 AP Payment Store - Starting...')
+    console.log('🔍 AP Payment Store - Auth user:', auth?.user?.id)
+    console.log('🔍 AP Payment Store - Request body:', request.all())
+    
     const trx = await db.transaction()
     
     try {
+      console.log('🔍 AP Payment Store - Validating payload...')
       const payload = await createApPaymentValidator.validate(request.all())
+      console.log('🔍 AP Payment Store - Validated payload:', payload)
       
-      const payment = await ApPayment.create(payload, { client: trx })
+      // Map camelCase to snake_case for database
+      const paymentData = {
+        vendor_id: payload.vendorId,
+        date: payload.date,
+        payment_number: payload.paymentNumber,
+        purchase_invoice_id: payload.invoiceId || null,
+        bank_account_id: payload.bankAccountId || null,
+        description: payload.description || null,
+        amount: payload.amount,
+        method: payload.method,
+        created_by: auth?.user?.id || null,
+        updated_by: auth?.user?.id || null,
+      }
+      
+      console.log('🔍 AP Payment Store - Payment data to create:', paymentData)
+      console.log('🔍 AP Payment Store - Creating payment...')
+      
+      const payment = await ApPayment.create(paymentData, { client: trx })
+      console.log('🔍 AP Payment Store - Payment created successfully:', payment.id)
 
       await payment.load('vendor')
-      await payment.load('purchaseInvoice')
-      await payment.load('bankAccount')
-      await payment.load('createdByUser')
-      await payment.load('updatedByUser')
+      
+      // Load optional relations only if they exist
+      // if (payment.invoiceId) {
+      //   await payment.load('purchaseInvoice')
+      // }
+      if (payment.bankAccountId) {
+        await payment.load('bankAccount')
+      }
+      if (payment.createdBy) {
+        await payment.load('createdByUser')
+      }
+      if (payment.updatedBy) {
+        await payment.load('updatedByUser')
+      }
 
       await trx.commit()
 
@@ -103,7 +144,13 @@ export default class ApPaymentsController {
     } catch (error) {
       await trx.rollback()
       
+      console.error('❌ AP Payment Store Error:', error)
+      console.error('❌ AP Payment Store Error Message:', error.message)
+      console.error('❌ AP Payment Store Error Stack:', error.stack)
+      console.error('❌ AP Payment Store Error Name:', error.name)
+      
       if (error.messages) {
+        console.error('❌ AP Payment Store Validation Errors:', error.messages)
         return response.badRequest({
           status: 'error',
           message: 'Validasi gagal',
@@ -113,27 +160,47 @@ export default class ApPaymentsController {
 
       return response.internalServerError({
         status: 'error',
-        message: 'Terjadi kesalahan saat membuat pembayaran hutang'
+        message: 'Terjadi kesalahan saat membuat pembayaran hutang',
+        error: error.message,
+        details: error.stack
       })
     }
   }
 
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
     const trx = await db.transaction()
     
     try {
       const payment = await ApPayment.findOrFail(params.id)
       const payload = await updateApPaymentValidator.validate(request.all())
       
+      // Map camelCase to snake_case for database
+      const updateData: any = {}
+      if (payload.vendorId !== undefined) updateData.vendor_id = payload.vendorId
+      if (payload.date !== undefined) updateData.date = payload.date
+      if (payload.paymentNumber !== undefined) updateData.payment_number = payload.paymentNumber
+      if (payload.invoiceId !== undefined) updateData.purchase_invoice_id = payload.invoiceId || null
+      if (payload.bankAccountId !== undefined) updateData.bank_account_id = payload.bankAccountId || null
+      if (payload.description !== undefined) updateData.description = payload.description || null
+      if (payload.amount !== undefined) updateData.amount = payload.amount
+      if (payload.method !== undefined) updateData.method = payload.method
+      if (payload.updatedBy !== undefined) updateData.updated_by = auth?.user?.id || null
+      
       payment.useTransaction(trx)
-      payment.merge(payload)
+      payment.merge(updateData)
       await payment.save()
 
       await payment.load('vendor')
-      await payment.load('purchaseInvoice')
-      await payment.load('bankAccount')
-      await payment.load('createdByUser')
-      await payment.load('updatedByUser')
+
+      if (payment.bankAccountId) {
+        await payment.load('bankAccount')
+      }
+      if (payment.createdBy) {
+        await payment.load('createdByUser')
+      }
+      if (payment.updatedBy) {
+        await payment.load('updatedByUser')
+      }
 
       await trx.commit()
 
