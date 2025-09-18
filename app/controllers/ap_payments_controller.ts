@@ -98,18 +98,18 @@ export default class ApPaymentsController {
       const payload = await createApPaymentValidator.validate(request.all())
       console.log('🔍 AP Payment Store - Validated payload:', payload)
       
-      // Map camelCase to snake_case for database
+      // Gunakan camelCase agar sesuai dengan properti model
       const paymentData = {
-        vendor_id: payload.vendorId,
+        vendorId: payload.vendorId,
         date: payload.date,
-        payment_number: payload.paymentNumber,
-        purchase_invoice_id: payload.invoiceId || null,
-        bank_account_id: payload.bankAccountId || null,
+        paymentNumber: payload.paymentNumber,
+        invoiceId: payload.invoiceId || null,
+        bankAccountId: payload.bankAccountId || null,
         description: payload.description || null,
         amount: payload.amount,
         method: payload.method,
-        created_by: auth?.user?.id || null,
-        updated_by: auth?.user?.id || null,
+        createdBy: auth?.user?.id || null,
+        updatedBy: auth?.user?.id || null,
       }
       
       console.log('🔍 AP Payment Store - Payment data to create:', paymentData)
@@ -174,17 +174,18 @@ export default class ApPaymentsController {
       const payment = await ApPayment.findOrFail(params.id)
       const payload = await updateApPaymentValidator.validate(request.all())
       
-      // Map camelCase to snake_case for database
+      // Gunakan camelCase agar sesuai dengan properti model
       const updateData: any = {}
-      if (payload.vendorId !== undefined) updateData.vendor_id = payload.vendorId
+      if (payload.vendorId !== undefined) updateData.vendorId = payload.vendorId
       if (payload.date !== undefined) updateData.date = payload.date
-      if (payload.paymentNumber !== undefined) updateData.payment_number = payload.paymentNumber
-      if (payload.invoiceId !== undefined) updateData.purchase_invoice_id = payload.invoiceId || null
-      if (payload.bankAccountId !== undefined) updateData.bank_account_id = payload.bankAccountId || null
+      if (payload.paymentNumber !== undefined) updateData.paymentNumber = payload.paymentNumber
+      if (payload.invoiceId !== undefined) updateData.invoiceId = payload.invoiceId || null
+      if (payload.bankAccountId !== undefined) updateData.bankAccountId = payload.bankAccountId || null
       if (payload.description !== undefined) updateData.description = payload.description || null
       if (payload.amount !== undefined) updateData.amount = payload.amount
       if (payload.method !== undefined) updateData.method = payload.method
-      if (payload.updatedBy !== undefined) updateData.updated_by = auth?.user?.id || null
+      // set updatedBy dari user yang login
+      updateData.updatedBy = auth?.user?.id || null
       
       payment.useTransaction(trx)
       payment.merge(updateData)

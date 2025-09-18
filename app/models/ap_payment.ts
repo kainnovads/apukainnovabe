@@ -31,7 +31,7 @@ export default class ApPayment extends BaseModel {
   declare paymentNumber: string
 
   @column({ columnName: 'purchase_invoice_id' })
-  declare invoiceId: string
+  declare invoiceId: string | null
 
   @belongsTo(() => PurchaseInvoice, {
     foreignKey: 'invoiceId'
@@ -39,13 +39,13 @@ export default class ApPayment extends BaseModel {
   declare purchaseInvoice: BelongsTo<typeof PurchaseInvoice>
 
   @column({ columnName: 'bank_account_id' })
-  declare bankAccountId: string
+  declare bankAccountId: string | null
 
   @belongsTo(() => BankAccount)
   declare bankAccount: BelongsTo<typeof BankAccount>
 
   @column()
-  declare description: string
+  declare description: string | null
 
   @column()
   declare amount: number
