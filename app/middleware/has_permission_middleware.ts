@@ -28,8 +28,8 @@ export default class HasPermissionMiddleware {
     const hasPermission = permissions.some((p) => userPermissions.includes(p))
 
     if (!hasPermission) {
-      return ctx.response.unauthorized({
-        errors: [{ message: 'Unauthorized access' }]
+      return ctx.response.forbidden({
+        errors: [{ message: 'Forbidden access' }]
       })
     }
 

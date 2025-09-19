@@ -278,7 +278,7 @@ export default class StockOutsController {
           if (Number(existingStock.quantity) < totalQty) {
             await trx.rollback()
             return response.badRequest({
-              message: `Stock barang ${existingStock.product?.name || productId} tidak mencukupi. Tersedia: ${existingStock.quantity}, dibutuhkan: ${totalQty}`
+              message: `Stock barang untuk ${existingStock.product?.sku || ''} - ${existingStock.product?.name || productId} tidak mencukupi, tersedia ${Math.floor(Number(existingStock.quantity))} diminta ${Math.floor(totalQty)}`
             })
           }
           // Jika sudah ada, kurangi quantity
@@ -388,7 +388,7 @@ export default class StockOutsController {
               if (Number(existingStock.quantity) < totalQty) {
                 results.failed.push({
                   id,
-                  reason: `Stock barang ${existingStock.product?.name || productId} tidak mencukupi. Tersedia: ${existingStock.quantity}, dibutuhkan: ${totalQty}`
+                  reason: `Stock barang untuk ${existingStock.product?.sku || ''} - ${existingStock.product?.name || productId} tidak mencukupi, tersedia ${Math.floor(Number(existingStock.quantity))} diminta ${Math.floor(totalQty)}`
                 })
                 continue
               }

@@ -38,10 +38,12 @@ export default class MenuGroupsController {
           builder
             .whereHas('permissions', (query) => {
               query.whereIn('permissions.id', userPermissions)
+                .where('permissions.name', 'like', 'view_%')
             })
             .orWhereHas('menuDetails', (detailsQuery) => {
               detailsQuery.whereHas('permissions', (permissionQuery) => {
                 permissionQuery.whereIn('permissions.id', userPermissions)
+                  .where('permissions.name', 'like', 'view_%')
               })
             })
         })
@@ -81,6 +83,7 @@ export default class MenuGroupsController {
           if (!allMenu) {
             detailsQuery.whereHas('permissions', (query) => {
               query.whereIn('permissions.id', userPermissions)
+                .where('permissions.name', 'like', 'view_%')
             })
           }
         })
@@ -179,14 +182,18 @@ export default class MenuGroupsController {
 
       // Filter berdasarkan permission user (kecuali untuk superadmin)
       if (!user.roles.some(role => role.name === 'superadmin')) {
+        // Hanya tampilkan menu jika user memiliki permission view_* (bukan access_*)
+        
         dataQuery.where((builder) => {
           builder
             .whereHas('permissions', (query) => {
               query.whereIn('permissions.id', userPermissions)
+                .where('permissions.name', 'like', 'view_%')
             })
             .orWhereHas('menuDetails', (detailsQuery) => {
               detailsQuery.whereHas('permissions', (permissionQuery) => {
                 permissionQuery.whereIn('permissions.id', userPermissions)
+                  .where('permissions.name', 'like', 'view_%')
               })
             })
         })
@@ -225,6 +232,7 @@ export default class MenuGroupsController {
           if (!user.roles.some(role => role.name === 'superadmin')) {
             detailsQuery.whereHas('permissions', (query) => {
               query.whereIn('permissions.id', userPermissions)
+                .where('permissions.name', 'like', 'view_%')
             })
           }
         })

@@ -152,7 +152,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['approve_purchase_order', 'reject_purchase_order', 'edit_purchase_order', 'delete_purchase_order', 'view_purchase_order', 'approve_purchase_order_item', 'reject_purchase_order_item', 'edit_purchase_order_item', 'delete_purchase_order_item', 'view_purchase_order_item', 'show_purchase_order']))
+  .use(middleware.hasPermission(['approve_purchase_order', 'reject_purchase_order', 'edit_purchase_order', 'delete_purchase_order', 'view_purchase_order', 'approve_purchase_order_item', 'reject_purchase_order_item', 'edit_purchase_order_item', 'delete_purchase_order_item', 'view_purchase_order_item', 'show_purchase_order', 'access_purchase_order']))
 
   // Purchase Invoice Router
   router.group(() => {
@@ -161,7 +161,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_purchase_invoice', 'edit_purchase_invoice', 'delete_purchase_invoice', 'create_purchase_invoice', 'approve_purchase_invoice', 'reject_purchase_invoice', 'show_purchase_invoice']))
+  .use(middleware.hasPermission(['view_purchase_invoice', 'edit_purchase_invoice', 'delete_purchase_invoice', 'create_purchase_invoice', 'approve_purchase_invoice', 'reject_purchase_invoice', 'show_purchase_invoice', 'access_purchase_invoice']))
 
   // Sales Order Router
   router.group(() => {
@@ -179,7 +179,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['approve_sales_order', 'reject_sales_order', 'edit_sales_order', 'delete_sales_order', 'view_sales_order', 'approve_sales_order_item', 'reject_sales_order_item', 'edit_sales_order_item', 'delete_sales_order_item', 'view_sales_order_item', 'show_sales_order']))
+  .use(middleware.hasPermission(['approve_sales_order', 'reject_sales_order', 'edit_sales_order', 'delete_sales_order', 'view_sales_order', 'approve_sales_order_item', 'reject_sales_order_item', 'edit_sales_order_item', 'delete_sales_order_item', 'view_sales_order_item', 'show_sales_order', 'access_sales_order', 'access_sales_order_item']))
 
   // Sales Invoice Router
   router.group(() => {
@@ -188,7 +188,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_sales_invoice', 'edit_sales_invoice', 'delete_sales_invoice', 'create_sales_invoice', 'approve_sales_invoice', 'reject_sales_invoice', 'show_sales_invoice']))
+  .use(middleware.hasPermission(['view_sales_invoice', 'edit_sales_invoice', 'delete_sales_invoice', 'create_sales_invoice', 'approve_sales_invoice', 'reject_sales_invoice', 'show_sales_invoice', 'access_sales_invoice', 'access_sales_invoice_item']))
 
 
 
@@ -199,7 +199,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_surat_jalan', 'edit_surat_jalan', 'delete_surat_jalan', 'create_surat_jalan', 'approve_surat_jalan', 'reject_surat_jalan', 'show_surat_jalan']))
+  .use(middleware.hasPermission(['view_surat_jalan', 'edit_surat_jalan', 'delete_surat_jalan', 'create_surat_jalan', 'approve_surat_jalan', 'reject_surat_jalan', 'show_surat_jalan', 'access_surat_jalan', 'access_surat_jalan_item']))
 
   // Sales Return Router
   router.group(() => {
@@ -211,7 +211,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['approve_sales_return', 'reject_sales_return', 'edit_sales_return', 'delete_sales_return', 'view_sales_return', 'show_sales_return']))
+  .use(middleware.hasPermission(['approve_sales_return', 'reject_sales_return', 'edit_sales_return', 'delete_sales_return', 'view_sales_return', 'show_sales_return', 'access_sales_return', 'access_sales_return_item']))
 
   // Quotation Router
   router.group(() => {
@@ -227,7 +227,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_quotation', 'edit_quotation', 'delete_quotation', 'create_quotation', 'approve_quotation', 'reject_quotation', 'show_quotation']))
+  .use(middleware.hasPermission(['view_quotation', 'edit_quotation', 'delete_quotation', 'create_quotation', 'approve_quotation', 'reject_quotation', 'show_quotation', 'access_quotation', 'access_quotation_item']))
 
   // Pegawai Router
   router.group(() => {
@@ -240,7 +240,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['edit_pegawai', 'delete_pegawai', 'view_pegawai', 'create_pegawai', 'approve_pegawai', 'reject_pegawai', 'show_pegawai']))
+  .use(middleware.hasPermission(['edit_pegawai', 'delete_pegawai', 'view_pegawai', 'create_pegawai', 'approve_pegawai', 'reject_pegawai', 'show_pegawai', 'access_pegawai']))
 
   // Menu Router
   router.group(() => {
@@ -258,7 +258,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_jabatan', 'edit_jabatan', 'delete_jabatan', 'create_jabatan', 'approve_jabatan', 'reject_jabatan', 'show_jabatan']))
+  .use(middleware.hasPermission(['view_jabatan', 'edit_jabatan', 'delete_jabatan', 'create_jabatan', 'approve_jabatan', 'reject_jabatan', 'show_jabatan', 'access_jabatan']))
 
   // Perusahaan Router
   router.group(() => {
@@ -267,7 +267,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['edit_perusahaan', 'delete_perusahaan', 'view_perusahaan', 'create_perusahaan', 'approve_perusahaan', 'reject_perusahaan', 'show_perusahaan']))
+  .use(middleware.hasPermission(['edit_perusahaan', 'delete_perusahaan', 'view_perusahaan', 'create_perusahaan', 'approve_perusahaan', 'reject_perusahaan', 'show_perusahaan', 'access_perusahaan']))
 
   // Unit Router
   router.group(() => {
@@ -275,7 +275,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_unit', 'edit_unit', 'delete_unit', 'create_unit', 'approve_unit', 'reject_unit', 'show_unit']))
+  .use(middleware.hasPermission(['view_unit', 'edit_unit', 'delete_unit', 'create_unit', 'approve_unit', 'reject_unit', 'show_unit', 'access_unit']))
 
   // Product Router
   router.group(() => {
@@ -290,7 +290,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_product', 'edit_product', 'delete_product', 'create_product', 'approve_product', 'reject_product', 'show_product']))
+  .use(middleware.hasPermission(['view_product', 'edit_product', 'delete_product', 'create_product', 'approve_product', 'reject_product', 'show_product', 'access_product']))
 
   // Customer Router
   router.group(() => {
@@ -298,7 +298,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_customer', 'edit_customer', 'delete_customer', 'create_customer', 'approve_customer', 'reject_customer', 'show_customer']))
+  .use(middleware.hasPermission(['view_customer', 'edit_customer', 'delete_customer', 'create_customer', 'approve_customer', 'reject_customer', 'show_customer', 'access_customer']))
 
   // Vendor Router
   router.group(() => {
@@ -306,7 +306,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_vendor', 'edit_vendor', 'delete_vendor', 'create_vendor', 'approve_vendor', 'reject_vendor', 'show_vendor']))
+  .use(middleware.hasPermission(['view_vendor', 'edit_vendor', 'delete_vendor', 'create_vendor', 'approve_vendor', 'reject_vendor', 'show_vendor', 'access_vendor']))
 
   // Kategori Router
   router.group(() => {
@@ -315,7 +315,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_kategori', 'edit_kategori', 'delete_kategori', 'create_kategori', 'approve_kategori', 'reject_kategori', 'show_kategori']))
+  .use(middleware.hasPermission(['view_kategori', 'edit_kategori', 'delete_kategori', 'create_kategori', 'approve_kategori', 'reject_kategori', 'show_kategori', 'access_kategori']))
 
   // Cabang Router
   router.group(() => {
@@ -323,7 +323,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_cabang', 'edit_cabang', 'delete_cabang', 'create_cabang', 'approve_cabang', 'reject_cabang', 'show_cabang']))
+  .use(middleware.hasPermission(['view_cabang', 'edit_cabang', 'delete_cabang', 'create_cabang', 'approve_cabang', 'reject_cabang', 'show_cabang', 'access_cabang']))
 
   // Divisi Router
   router.group(() => {
@@ -331,7 +331,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_divisi', 'edit_divisi', 'delete_divisi', 'create_divisi', 'approve_divisi', 'reject_divisi', 'show_divisi']))
+  .use(middleware.hasPermission(['view_divisi', 'edit_divisi', 'delete_divisi', 'create_divisi', 'approve_divisi', 'reject_divisi', 'show_divisi', 'access_divisi']))
 
   // Departemen Router
   router.group(() => {
@@ -339,7 +339,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_departemen', 'edit_departemen', 'delete_departemen', 'create_departemen', 'approve_departemen', 'reject_departemen', 'show_departemen']))
+  .use(middleware.hasPermission(['view_departemen', 'edit_departemen', 'delete_departemen', 'create_departemen', 'approve_departemen', 'reject_departemen', 'show_departemen', 'access_departemen']))
 
   // Warehouse Router
   router.group(() => {
@@ -348,7 +348,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_gudang', 'edit_gudang', 'delete_gudang', 'create_gudang', 'approve_gudang', 'reject_gudang', 'show_gudang']))
+  .use(middleware.hasPermission(['view_gudang', 'edit_gudang', 'delete_gudang', 'create_gudang', 'approve_gudang', 'reject_gudang', 'show_gudang', 'access_gudang']))
 
   // Stock Router
   router.group(() => {
@@ -358,7 +358,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_stock', 'edit_stock', 'delete_stock', 'create_stock', 'approve_stock', 'reject_stock', 'show_stock']))
+  .use(middleware.hasPermission(['view_stock', 'edit_stock', 'delete_stock', 'create_stock', 'approve_stock', 'reject_stock', 'show_stock', 'access_stock']))
 
   // Stock In Router
   router.group(() => {
@@ -372,7 +372,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_stock_in', 'edit_stock_in', 'delete_stock_in', 'create_stock_in', 'approve_stock_in', 'reject_stock_in', 'show_stock_in']))
+  .use(middleware.hasPermission(['view_stock_in', 'edit_stock_in', 'delete_stock_in', 'create_stock_in', 'approve_stock_in', 'reject_stock_in', 'show_stock_in', 'access_stock_in']))
 
   // Stock Out Router
   router.group(() => {
@@ -386,7 +386,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_stock_out', 'edit_stock_out', 'delete_stock_out', 'create_stock_out', 'approve_stock_out', 'reject_stock_out', 'show_stock_out']))
+  .use(middleware.hasPermission(['view_stock_out', 'edit_stock_out', 'delete_stock_out', 'create_stock_out', 'approve_stock_out', 'reject_stock_out', 'show_stock_out', 'access_stock_out']))
 
   // Stock Transfer Router
   router.group(() => {
@@ -399,7 +399,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_stock_transfer', 'edit_stock_transfer', 'delete_stock_transfer', 'create_stock_transfer', 'approve_stock_transfer', 'reject_stock_transfer', 'show_stock_transfer']))
+  .use(middleware.hasPermission(['view_stock_transfer', 'edit_stock_transfer', 'delete_stock_transfer', 'create_stock_transfer', 'approve_stock_transfer', 'reject_stock_transfer', 'show_stock_transfer', 'access_stock_transfer']))
 
   // Cuti Router
   router.group(() => {
@@ -407,7 +407,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_cuti', 'edit_cuti', 'delete_cuti', 'create_cuti', 'approve_cuti', 'reject_cuti', 'show_cuti']))
+  .use(middleware.hasPermission(['view_cuti', 'edit_cuti', 'delete_cuti', 'create_cuti', 'approve_cuti', 'reject_cuti', 'show_cuti', 'access_cuti']))
 
   // Associations Router
   router.group(() => {
@@ -425,10 +425,24 @@ router
     router.get('/data/customer', [AssociationsController, 'getCustomerData'])
     router.get('/data/vendor', [AssociationsController, 'getVendorData'])
     router.get('/data/departemen', [AssociationsController, 'getDepartemenData'])
+    router.get('/data/jabatan', [AssociationsController, 'getJabatanData'])
+    router.get('/data/pegawai', [AssociationsController, 'getPegawaiData'])
+    router.get('/data/sales-order', [AssociationsController, 'getSalesOrderData'])
+    router.get('/data/sales-invoice', [AssociationsController, 'getSalesInvoiceData'])
+    router.get('/data/surat-jalan', [AssociationsController, 'getSuratJalanData'])
+    router.get('/data/sales-return', [AssociationsController, 'getSalesReturnData'])
+    router.get('/data/quotation', [AssociationsController, 'getQuotationData'])
+    router.get('/data/cuti', [AssociationsController, 'getCutiData'])
+    router.get('/data/purchase-order', [AssociationsController, 'getPurchaseOrderData'])
+    router.get('/data/purchase-invoice', [AssociationsController, 'getPurchaseInvoiceData'])
+    router.get('/data/stock-in', [AssociationsController, 'getStockInData'])
+    router.get('/data/stock-out', [AssociationsController, 'getStockOutData'])
+    router.get('/data/stock-transfer', [AssociationsController, 'getStockTransferData'])
+    router.get('/data/stock', [AssociationsController, 'getStockData'])
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['access_perusahaan', 'access_cabang', 'access_warehouse', 'access_product', 'access_customer', 'access_vendor', 'access_departemen']))
+  .use(middleware.hasPermission(['access_perusahaan', 'access_cabang', 'access_gudang', 'access_product', 'access_customer', 'access_vendor', 'access_departemen', 'access_jabatan', 'access_pegawai', 'access_jabatan', 'access_sales_order', 'access_sales_invoice', 'access_surat_jalan', 'access_sales_return', 'access_quotation', 'access_cuti', 'access_purchase_order', 'access_purchase_invoice', 'access_stock_in', 'access_stock_out', 'access_stock_transfer', 'access_stock']))
 
   // User Session Router - untuk monitoring user yang sedang online
   router.group(() => {
@@ -447,7 +461,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_bank_account', 'edit_bank_account', 'delete_bank_account', 'create_bank_account', 'show_bank_account', 'approve_bank_account', 'reject_bank_account']))
+  .use(middleware.hasPermission(['view_bank_account', 'edit_bank_account', 'delete_bank_account', 'create_bank_account', 'show_bank_account', 'approve_bank_account', 'reject_bank_account', 'access_bank_account']))
 
   // Taxes Router
   router.group(() => {
@@ -456,7 +470,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_tax', 'edit_tax', 'delete_tax', 'create_tax', 'show_tax', 'approve_tax', 'reject_tax']))
+  .use(middleware.hasPermission(['view_tax', 'edit_tax', 'delete_tax', 'create_tax', 'show_tax', 'approve_tax', 'reject_tax', 'access_tax']))
 
   // Expenses Router
   router.group(() => {
@@ -465,7 +479,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_expenses', 'edit_expenses', 'delete_expenses', 'create_expenses', 'show_expenses', 'approve_expenses', 'reject_expenses']))
+  .use(middleware.hasPermission(['view_expenses', 'edit_expenses', 'delete_expenses', 'create_expenses', 'show_expenses', 'approve_expenses', 'reject_expenses', 'access_expenses']))
 
   // AP Payments Router (Pembayaran Hutang)
   router.group(() => {
@@ -474,7 +488,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_ap_payment', 'edit_ap_payment', 'delete_ap_payment', 'create_ap_payment', 'show_ap_payment', 'approve_ap_payment', 'reject_ap_payment']))
+  .use(middleware.hasPermission(['view_ap_payment', 'edit_ap_payment', 'delete_ap_payment', 'create_ap_payment', 'show_ap_payment', 'approve_ap_payment', 'reject_ap_payment', 'access_ap_payment']))
 
   // AR Receipts Router (Penerimaan Piutang)
   router.group(() => {
@@ -483,7 +497,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_ar_receipt', 'edit_ar_receipt', 'delete_ar_receipt', 'create_ar_receipt', 'show_ar_receipt', 'approve_ar_receipt', 'reject_ar_receipt']))
+  .use(middleware.hasPermission(['view_ar_receipt', 'edit_ar_receipt', 'delete_ar_receipt', 'create_ar_receipt', 'show_ar_receipt', 'approve_ar_receipt', 'reject_ar_receipt', 'access_ar_receipt']))
 
   // Assets Router
   router.group(() => {
@@ -494,7 +508,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_asset', 'edit_asset', 'delete_asset', 'create_asset', 'show_asset', 'approve_asset', 'reject_asset']))
+  .use(middleware.hasPermission(['view_asset', 'edit_asset', 'delete_asset', 'create_asset', 'show_asset', 'approve_asset', 'reject_asset', 'access_asset']))
 
   // Accounts Router (Chart of Accounts)
   router.group(() => {
@@ -506,7 +520,7 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_account', 'edit_account', 'delete_account', 'create_account', 'show_account', 'approve_account', 'reject_account']))
+  .use(middleware.hasPermission(['view_account', 'edit_account', 'delete_account', 'create_account', 'show_account', 'approve_account', 'reject_account', 'access_account']))
 
   // Journals Router
   router.group(() => {
@@ -519,4 +533,4 @@ router
   })
   .prefix('/api')
   .use(middleware.auth())
-  .use(middleware.hasPermission(['view_journal', 'edit_journal', 'delete_journal', 'create_journal', 'show_journal', 'post_journal', 'cancel_journal', 'approve_journal', 'reject_journal']))
+  .use(middleware.hasPermission(['view_journal', 'edit_journal', 'delete_journal', 'create_journal', 'show_journal', 'post_journal', 'cancel_journal', 'approve_journal', 'reject_journal', 'access_journal']))

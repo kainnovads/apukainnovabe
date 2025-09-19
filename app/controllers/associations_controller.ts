@@ -8,6 +8,21 @@ import Product from '#models/product'
 import Customer from '#models/customer'
 import Vendor from '#models/vendor'
 import Departemen from '#models/departemen'
+import Jabatan from '#models/jabatan'
+import Pegawai from '#models/pegawai'
+import SalesOrder from '#models/sales_order'
+import SalesInvoice from '#models/sales_invoice'
+import SuratJalan from '#models/surat_jalan'
+import SalesReturn from '#models/sales_return'
+import Quotation from '#models/quotation'
+import Cuti from '#models/cuti'
+import PurchaseOrder from '#models/purchase_order'
+import PurchaseInvoice from '#models/purchase_invoice'
+import StockTransfer from '#models/stock_transfer'
+import StockIn from '#models/stock_in'
+import StockOut from '#models/stock_out'
+import Stock from '#models/stock'
+
 
 function getSubsets<T>(array: T[]): T[][] {
   const subsets = [[]] as T[][]
@@ -275,4 +290,216 @@ export default class AssociationsController {
       })
     }
   }
+  
+  public async getJabatanData({ response }: HttpContext) {
+    try {
+      const jabatans = await Jabatan.query()
+        .select(['id', 'nmJabatan'])
+        .orderBy('nmJabatan', 'asc')
+
+      return response.ok(jabatans)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data jabatan',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getPegawaiData({ response }: HttpContext) {
+    try {
+      const pegawais = await Pegawai.query()
+        .select(['id', 'nmPegawai'])
+        .orderBy('nmPegawai', 'asc')
+
+      return response.ok(pegawais)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data pegawai',
+        error: error.message,
+      })
+    }
+  }
+  
+  public async getSalesOrderData({ response }: HttpContext) {
+    try {
+      const salesOrders = await SalesOrder.query()
+        .select(['id', 'noSo'])
+        .orderBy('noSo', 'asc')
+
+      return response.ok(salesOrders)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data sales order',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getSalesInvoiceData({ response }: HttpContext) {
+    try {
+      const salesInvoices = await SalesInvoice.query()
+        .select(['id', 'noSi'])
+        .orderBy('noSi', 'asc')
+
+      return response.ok(salesInvoices)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data sales invoice',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getSuratJalanData({ response }: HttpContext) {
+    try {
+      const suratJalans = await SuratJalan.query()
+        .select(['id', 'noSj'])
+        .orderBy('noSj', 'asc')
+
+      return response.ok(suratJalans)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data surat jalan',
+        error: error.message,
+      })
+    }
+  }
+  
+  public async getSalesReturnData({ response }: HttpContext) {
+    try {
+      const salesReturns = await SalesReturn.query()
+        .select(['id', 'noSr'])
+        .orderBy('noSr', 'asc')
+
+      return response.ok(salesReturns)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data sales return',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getQuotationData({ response }: HttpContext) {
+    try {
+      const quotations = await Quotation.query()
+        .select(['id', 'noQuotation'])
+        .orderBy('noQuotation', 'asc')
+
+      return response.ok(quotations)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data quotation',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getCutiData({ response }: HttpContext) {
+    try {
+      const cutis = await Cuti.query()
+        .select(['id', 'tanggalMulai', 'tanggalSelesai', 'lamaCuti', 'alasan', 'status', 'approvedBy', 'approval_date', 'alasanDitolak', 'attachment', 'pegawaiId'])
+        .orderBy('id', 'desc')
+  
+      return response.ok(cutis)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data cuti',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getPurchaseOrderData({ response }: HttpContext) {
+    try {
+      const purchaseOrders = await PurchaseOrder.query()
+        .select(['id', 'noPo'])
+        .orderBy('noPo', 'desc')
+
+      return response.ok(purchaseOrders)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data purchase order',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getPurchaseInvoiceData({ response }: HttpContext) {
+    try {
+      const purchaseInvoices = await PurchaseInvoice.query()
+        .select(['id', 'noInvoice'])
+        .orderBy('noInvoice', 'desc')
+  
+      return response.ok(purchaseInvoices)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data purchase invoice',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getStockInData({ response }: HttpContext) {
+    try {
+      const stockIns = await StockIn.query()
+        .select(['id', 'noSi'])
+        .orderBy('noSi', 'desc')
+
+      return response.ok(stockIns)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data stock in',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getStockOutData({ response }: HttpContext) {
+    try {
+      const stockOuts = await StockOut.query()
+        .select(['id', 'noSo'])
+        .orderBy('noSo', 'desc')
+
+      return response.ok(stockOuts)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data stock out',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getStockTransferData({ response }: HttpContext) {
+    try {
+      const stockTransfers = await StockTransfer.query()
+        .select(['id', 'noTransfer'])
+        .orderBy('noTransfer', 'desc')
+
+      return response.ok(stockTransfers)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data stock transfer',
+        error: error.message,
+      })
+    }
+  }
+
+  public async getStockData({ response }: HttpContext) {
+    try {
+      const stocks = await Stock.query()
+        .select(['id', 'productId', 'warehouseId', 'quantity', 'description'])
+        .orderBy('productId', 'desc')
+
+      return response.ok(stocks)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal mengambil data stock',
+        error: error.message,
+      })
+    }
+  }
+
+
 }
