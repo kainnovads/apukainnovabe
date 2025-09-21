@@ -1,3 +1,14 @@
+/*
+|--------------------------------------------------------------------------
+| Environment variables service
+|--------------------------------------------------------------------------
+|
+| The `Env.create` method creates an instance of the Env service. The
+| service validates the environment variables and also cast values
+| to JavaScript data types.
+|
+*/
+
 import { Env } from '@adonisjs/core/env'
 
 export default await Env.create(new URL('../', import.meta.url), {
@@ -17,65 +28,56 @@ export default await Env.create(new URL('../', import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
-  DB_CONNECTION: Env.schema.string(),
-  DB_SSL: Env.schema.boolean(),
-  DB_DEBUG: Env.schema.boolean(),
-  DB_POOL_MIN: Env.schema.number(),
-  DB_POOL_MAX: Env.schema.number(),
+  DB_SSL: Env.schema.string.optional(),
 
-  /*
-  |----------------------------------------------------------
-  | Variables for configuring storage configuration
-  |----------------------------------------------------------
-  */
-  STORAGE_DRIVER: Env.schema.enum(['local', 's3']),
-
-  /*
-  |----------------------------------------------------------
-  | Variables for configuring session package
-  |----------------------------------------------------------
-  */
-  SESSION_DRIVER: Env.schema.enum(['cookie', 'memory']),
+  // ✅ OPTIMASI: Performance monitoring environment variables dengan default values
+  DB_DEBUG: Env.schema.boolean.optional(),
+  ENABLE_QUERY_MONITORING: Env.schema.boolean.optional(),
+  SLOW_QUERY_THRESHOLD: Env.schema.number.optional(),
+  SLOW_ENDPOINT_THRESHOLD: Env.schema.number.optional(),
+  DB_POOL_MIN: Env.schema.number.optional(),
+  DB_POOL_MAX: Env.schema.number.optional(),
+  DB_QUERY_TIMEOUT: Env.schema.number.optional(),
 
   /*
   |----------------------------------------------------------
   | Variables for configuring AWS S3 storage
   |----------------------------------------------------------
   */
-  AWS_ACCESS_KEY_ID: Env.schema.string(),
-  AWS_SECRET_ACCESS_KEY: Env.schema.string(),
-  AWS_REGION: Env.schema.string(),
-  AWS_S3_BUCKET_NAME: Env.schema.string(),
-  AWS_S3_ENDPOINT: Env.schema.string(),
+  AWS_ACCESS_KEY_ID: Env.schema.string.optional(),
+  AWS_SECRET_ACCESS_KEY: Env.schema.string.optional(),
+  AWS_REGION: Env.schema.string.optional(),
+  AWS_S3_BUCKET_NAME: Env.schema.string.optional(),
+  AWS_S3_ENDPOINT: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring storage configuration
+  |----------------------------------------------------------
+  */
+  STORAGE_DRIVER: Env.schema.enum(['local', 's3'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring session package
+  |----------------------------------------------------------
+  */
+  SESSION_DRIVER: Env.schema.enum(['cookie', 'memory'] as const),
 
   /*
   |----------------------------------------------------------
   | Variables for configuring the mail package
   |----------------------------------------------------------
   */
-  SMTP_HOST: Env.schema.string(),
-  SMTP_PORT: Env.schema.number(),
-  SMTP_USERNAME: Env.schema.string(),
-  SMTP_PASSWORD: Env.schema.string(),
-  SMTP_SECURE: Env.schema.boolean(),
-  SMTP_TLS_REJECT_UNAUTHORIZED: Env.schema.boolean(),
-  MAIL_FROM_ADDRESS: Env.schema.string(),
-  SMTP_FROM_NAME: Env.schema.string(),
+  SMTP_HOST: Env.schema.string.optional(),
+  SMTP_PORT: Env.schema.string.optional(),
+  SMTP_USERNAME: Env.schema.string.optional(),
+  SMTP_PASSWORD: Env.schema.string.optional(),
+  SMTP_SECURE: Env.schema.string.optional(),
+  SMTP_TLS_REJECT_UNAUTHORIZED: Env.schema.string.optional(),
+  MAIL_FROM_ADDRESS: Env.schema.string.optional(),
+  SMTP_FROM_NAME: Env.schema.string.optional(),
   MAILGUN_API_KEY: Env.schema.string.optional(),
   MAILGUN_DOMAIN: Env.schema.string.optional(),
-  SPARKPOST_API_KEY: Env.schema.string.optional(),
-
-  /*
-  |----------------------------------------------------------
-  | Variables for configuring other things (CORS, Redis)
-  |----------------------------------------------------------
-  */
-  REDIS_HOST: Env.schema.string(),
-  REDIS_PORT: Env.schema.number(),
-  REDIS_PASSWORD: Env.schema.string.optional(),
-  REDIS_DB: Env.schema.number(),
-  REDIS_SESSION_DB: Env.schema.number(),
-  REDIS_CACHE_DB: Env.schema.number(),
-  REDIS_KEY_PREFIX: Env.schema.string(),
-  CORS_ENABLED: Env.schema.boolean(),
-});
+  SPARKPOST_API_KEY: Env.schema.string.optional()
+})
