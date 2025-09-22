@@ -1,6 +1,6 @@
 name: Deploy to VM
 
-# Tess
+# Tess local deploy
 on:
   push:
     branches:
