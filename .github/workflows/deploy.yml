@@ -20,7 +20,7 @@ jobs:
         key: ${{ secrets.VM_SSH_KEY }}
         port: 22
         script: |
-          cd /path/to/app
+          cd /var/www/apukainnovabe
           git fetch --all
           git reset --hard origin/main
           npm install
