@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "node build/bin/server.js",
+    "prod": "cross-env PM2_HOME=/root/.pm2 pm2 start \"npm start\" --name \"adonis-app\"",
     "build": "node ace build",
     "dev": "node ace serve --hmr",
     "test": "node ace test",
@@ -72,6 +73,7 @@
     "@poppinss/utils": "^6.10.1",
     "@vinejs/vine": "^3.0.1",
     "adonis-lucid-soft-deletes": "^2.1.0",
+    "cross-env": "^10.0.0",
     "cuid": "^3.0.0",
     "luxon": "^3.6.1",
     "node-apriori": "^1.0.0",
