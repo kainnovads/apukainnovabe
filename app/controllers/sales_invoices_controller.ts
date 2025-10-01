@@ -438,6 +438,8 @@ export default class SalesInvoicesController {
         const SalesInv = await SalesInvoice.create({
             salesOrderId   : payload.salesOrderId || null,
             customerId     : payload.customerId,
+            perusahanId    : payload.perusahanId || null,
+            cabangId       : payload.cabangId || null,
             noInvoice      : noInvoice,
             email          : payload.email || '',
             up             : payload.up || '',

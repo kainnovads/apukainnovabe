@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, beforeCreate, belongsTo, column, hasMany } from '@adonisjs/lucid/orm'
 import Customer from '#models/customer'
 import SalesOrder from '#models/sales_order'
+import Perusahaan from '#models/perusahaan'
 import SalesInvoiceItem from '#models/sales_invoice_item'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { randomUUID } from 'node:crypto'
@@ -35,6 +36,9 @@ export default class SalesInvoice extends BaseModel {
 
   @column()
   declare customerId: number | null
+
+  @column()
+  declare perusahaanId: number | null
 
   @column()
   declare date: Date
@@ -74,4 +78,7 @@ export default class SalesInvoice extends BaseModel {
 
   @hasMany(() => SalesInvoiceItem)
   declare salesInvoiceItems: HasMany<typeof SalesInvoiceItem>
+
+  @belongsTo(() => Perusahaan)
+  declare perusahaan: BelongsTo<typeof Perusahaan>
 }
