@@ -79,11 +79,11 @@ export default class SalesItemsController {
         const now = new Date()
         const bulan = String(now.getMonth() + 1).padStart(2, '0')
         const tahun = String(now.getFullYear()).slice(-2)
-        const currentMonthPattern = `-${bulan}${tahun}`
+        const currentYearPattern = `-${tahun}`
 
-        // Ambil nomor invoice tertinggi untuk bulan ini
+        // Ambil nomor invoice tertinggi untuk tahun ini (tidak berdasarkan bulan)
         const lastInvoice = await SalesInvoice.query()
-          .whereRaw(`no_invoice LIKE '%${currentMonthPattern}'`)
+          .whereRaw(`no_invoice LIKE '%${currentYearPattern}'`)
           .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
           .first()
 

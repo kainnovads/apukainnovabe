@@ -237,7 +237,7 @@ export default class PurchasesController {
   async store({ request, response }: HttpContext) {
       // Fungsi generateNo untuk no_po dengan format 0000/APU/PO/Bulan dalam angka romawi/tahun
       async function generateNo() {
-          // Ambil nomor urut terakhir dari PO bulan ini
+          // Ambil nomor urut terakhir dari PO tahun ini
           const now   = new Date()
           const bulan = now.getMonth() + 1
           const tahun = now.getFullYear()
@@ -245,10 +245,9 @@ export default class PurchasesController {
           // Konversi bulan ke angka romawi
           const bulanRomawi = toRoman(bulan)
 
-          // Cari nomor urut terakhir untuk bulan dan tahun ini
+          // Cari nomor urut terakhir untuk tahun ini (tidak berdasarkan bulan)
           const lastPo = await PurchaseOrder
               .query()
-              .whereRaw('EXTRACT(MONTH FROM created_at) = ?', [bulan])
               .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [tahun])
               .orderBy('no_po', 'desc')
               .first()

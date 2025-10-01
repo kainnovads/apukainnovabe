@@ -399,12 +399,12 @@ export default class PurchaseInvoicesController {
     const bulan = String(now.getMonth() + 1).padStart(2, '0')
     const tahun = String(now.getFullYear()).slice(-2)
 
-    // Hitung nomor urut invoice bulan ini dengan mengambil nomor urut tertinggi
-    const currentMonthPattern = `-${bulan}${tahun}`
+    // Hitung nomor urut invoice tahun ini dengan mengambil nomor urut tertinggi
+    const currentYearPattern = `-${tahun}`
 
-    // Ambil nomor invoice tertinggi untuk bulan ini
+    // Ambil nomor invoice tertinggi untuk tahun ini (tidak berdasarkan bulan)
     const lastInvoice = await PurchaseInvoice.query()
-      .whereRaw(`no_invoice LIKE '%${currentMonthPattern}'`)
+      .whereRaw(`no_invoice LIKE '%${currentYearPattern}'`)
       .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
       .first()
 

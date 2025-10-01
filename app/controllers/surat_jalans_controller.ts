@@ -327,12 +327,12 @@ export default class SuratJalansController {
     // Gunakan customer.code dari database
     const customerCode = customer.code || 'XXX'
 
-    // Hitung nomor urut surat jalan bulan ini
-    const currentMonthPattern = `/${bulanRomawi}/${tahun}`
+    // Hitung nomor urut surat jalan tahun ini
+    const currentYearPattern = `/${tahun}`
 
-    // Ambil nomor surat jalan tertinggi untuk bulan ini
+    // Ambil nomor surat jalan tertinggi untuk tahun ini (tidak berdasarkan bulan)
     const lastNumber = await SuratJalan.query()
-      .whereRaw(`no_surat_jalan LIKE '%${currentMonthPattern}'`)
+      .whereRaw(`no_surat_jalan LIKE '%${currentYearPattern}'`)
       .orderByRaw(`CAST(SUBSTRING(no_surat_jalan, 1, 4) AS INTEGER) DESC`)
       .first()
 

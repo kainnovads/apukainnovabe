@@ -209,9 +209,9 @@ export default class StockTransfersController {
   }
 
   public async store({ request, auth, response }: HttpContext) {
-    // Fungsi generateNo untuk no_po dengan format 0000/APU/PO/Bulan dalam angka romawi/tahun
+    // Fungsi generateNo untuk no_transfer dengan format 0000/APU/BA/Bulan dalam angka romawi/tahun
     async function generateNo() {
-      // Ambil nomor urut terakhir dari PO bulan ini
+      // Ambil nomor urut terakhir dari Stock Transfer tahun ini
       const now   = new Date()
       const bulan = now.getMonth() + 1
       const tahun = now.getFullYear()
@@ -219,17 +219,16 @@ export default class StockTransfersController {
       // Konversi bulan ke angka romawi
       const bulanRomawi = toRoman(bulan)
 
-      // Cari nomor urut terakhir untuk bulan dan tahun ini
+      // Cari nomor urut terakhir untuk tahun ini (tidak berdasarkan bulan)
       const lastTF = await StockTransfer
           .query()
-          .whereRaw('EXTRACT(MONTH FROM created_at) = ?', [bulan])
           .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [tahun])
           .orderBy('no_transfer', 'desc')
           .first()
 
       let lastNumber = 0
       if (lastTF && lastTF.noTransfer) {
-          // Ambil 4 digit pertama dari no_po terakhir
+          // Ambil 4 digit pertama dari no_transfer terakhir
           const match = lastTF.noTransfer.match(/^(\d{4})/)
           if (match) {
               lastNumber = parseInt(match[1], 10)
@@ -237,7 +236,7 @@ export default class StockTransfersController {
       }
       const nextNumber = (lastNumber + 1).toString().padStart(4, '0')
 
-      // Format: 0000/APU/PO/BULAN_ROMAWI/TAHUN
+      // Format: 0000/APU/BA/BULAN_ROMAWI/TAHUN
       return `${nextNumber}/APU/BA/${bulanRomawi}/${tahun}`
     }
     const trx = await db.transaction()

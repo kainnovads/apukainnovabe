@@ -317,9 +317,9 @@ export default class SalesController {
   }
 
   async store({ request, response }: HttpContext) {
-    // Fungsi generateNo untuk no_po dengan format 0000/APU/PO/Bulan dalam angka romawi/tahun
+    // Fungsi generateNo untuk no_so dengan format 0000/APU/SO/Bulan dalam angka romawi/tahun
     async function generateNo() {
-      // Ambil nomor urut terakhir dari PO bulan ini
+      // Ambil nomor urut terakhir dari SO tahun ini
       const now   = new Date()
       const bulan = now.getMonth() + 1
       const tahun = now.getFullYear()
@@ -327,18 +327,17 @@ export default class SalesController {
       // Konversi bulan ke angka romawi
       const bulanRomawi = toRoman(bulan)
 
-      // Cari nomor urut terakhir untuk bulan dan tahun ini
-      const lastPo = await SalesOrder
+      // Cari nomor urut terakhir untuk tahun ini (tidak berdasarkan bulan)
+      const lastSo = await SalesOrder
           .query()
-          .whereRaw('EXTRACT(MONTH FROM created_at) = ?', [bulan])
           .whereRaw('EXTRACT(YEAR FROM created_at) = ?', [tahun])
           .orderBy('no_so', 'desc')
           .first()
 
       let lastNumber = 0
-      if (lastPo && lastPo.noSo) {
-          // Ambil 4 digit pertama dari no_po terakhir
-          const match = lastPo.noSo.match(/^(\d{4})/)
+      if (lastSo && lastSo.noSo) {
+          // Ambil 4 digit pertama dari no_so terakhir
+          const match = lastSo.noSo.match(/^(\d{4})/)
           if (match) {
               lastNumber = parseInt(match[1], 10)
           }
