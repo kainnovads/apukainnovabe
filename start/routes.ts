@@ -62,12 +62,26 @@ router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
 })
 
-// Health Check AWS EB
-router.get('/health', async () => {
-  return {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'unknown'
+/// Test route
+router.get('/test/gcs', async ({ response }) => {
+  try {
+    const GCSService = (await import('#services/gcs_service')).default
+    const StorageService = (await import('#services/storage_service')).default
+    
+    const gcsService = new GCSService()
+    const storageService = new StorageService()
+
+    const config = gcsService.getConfigInfo()
+    const isConnected = await gcsService.testConnection()
+    const testResult = await storageService.testStorage()
+
+    return response.ok({
+      config,
+      connection: isConnected,
+      storage: testResult
+    })
+  } catch (error) {
+    return response.badRequest({ error: error.message })
   }
 })
 

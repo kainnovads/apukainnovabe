@@ -41,21 +41,21 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
-  | Variables for configuring AWS S3 storage
+  | Variables for configuring Google Cloud Storage
   |----------------------------------------------------------
   */
-  AWS_ACCESS_KEY_ID: Env.schema.string.optional(),
-  AWS_SECRET_ACCESS_KEY: Env.schema.string.optional(),
-  AWS_REGION: Env.schema.string.optional(),
-  AWS_S3_BUCKET_NAME: Env.schema.string.optional(),
-  AWS_S3_ENDPOINT: Env.schema.string.optional(),
+  GCP_PROJECT_ID: Env.schema.string.optional(),
+  GCP_CLIENT_EMAIL: Env.schema.string.optional(),
+  GCP_PRIVATE_KEY: Env.schema.string.optional(),
+  GCP_BUCKET_NAME: Env.schema.string.optional(),
+  GCP_REGION: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
   | Variables for configuring storage configuration
   |----------------------------------------------------------
   */
-  STORAGE_DRIVER: Env.schema.enum(['local', 's3'] as const),
+  STORAGE_DRIVER: Env.schema.enum(['local', 'gcs'] as const),
 
   /*
   |----------------------------------------------------------

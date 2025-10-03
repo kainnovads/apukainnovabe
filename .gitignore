@@ -34,6 +34,9 @@ finance_flowchart_final.pdf
 database_schema_diagram.md
 finance_flowchart.py
 
+# GCS
+commands/test_gcs.ts
+
 # Security: Environment files with credentials
 .ebextensions/*_credentials.config
 .ebextensions/*_secrets.config

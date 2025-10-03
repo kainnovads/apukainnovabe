@@ -1,15 +1,15 @@
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
-import S3Service from '#services/s3_service'
+import GCSService from '#services/gcs_service'
 
 export default class StorageService {
-  private s3Service: S3Service
+  private gcsService: GCSService
   private storageDriver: string
 
   constructor() {
     this.storageDriver = env.get('STORAGE_DRIVER', 'local')
-    this.s3Service = new S3Service()
+    this.gcsService = new GCSService()
   }
 
   /**
@@ -20,14 +20,14 @@ export default class StorageService {
     folder: string,
     isPublic: boolean = true
   ): Promise<{ url: string; path: string }> {
-    if (this.storageDriver === 's3') {
+    if (this.storageDriver === 'gcs') {
       try {
-        console.log(`[StorageService] Attempting S3 upload to folder: ${folder}`)
-        const result = await this.uploadToS3(file, folder, isPublic)
-        console.log(`[StorageService] S3 upload successful: ${result.url}`)
+        console.log(`[StorageService] Attempting GCS upload to folder: ${folder}`)
+        const result = await this.uploadToGCS(file, folder, isPublic)
+        console.log(`[StorageService] GCS upload successful: ${result.url}`)
         return result
       } catch (error) {
-        console.warn(`[StorageService] S3 upload failed, fallback to local: ${error.message}`)
+        console.warn(`[StorageService] GCS upload failed, fallback to local: ${error.message}`)
         console.log(`[StorageService] Attempting local upload to folder: ${folder}`)
         return await this.uploadToLocal(file, folder)
       }
@@ -38,14 +38,14 @@ export default class StorageService {
   }
 
   /**
-   * Upload ke S3
+   * Upload ke GCS
    */
-  private async uploadToS3(
+  private async uploadToGCS(
     file: MultipartFile,
     folder: string,
     isPublic: boolean
   ): Promise<{ url: string; path: string }> {
-    const result = await this.s3Service.uploadMultipartFile(file, folder, isPublic)
+    const result = await this.gcsService.uploadMultipartFile(file, folder, isPublic)
     
     return {
       url: result.url,
@@ -101,11 +101,11 @@ export default class StorageService {
    * Delete file
    */
   async deleteFile(path: string): Promise<boolean> {
-    if (this.storageDriver === 's3') {
+    if (this.storageDriver === 'gcs') {
       try {
-        return await this.s3Service.deleteFile(path)
+        return await this.gcsService.deleteFile(path)
       } catch (error) {
-        console.warn('S3 delete failed:', error.message)
+        console.warn('GCS delete failed:', error.message)
         return false
       }
     } else {
@@ -126,11 +126,11 @@ export default class StorageService {
    * Get file URL
    */
   getFileUrl(path: string): string {
-    if (this.storageDriver === 's3') {
+    if (this.storageDriver === 'gcs') {
       try {
-        return this.s3Service.getPublicUrl(path)
+        return this.gcsService.getPublicUrl(path)
       } catch (error) {
-        console.warn('S3 URL generation failed, fallback to local:', error.message)
+        console.warn('GCS URL generation failed, fallback to local:', error.message)
         return `${env.get('HOST')}/${path}`
       }
     } else {
@@ -141,8 +141,8 @@ export default class StorageService {
   /**
    * Test storage service
    */
-  async testStorage(): Promise<{ s3: boolean; local: boolean }> {
-    const s3Test = await this.s3Service.testConnection()
+  async testStorage(): Promise<{ gcs: boolean; local: boolean }> {
+    const gcsTest = await this.gcsService.testConnection()
     
     let localTest = false
     try {
@@ -155,7 +155,7 @@ export default class StorageService {
     }
 
     return {
-      s3: s3Test,
+      gcs: gcsTest,
       local: localTest
     }
   }
