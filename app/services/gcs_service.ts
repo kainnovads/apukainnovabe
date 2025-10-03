@@ -297,7 +297,7 @@ export default class GCSService {
       }
 
       const [files] = await bucket.getFiles(options)
-      return files.map(file => file.name)
+      return files.map((file: { name: string }) => file.name)
     } catch (error) {
       console.error('GCS List Files Error:', error)
       throw new Error(`Gagal list files: ${error.message}`)
