@@ -47,6 +47,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   GCP_PROJECT_ID: Env.schema.string.optional(),
   GCP_CLIENT_EMAIL: Env.schema.string.optional(),
   GCP_PRIVATE_KEY: Env.schema.string.optional(),
+  GCP_KEY_FILE: Env.schema.string.optional(),
   GCP_BUCKET_NAME: Env.schema.string.optional(),
   GCP_REGION: Env.schema.string.optional(),
 

@@ -26,13 +26,9 @@ export default class GCSService {
    */
   private initializeGCSClient(): void {
     try {
+      const keyFile = env.get('GCP_KEY_FILE', '')
+      const privateKey = env.get('GCP_PRIVATE_KEY', '')
       const clientEmail = env.get('GCP_CLIENT_EMAIL', '')
-      const privateKey = env.get('GCP_KEY_FILE', '')
-
-      if (!clientEmail || !privateKey) {
-        console.warn('GCP credentials tidak ditemukan, GCS service akan disabled')
-        return
-      }
 
       if (!this.bucketName) {
         console.warn('GCP_BUCKET_NAME tidak ditemukan, GCS service akan disabled')
@@ -44,16 +40,33 @@ export default class GCSService {
         return
       }
 
-      // Konfigurasi untuk Google Cloud Storage
-      const credentials = {
-        client_email: clientEmail,
-        private_key: privateKey.replace(/\\n/g, '\n'), // Handle escaped newlines
-      }
+      // ✅ PERBAIKAN: Support dua cara authentication
+      // 1. Gunakan keyFilename jika GCP_KEY_FILE ada (production)
+      // 2. Gunakan credentials object jika GCP_PRIVATE_KEY ada (local)
+      
+      if (keyFile) {
+        // Production: Gunakan file path
+        this.storage = new Storage({
+          projectId: this.projectId,
+          keyFilename: keyFile,
+        })
+        console.log('GCS Service initialized with keyFilename:', keyFile)
+      } else if (clientEmail && privateKey) {
+        // Local: Gunakan credentials object
+        const credentials = {
+          client_email: clientEmail,
+          private_key: privateKey.replace(/\\n/g, '\n'),
+        }
 
-      this.storage = new Storage({
-        projectId: this.projectId,
-        credentials: credentials,
-      })
+        this.storage = new Storage({
+          projectId: this.projectId,
+          credentials: credentials,
+        })
+        console.log('GCS Service initialized with credentials object')
+      } else {
+        console.warn('GCP credentials tidak ditemukan, GCS service akan disabled')
+        return
+      }
 
       this.isInitialized = true
       console.log('GCS Service initialized successfully for bucket:', this.bucketName)
