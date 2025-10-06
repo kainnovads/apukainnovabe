@@ -12,7 +12,11 @@ const corsConfig = defineConfig({
   origin: [
     'http://apu.kainnovadigital.com', 
     'https://apu.kainnovadigital.com', 
+    'https://erp.kainnovadigital.com',
+    'https://nuxt-erp.vercel.app',
+    'https://nuxt-erp-git-main-kainnovadigital.vercel.app',
     'http://localhost:3000',
+    'http://localhost:3001',
   ],
 
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],

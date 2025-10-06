@@ -324,7 +324,11 @@ export default class GCSService {
             'http://localhost:3001',
             'https://kainnovadigital.com',
             'https://*.kainnovadigital.com',
-            'https://backendapu.kainnovadigital.com'
+            'https://backendapu.kainnovadigital.com',
+            'https://apu.kainnovadigital.com',
+            'https://erp.kainnovadigital.com',
+            'https://nuxt-erp.vercel.app',
+            'https://nuxt-erp-git-main-kainnovadigital.vercel.app'
           ],
           method: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
           responseHeader: [
@@ -332,7 +336,10 @@ export default class GCSService {
             'Access-Control-Allow-Origin',
             'Access-Control-Allow-Methods',
             'Access-Control-Allow-Headers',
-            'Access-Control-Max-Age'
+            'Access-Control-Max-Age',
+            'Cache-Control',
+            'ETag',
+            'Last-Modified'
           ],
           maxAgeSeconds: 3600
         }
