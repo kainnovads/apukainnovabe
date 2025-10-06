@@ -36,6 +36,7 @@ finance_flowchart.py
 
 # GCS
 commands/test_gcs.ts
+ecosystem.config.cjs
 
 # Security: Environment files with credentials
 .ebextensions/*_credentials.config

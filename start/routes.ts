@@ -45,6 +45,7 @@ import SuratJalansController from '#controllers/surat_jalans_controller'
 import QuotationsController from '#controllers/quotations_controller'
 import UserSessionsController from '#controllers/user_sessions_controller'
 import ImportController from '#controllers/import_controller'
+import StorageController from '#controllers/storage_controller'
 
 // Finance Controllers
 import BankAccountsController from '#controllers/bank_accounts_controller'
@@ -84,6 +85,17 @@ router.get('/test/gcs', async ({ response }) => {
     return response.badRequest({ error: error.message })
   }
 })
+
+
+// ✅ PERBAIKAN CORS: Storage management routes
+router.group(() => {
+  router.get('/storage/test', [StorageController, 'testStorage'])
+  router.post('/storage/configure-cors', [StorageController, 'configureCors'])
+  router.post('/storage/test-upload', [StorageController, 'testUpload'])
+})
+.prefix('/api')
+.use(middleware.auth())
+.use(middleware.hasRole(['superadmin', 'admin']))
 
 router.get('/auth/api/csrf-token', async ({ response, request }) => {
   return response.ok({ token: request.csrfToken })

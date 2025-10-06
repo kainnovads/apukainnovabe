@@ -22,17 +22,13 @@ export default class StorageService {
   ): Promise<{ url: string; path: string }> {
     if (this.storageDriver === 'gcs') {
       try {
-        console.log(`[StorageService] Attempting GCS upload to folder: ${folder}`)
         const result = await this.uploadToGCS(file, folder, isPublic)
-        console.log(`[StorageService] GCS upload successful: ${result.url}`)
         return result
       } catch (error) {
         console.warn(`[StorageService] GCS upload failed, fallback to local: ${error.message}`)
-        console.log(`[StorageService] Attempting local upload to folder: ${folder}`)
         return await this.uploadToLocal(file, folder)
       }
     } else {
-      console.log(`[StorageService] Using local storage for folder: ${folder}`)
       return await this.uploadToLocal(file, folder)
     }
   }
@@ -52,6 +48,7 @@ export default class StorageService {
       path: result.key
     }
   }
+
 
   /**
    * Upload ke local storage
@@ -84,7 +81,7 @@ export default class StorageService {
     let url: string
     
     if (host === '0.0.0.0' || host === 'localhost') {
-      const apiBase = env.get('APP_URL') || 'https://api.kainnovadigital.com'
+      const apiBase = env.get('APP_URL') || 'https://backendapu.kainnovadigital.com'
       url = `${apiBase}/${path}`
     } else {
       url = `${host}/${path}`
@@ -141,7 +138,7 @@ export default class StorageService {
   /**
    * Test storage service
    */
-  async testStorage(): Promise<{ gcs: boolean; local: boolean }> {
+  async testStorage(): Promise<{ gcs: boolean; local: boolean; cors: any; driver: string }> {
     const gcsTest = await this.gcsService.testConnection()
     
     let localTest = false
@@ -154,9 +151,43 @@ export default class StorageService {
       console.error('Local storage test failed:', error)
     }
 
+    // ✅ PERBAIKAN CORS: Test CORS configuration
+    let corsTest = { success: false, message: 'Storage not available' }
+    if (this.storageDriver === 'gcs' && gcsTest) {
+      try {
+        corsTest = await this.gcsService.testCorsConfiguration()
+      } catch (error) {
+        corsTest = { success: false, message: `CORS test failed: ${error.message}` }
+      }
+    }
+
     return {
       gcs: gcsTest,
-      local: localTest
+      local: localTest,
+      cors: corsTest,
+      driver: this.storageDriver
+    }
+  }
+
+  /**
+   * ✅ PERBAIKAN CORS: Konfigurasi CORS untuk GCS
+   */
+  async configureCors(): Promise<{ success: boolean; message: string }> {
+    if (this.storageDriver !== 'gcs') {
+      return { success: false, message: 'CORS configuration hanya untuk GCS storage' }
+    }
+
+    try {
+      const result = await this.gcsService.configureCorsPolicy()
+      return { 
+        success: result, 
+        message: result ? 'CORS policy berhasil dikonfigurasi' : 'Gagal mengkonfigurasi CORS policy' 
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        message: `Error mengkonfigurasi CORS: ${error.message}` 
+      }
     }
   }
 }

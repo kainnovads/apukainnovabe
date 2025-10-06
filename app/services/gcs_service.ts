@@ -11,6 +11,12 @@ export default class GCSService {
   constructor() {
     this.projectId = env.get('GCP_PROJECT_ID', '')
     this.bucketName = env.get('GCP_BUCKET_NAME', '')
+    
+    // ✅ PERBAIKAN: Jika bucket name kosong, gunakan bucket dari app.yaml untuk production
+    if (!this.bucketName) {
+      this.bucketName = 'skilful-grove-470706-h5.appspot.com'
+      console.log('Using default bucket name for production:', this.bucketName)
+    }
 
     this.initializeGCSClient()
   }
@@ -104,20 +110,15 @@ export default class GCSService {
         metadata: {
           contentType: contentType || 'application/octet-stream',
           cacheControl: 'public, max-age=31536000',
-        },
+        }
       }
 
-      // Set public access jika diperlukan
-      if (isPublic) {
-        uploadOptions.metadata.acl = [{ entity: 'allUsers', role: 'READER' }]
-      }
-
+      // ✅ PERBAIKAN: Untuk uniform bucket-level access, tidak perlu set ACL
+      // File akan otomatis public jika bucket sudah dikonfigurasi dengan uniform access
       await fileObj.save(file, uploadOptions)
 
-      // Make file public jika diperlukan
-      if (isPublic) {
-        await fileObj.makePublic()
-      }
+      // ✅ PERBAIKAN: Untuk uniform bucket-level access, tidak perlu makePublic()
+      // karena file sudah otomatis public berdasarkan bucket policy
 
       // Return public URL jika public, atau signed URL jika private
       if (isPublic) {
@@ -301,6 +302,82 @@ export default class GCSService {
     } catch (error) {
       console.error('GCS List Files Error:', error)
       throw new Error(`Gagal list files: ${error.message}`)
+    }
+  }
+
+  /**
+   * ✅ PERBAIKAN CORS: Konfigurasi CORS policy untuk bucket
+   */
+  async configureCorsPolicy(): Promise<boolean> {
+    if (!this.isReady()) {
+      throw new Error('GCS service tidak tersedia.')
+    }
+
+    try {
+      const bucket = this.storage!.bucket(this.bucketName)
+      
+      // CORS configuration untuk mengizinkan akses dari frontend
+      const corsConfig = [
+        {
+          origin: [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'https://kainnovadigital.com',
+            'https://*.kainnovadigital.com',
+            'https://backendapu.kainnovadigital.com'
+          ],
+          method: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+          responseHeader: [
+            'Content-Type',
+            'Access-Control-Allow-Origin',
+            'Access-Control-Allow-Methods',
+            'Access-Control-Allow-Headers',
+            'Access-Control-Max-Age'
+          ],
+          maxAgeSeconds: 3600
+        }
+      ]
+
+      await bucket.setCorsConfiguration(corsConfig)
+      console.log('✅ CORS policy berhasil dikonfigurasi untuk bucket:', this.bucketName)
+      return true
+    } catch (error) {
+      console.error('❌ Gagal mengkonfigurasi CORS policy:', error)
+      throw new Error(`Gagal mengkonfigurasi CORS policy: ${error.message}`)
+    }
+  }
+
+  /**
+   * ✅ PERBAIKAN CORS: Test CORS configuration
+   */
+  async testCorsConfiguration(): Promise<{ success: boolean; message: string }> {
+    if (!this.isReady()) {
+      return { success: false, message: 'GCS service tidak tersedia' }
+    }
+
+    try {
+      const bucket = this.storage!.bucket(this.bucketName)
+      
+      // ✅ PERBAIKAN: Gunakan method yang benar untuk mendapatkan CORS configuration
+      const [corsConfig] = await bucket.getMetadata()
+      
+      if (corsConfig && corsConfig.cors && corsConfig.cors.length > 0) {
+        return { 
+          success: true, 
+          message: `CORS policy sudah dikonfigurasi dengan ${corsConfig.cors.length} rules` 
+        }
+      } else {
+        return { 
+          success: false, 
+          message: 'CORS policy belum dikonfigurasi' 
+        }
+      }
+    } catch (error) {
+      console.error('Error testing CORS configuration:', error)
+      return { 
+        success: false, 
+        message: `Error testing CORS: ${error.message}` 
+      }
     }
   }
 }
