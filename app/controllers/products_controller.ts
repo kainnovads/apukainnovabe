@@ -240,6 +240,7 @@ export default class ProductsController {
 
           const allowedMimeTypes = [
             'image/jpeg',
+            'image/jpg',
             'image/png',
             'image/x-png',
             'image/gif',
@@ -371,6 +372,7 @@ export default class ProductsController {
 
           const allowedMimeTypes = [
             'image/jpeg',
+            'image/jpg',
             'image/png',
             'image/x-png',
             'image/gif',
