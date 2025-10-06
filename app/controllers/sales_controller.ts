@@ -32,11 +32,6 @@ export default class SalesController {
       const status       = request.input('status')
       const startDate    = request.input('startDate')
       const endDate      = request.input('endDate')
-      const includeItems = request.input('includeItems', false)
-      
-      // Debug logging untuk melihat parameter yang diterima
-      console.log('🔍 Sales Controller - includeItems:', includeItems)
-      console.log('🔍 Sales Controller - All params:', request.all())
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = SalesOrder.query()
@@ -65,7 +60,7 @@ export default class SalesController {
         })
       })
       
-      console.log('🔍 Sales Controller - Always preloading salesOrderItems for debugging')
+      
 
       // ✅ PRELOAD: Selalu preload users karena kolom ini ditampilkan di frontend
       dataQuery.preload('approvedByUser', (query) => {
@@ -196,21 +191,9 @@ export default class SalesController {
         console.warn(`🐌 Slow Query Alert: Sales Orders took ${queryTime}ms`)
       }
 
-      // ✅ Log sorting info untuk debugging
-      console.log(`📊 Sales Orders sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`)
       
-      // Debug: Log data setelah query
-      const salesOrdersData = salesOrders.toJSON()
-      if (salesOrdersData.data && salesOrdersData.data.length > 0) {
-        console.log('🔍 Sales Controller - First SO after query:', {
-          id: salesOrdersData.data[0].id,
-          noSo: salesOrdersData.data[0].noSo,
-          itemsCount: salesOrdersData.data[0].salesOrderItems?.length || 0,
-          items: salesOrdersData.data[0].salesOrderItems
-        })
-      } else {
-        console.log('🔍 Sales Controller - No sales orders found or data is undefined')
-      }
+      
+      
 
       const responseData = {
         ...salesOrders.toJSON(),
@@ -220,15 +203,7 @@ export default class SalesController {
         }
       }
       
-      // Debug logging untuk melihat data yang dikirim
-      console.log('🔍 Sales Controller - Response data structure:', {
-        hasData: !!responseData.data,
-        dataLength: responseData.data?.length || 0,
-        meta: responseData.meta
-      })
-      if (responseData.data && responseData.data.length > 0) {
-        console.log('🔍 Sales Controller - First SO items:', responseData.data[0]?.salesOrderItems)
-      }
+      
       
       return response.ok(responseData)
     } catch (error) {

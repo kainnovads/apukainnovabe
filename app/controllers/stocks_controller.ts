@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Stock from '#models/stock'
+import { makeStockValidator } from '#validators/stock'
 
 export default class StocksController {
   async index({ request, response }: HttpContext) {
@@ -96,6 +97,82 @@ export default class StocksController {
           name: 'Exception',
           status: 500
         }
+      })
+    }
+  }
+
+
+  async store({ request, response }: HttpContext) {
+    try {
+      const payload = await request.validateUsing(makeStockValidator())
+
+      // Cegah duplikasi kombinasi product_id + warehouse_id
+      const existing = await Stock.query()
+        .where('product_id', payload.productId)
+        .andWhere('warehouse_id', payload.warehouseId)
+        .first()
+
+      if (existing) {
+        return response.status(422).json({
+          message: 'Stock untuk produk & gudang tersebut sudah ada.',
+          errors: {
+            productId: ['Duplikasi stock pada gudang yang sama'],
+            warehouseId: ['Duplikasi stock pada gudang yang sama']
+          }
+        })
+      }
+
+      const stock = await Stock.create({
+        productId: payload.productId,
+        warehouseId: payload.warehouseId,
+        quantity: payload.quantity,
+        description: payload.description ?? ''
+      })
+
+      await stock.refresh()
+      await stock.load('product', (q) => q.preload('unit'))
+      await stock.load('warehouse')
+
+      return response.created({
+        message: 'Stock berhasil dibuat',
+        data: stock
+      })
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal membuat stock',
+        error: error.message
+      })
+    }
+  }
+
+  async update({ params, request, response }: HttpContext) {
+    try {
+      const stock = await Stock.find(params.id)
+      if (!stock) {
+        return response.notFound({ message: 'Stock tidak ditemukan' })
+      }
+
+      const payload = await request.validateUsing(makeStockValidator(stock.id))
+
+      // Jika kombinasi productId & warehouseId berubah, pastikan tidak duplikat
+      // Duplikasi dicegah oleh validator uniqueStock
+
+      stock.merge({
+        productId: payload.productId,
+        warehouseId: payload.warehouseId,
+        quantity: payload.quantity,
+        description: payload.description ?? ''
+      })
+      await stock.save()
+      await stock.refresh()
+      await stock.load('product', (q) => q.preload('unit'))
+      await stock.load('warehouse')
+
+      return response.ok({ message: 'Stock berhasil diperbarui', data: stock })
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Gagal memperbarui stock',
+        error: error.message
       })
     }
   }

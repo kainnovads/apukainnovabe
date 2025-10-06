@@ -55,6 +55,6 @@ export default class extends BaseSeeder {
       )
     }
 
-    console.log('✅ Access permissions seeded successfully!')
+    
   }
 }

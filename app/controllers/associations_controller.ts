@@ -44,7 +44,7 @@ export default class AssociationsController {
         .select('sales_order_id', 'product_id')
         .orderBy('sales_order_id', 'asc')
 
-      console.log('🔍 FP-Growth Controller Debug: Raw sales order items:', raw.length)
+      
 
       // Step 2: Group berdasarkan sales_order_id
       const grouped: Record<number, number[]> = {}
@@ -58,15 +58,14 @@ export default class AssociationsController {
 
       const transactions = Object.values(grouped) // array of array of product_id
       
-      console.log('🔍 FP-Growth Controller Debug: Total transactions:', transactions.length)
-      console.log('🔍 FP-Growth Controller Debug: Sample transactions:', transactions.slice(0, 3))
+      
       
       // Filter transaksi yang memiliki minimal 2 item
       const validTransactions = transactions.filter(transaction => transaction.length >= 2)
-      console.log('🔍 FP-Growth Controller Debug: Valid transactions (>= 2 items):', validTransactions.length)
+      
 
       if (validTransactions.length === 0) {
-        console.log('🔍 FP-Growth Controller Debug: No valid transactions found, creating sample data')
+        
         
         // Buat data sample untuk demo FP-Growth
         const sampleRules = [
@@ -90,19 +89,19 @@ export default class AssociationsController {
           }
         ]
         
-        console.log('🔍 FP-Growth Controller Debug: Returning sample data')
+        
         return response.ok(sampleRules)
       }
 
       // Step 3: Jalankan FP-Growth dengan support threshold yang lebih rendah
       const minSupport = Math.max(0.1, 1 / validTransactions.length) // Minimal 10% atau 1 transaksi
-      console.log('🔍 FP-Growth Controller Debug: Using min support:', minSupport)
+      
       
       const fpgrowth = new FPGrowth.FPGrowth<number>(minSupport)
 
       const frequentItemsets: Itemset<number>[] = await fpgrowth.exec(validTransactions)
 
-      console.log('🔍 FP-Growth Controller Debug: Frequent itemsets found:', frequentItemsets.length)
+      
 
       // Buat peta support untuk pencarian cepat
       const supportMap = new Map<string, number>()
@@ -141,7 +140,7 @@ export default class AssociationsController {
         }
       })
 
-      console.log('🔍 FP-Growth Controller Debug: Association rules generated:', associationRules.length)
+      
 
       // Step 4: Translate product_id ke nama produk (opsional)
       const allInvolvedProductIds = [
@@ -165,7 +164,7 @@ export default class AssociationsController {
         confidence: rule.confidence,
       }))
 
-      console.log('🔍 FP-Growth Controller Debug: Final result:', result.length, 'rules')
+      
       return response.ok(result)
     } catch (error) {
       console.error('❌ FP-Growth Controller Error:', error)

@@ -220,7 +220,7 @@ export default class SalesInvoicesController {
         })
       } catch (preloadError) {
         // ✅ Fallback: Query tanpa preloading yang bermasalah
-        console.warn('⚠️  Preloading error, falling back to basic query:', preloadError.message)
+        console.warn('⚠️  Preloading error, falling back to basic query')
 
         const fallbackQuery = SalesInvoice.query()
           .preload('salesOrder', (soQuery) => {
@@ -609,7 +609,7 @@ export default class SalesInvoicesController {
         data: salesInvoice,
       })
     } catch (error) {
-      console.log('🔍 Update Error:', error)
+      
       await trx.rollback()
       console.error('Update Sales Invoice Error:', error)
 

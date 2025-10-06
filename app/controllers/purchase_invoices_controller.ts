@@ -424,21 +424,10 @@ export default class PurchaseInvoicesController {
       const payload = await request.validateUsing(purchaseInvoiceValidator)
       const items = payload.purchaseInvoiceItems || []
 
-      // ✅ DEBUG: Log payload untuk troubleshooting
-      console.log('🔍 Backend Debug - Payload received:', {
-        vendorId: payload.vendorId,
-        purchaseOrderId: payload.purchaseOrderId,
-        paymentDate: payload.paymentDate,
-        paymentMethod: payload.paymentMethod,
-        status: payload.status,
-        total: payload.total,
-        itemsCount: items.length
-      })
-
       // ✅ VALIDASI TAMBAHAN: Pastikan data yang diperlukan ada
       if (!payload.vendorId) {
         return response.badRequest({
-          message: 'Customer ID harus diisi',
+          message: 'Vendor ID harus diisi',
           error: 'vendorId_required'
         })
       }
@@ -465,7 +454,7 @@ export default class PurchaseInvoicesController {
       const vendor = await db.from('vendors').where('id', payload.vendorId).first()
       if (!vendor) {
         return response.badRequest({
-          message: 'Customer tidak ditemukan',
+          message: 'Vendor tidak ditemukan',
           error: 'vendor_not_found'
         })
       }
@@ -643,7 +632,7 @@ export default class PurchaseInvoicesController {
         data: purchaseInvoice,
       })
     } catch (error) {
-      console.log('🔍 Update Error:', error)
+      
       await trx.rollback()
       console.error('Update Purchase Invoice Error:', error)
 

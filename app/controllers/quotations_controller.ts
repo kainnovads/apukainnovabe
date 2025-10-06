@@ -143,8 +143,7 @@ export default class QuotationsController {
               console.warn(`🐌 Slow Query Alert: Quotations took ${queryTime}ms`)
             }
 
-            // ✅ Log sorting info untuk debugging
-            console.log(`📊 Quotations sorted by: ${customOrder ? `${sortField} ${sortOrder === '1' ? 'ASC' : 'DESC'}` : 'created_at DESC (default)'}`)
+            
 
             return response.ok({
               ...quotation.toJSON(),

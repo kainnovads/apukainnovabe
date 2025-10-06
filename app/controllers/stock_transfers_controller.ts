@@ -200,7 +200,6 @@ export default class StockTransfersController {
 
       return response.ok(stockTransfer.toJSON())
     } catch (error) {
-      console.log(error)
       return response.internalServerError({
         message: 'Gagal mengambil detail Stock Transfer',
         error: error.message,

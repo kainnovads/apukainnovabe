@@ -138,7 +138,7 @@ export default class SalesItemsController {
 
         for (const item of itemsToInvoice) {
           try {
-            const invoiceItem = await SalesInvoiceItem.create({
+            await SalesInvoiceItem.create({
               salesInvoiceId  : invoice.id,
               salesOrderItemId: item.id,
               productId       : Number(item.productId),
@@ -150,7 +150,7 @@ export default class SalesItemsController {
               deliveredQty    : Number(item.deliveredQty || 0),
               isReturned      : false,
             })
-            console.log(`✅ Created invoice item:`, invoiceItem.id)
+            
           } catch (itemError) {
             console.error(`❌ Failed to create invoice item for item ${item.id}:`, itemError)
             throw itemError

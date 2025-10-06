@@ -7,7 +7,6 @@ import db from '@adonisjs/lucid/services/db'
 @inject()
 export default class ApPaymentsController {
   async index({ request, response }: HttpContext) {
-    console.log('🔍 AP Payment Index - Starting...')
     try {
       const page = request.input('page', 1)
       const limit = request.input('limit', 10)

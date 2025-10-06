@@ -156,7 +156,7 @@ export default class SuratJalansController {
         })
       } catch (preloadError) {
         // ✅ Fallback: Query tanpa preloading yang bermasalah
-        console.warn('⚠️  Preloading error, falling back to basic query:', preloadError.message)
+        console.warn('⚠️  Preloading error, falling back to basic query')
 
         const fallbackQuery = SuratJalan.query()
           .preload('salesOrder', (soQuery) => {
@@ -398,11 +398,7 @@ export default class SuratJalansController {
       const payload = await request.validateUsing(updateSuratJalanValidator)
       const items = payload.suratJalanItems || []
 
-      console.log('🔍 Update payload received:', JSON.stringify(payload, null, 2))
-      console.log('🔍 Items count:', items.length)
-      console.log('🔍 Payload description value:', `"${payload.description}"`)
-      console.log('🔍 Payload description type:', typeof payload.description)
-      console.log('🔍 Payload description length:', payload.description?.length)
+      
 
       // Update surat jalan
       const updateData: any = {}
@@ -421,21 +417,13 @@ export default class SuratJalansController {
         updateData.alamatPengiriman = payload.alamatPengiriman || ''
       }
 
-      console.log('🔍 Update data to be saved:', updateData)
+      
 
-      console.log('🔍 Before merge - current data:', {
-        description: suratJalan.description,
-        alamatPengiriman: suratJalan.alamatPengiriman,
-        picName: suratJalan.picName
-      })
+      
 
       suratJalan.merge(updateData)
 
-      console.log('🔍 After merge - updated data:', {
-        description: suratJalan.description,
-        alamatPengiriman: suratJalan.alamatPengiriman,
-        picName: suratJalan.picName
-      })
+      
 
       // Use transaction for model instance then save without args
       suratJalan.useTransaction(trx)
@@ -457,14 +445,10 @@ export default class SuratJalansController {
           .where('id', suratJalan.id)
           .update(dbUpdateData)
 
-        console.log('🔍 Direct query update executed with data:', dbUpdateData)
+        
       }
 
-      console.log('🔍 After save - final data:', {
-        description: suratJalan.description,
-        alamatPengiriman: suratJalan.alamatPengiriman,
-        picName: suratJalan.picName
-      })
+      
 
       // ✅ UPDATE SURAT JALAN ITEMS - Always update items, even if empty array
       // Hapus item lama terlebih dahulu
@@ -491,19 +475,13 @@ export default class SuratJalansController {
 
       // ✅ PERBAIKAN: Verify data was actually saved by re-fetching
       const verifyData = await SuratJalan.find(suratJalan.id)
-      console.log('🔍 Verification - Data in database after commit:', {
-        id: verifyData?.id,
-        description: verifyData?.description,
-        alamatPengiriman: verifyData?.alamatPengiriman,
-        picName: verifyData?.picName
-      })
 
       return response.ok({
         message: 'Surat Jalan berhasil diperbarui',
         data: verifyData || suratJalan,
       })
     } catch (error) {
-      console.log('🔍 Update Error:', error)
+      
       await trx.rollback()
       console.error('Update Surat Jalan Error:', error)
 

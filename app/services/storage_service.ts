@@ -64,7 +64,6 @@ export default class StorageService {
     try {
       const fs = await import('fs/promises')
       await fs.mkdir(uploadPath, { recursive: true })
-      console.log(`[StorageService] Created directory: ${uploadPath}`)
     } catch (error) {
       console.error(`[StorageService] Failed to create directory: ${uploadPath}`, error)
       throw new Error(`Gagal membuat direktori upload: ${error.message}`)
@@ -87,7 +86,7 @@ export default class StorageService {
       url = `${host}/${path}`
     }
 
-    console.log(`[StorageService] Local upload successful: ${url}`)
+    
     return {
       url,
       path

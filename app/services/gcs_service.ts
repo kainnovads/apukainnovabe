@@ -15,7 +15,6 @@ export default class GCSService {
     // ✅ PERBAIKAN: Jika bucket name kosong, gunakan bucket dari app.yaml untuk production
     if (!this.bucketName) {
       this.bucketName = 'skilful-grove-470706-h5.appspot.com'
-      console.log('Using default bucket name for production:', this.bucketName)
     }
 
     this.initializeGCSClient()
@@ -50,7 +49,7 @@ export default class GCSService {
           projectId: this.projectId,
           keyFilename: keyFile,
         })
-        console.log('GCS Service initialized with keyFilename:', keyFile)
+        
       } else if (clientEmail && privateKey) {
         // Local: Gunakan credentials object
         const credentials = {
@@ -62,14 +61,13 @@ export default class GCSService {
           projectId: this.projectId,
           credentials: credentials,
         })
-        console.log('GCS Service initialized with credentials object')
+        
       } else {
         console.warn('GCP credentials tidak ditemukan, GCS service akan disabled')
         return
       }
 
       this.isInitialized = true
-      console.log('GCS Service initialized successfully for bucket:', this.bucketName)
     } catch (error) {
       console.error('GCS Service initialization failed:', error)
       this.isInitialized = false
@@ -359,7 +357,6 @@ export default class GCSService {
       ]
 
       await bucket.setCorsConfiguration(corsConfig)
-      console.log('✅ CORS policy berhasil dikonfigurasi untuk bucket:', this.bucketName)
       return true
     } catch (error) {
       console.error('❌ Gagal mengkonfigurasi CORS policy:', error)
