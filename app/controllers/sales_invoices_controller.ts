@@ -366,17 +366,25 @@ export default class SalesInvoicesController {
     const tahun = String(now.getFullYear()).slice(-2)
 
     // Hitung nomor urut invoice tahun ini dengan mengambil nomor urut tertinggi
+    // Cari semua invoice yang berakhiran dengan tahun saat ini (tidak berdasarkan bulan)
     const currentYearPattern = `-${tahun}`
+    const currentYearPattern4Digit = `-${now.getFullYear()}`
 
-    // Ambil nomor invoice tertinggi untuk tahun ini (tidak berdasarkan bulan)
+    // Ambil nomor invoice tertinggi untuk tahun ini dari semua format yang mungkin
+    // TIDAK berdasarkan bulan, hanya berdasarkan tahun
     const lastInvoice = await SalesInvoice.query()
-      .whereRaw(`no_invoice LIKE '%${currentYearPattern}'`)
+      .where((query) => {
+        query
+          .whereRaw(`no_invoice LIKE '%${currentYearPattern4Digit}'`) // Format -YYYY
+          .orWhereRaw(`no_invoice LIKE '%${currentYearPattern}'`) // Format -YY (semua bulan dalam tahun yang sama)
+          .orWhereRaw(`no_invoice LIKE '%${tahun}'`) // Format -MMYY (semua bulan dalam tahun yang sama)
+      })
       .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
       .first()
 
     let nextNumber = 1
     if (lastInvoice && lastInvoice.noInvoice) {
-      // Extract nomor urut dari format 0001-0625
+      // Extract nomor urut dari format apapun (0001-YYYY, 0001-YY, atau 0001-MMYY)
       const match = lastInvoice.noInvoice.match(/^(\d{4})-/)
       if (match) {
         nextNumber = parseInt(match[1], 10) + 1
