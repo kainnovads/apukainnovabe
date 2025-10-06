@@ -27,7 +27,7 @@ export default class GCSService {
   private initializeGCSClient(): void {
     try {
       const clientEmail = env.get('GCP_CLIENT_EMAIL', '')
-      const privateKey = env.get('GCP_PRIVATE_KEY', '')
+      const privateKey = env.get('GCP_KEY_FILE', '')
 
       if (!clientEmail || !privateKey) {
         console.warn('GCP credentials tidak ditemukan, GCS service akan disabled')
