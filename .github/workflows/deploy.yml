@@ -1,6 +1,5 @@
-name: Deploy to VM
+name: Deploy to GCP VM
 
-# Tess local deploy 8
 on:
   push:
     branches:
@@ -9,21 +8,36 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
 
-    - name: Copy files to VM
-      uses: appleboy/ssh-action@v0.1.9
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        port: 22
-        script: |
-          cd /var/www/apukainnovabe
-          git fetch --all
-          git reset --hard origin/main
-          npm install --omit=dev
-          npm run build
-          pm2 restart adonis-erp
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies & build
+        run: |
+          npm ci
+          node ace build
+
+      - name: Copy build to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "build/*"
+          target: "/var/www/apukainnovabe/build"
+
+      - name: Restart app on VM
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/adonis-app
+            pm2 restart adonis-app
