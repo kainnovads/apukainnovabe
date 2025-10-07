@@ -323,8 +323,9 @@ export default class StockTransfersController {
     try {
       const payload = await updateStockTransferValidator.validate(request.all())
 
-      const transfer = await StockTransfer.find(params.id)
+      const transfer = await StockTransfer.query({ client: trx }).where('id', params.id).first()
       if (!transfer) {
+        await trx.rollback()
         return response.notFound({ message: 'Transfer tidak ditemukan' })
       }
 
@@ -336,12 +337,12 @@ export default class StockTransfersController {
       transfer.description     = payload.description || ''
       transfer.penerima        = payload.penerima || ''
 
-      await transfer.save()
+      await transfer.useTransaction(trx).save()
 
       // Hapus semua detail lama
       await StockTransferDetail.query({ client: trx })
-      .where('stock_transfer_id', transfer.id)
-      .delete()
+        .where('stock_transfer_id', transfer.id)
+        .delete()
 
       // Tambahkan detail baru
       for (const item of payload.stockTransferDetails) {
@@ -366,6 +367,7 @@ export default class StockTransfersController {
       return response.ok({ message: 'Transfer berhasil diperbarui', data: updatedTransfer })
     } catch (error) {
       await trx.rollback()
+      console.error('Error in update stock transfer:', error)
       return response.internalServerError({ message: 'Gagal memperbarui transfer', error })
     }
   }
@@ -390,36 +392,41 @@ export default class StockTransfersController {
     const trx = await db.transaction()
 
     try {
-      const transfer = await StockTransfer.query().where('id', params.id).preload('stockTransferDetails').firstOrFail()
+      const transfer = await StockTransfer.query({ client: trx })
+        .where('id', params.id)
+        .preload('stockTransferDetails')
+        .firstOrFail()
 
       if (transfer.status === 'approved') {
+        await trx.rollback()
         return response.badRequest({ message: 'Transfer sudah di-approve' })
       }
 
       // Update stocks
       for (const detail of transfer.stockTransferDetails) {
         // Kurangi dari gudang asal
-        const fromStock = await Stock.query()
+        const fromStock = await Stock.query({ client: trx })
           .where('product_id', detail.productId)
           .andWhere('warehouse_id', transfer.fromWarehouseId)
           .first()
 
         if (!fromStock || fromStock.quantity < detail.quantity) {
+          await trx.rollback()
           throw new Error(`Stok tidak cukup untuk produk ID ${detail.productId}`)
         }
 
         fromStock.quantity -= detail.quantity
-        await fromStock.save()
+        await fromStock.useTransaction(trx).save()
 
         // Tambahkan ke gudang tujuan
-        const toStock = await Stock.query()
+        const toStock = await Stock.query({ client: trx })
           .where('product_id', detail.productId)
           .andWhere('warehouse_id', transfer.toWarehouseId)
           .first()
 
         if (toStock) {
           toStock.quantity += detail.quantity
-          await toStock.save()
+          await toStock.useTransaction(trx).save()
         } else {
           await Stock.create({
             productId: detail.productId,
@@ -433,12 +440,13 @@ export default class StockTransfersController {
       transfer.status = 'approved'
       transfer.approvedBy = auth.user!.id
       transfer.approvedAt = DateTime.now()
-      await transfer.save()
+      await transfer.useTransaction(trx).save()
 
       await trx.commit()
       return response.ok({ message: 'Transfer berhasil di-approve' })
     } catch (error) {
       await trx.rollback()
+      console.error('Error in approveStockTransfer:', error)
       return response.internalServerError({ message: 'Gagal approve transfer', error: error.message })
     }
   }
