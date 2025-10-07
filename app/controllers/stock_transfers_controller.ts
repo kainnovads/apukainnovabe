@@ -404,34 +404,46 @@ export default class StockTransfersController {
 
       // Update stocks
       for (const detail of transfer.stockTransferDetails) {
+        // Konversi tipe data untuk memastikan konsistensi
+        const productId = Number(detail.productId)
+        const fromWarehouseId = Number(transfer.fromWarehouseId)
+        const toWarehouseId = Number(transfer.toWarehouseId)
+        const quantity = Number(detail.quantity)
+
         // Kurangi dari gudang asal
         const fromStock = await Stock.query({ client: trx })
-          .where('product_id', detail.productId)
-          .andWhere('warehouse_id', transfer.fromWarehouseId)
+          .where('product_id', productId)
+          .andWhere('warehouse_id', fromWarehouseId)
           .first()
 
-        if (!fromStock || fromStock.quantity < detail.quantity) {
+        if (!fromStock || fromStock.quantity < quantity) {
           await trx.rollback()
-          throw new Error(`Stok tidak cukup untuk produk ID ${detail.productId}`)
+          throw new Error(`Stok tidak cukup untuk produk ID ${productId}`)
         }
 
-        fromStock.quantity -= detail.quantity
-        await fromStock.useTransaction(trx).save()
+        const oldFromQuantity = Number(fromStock.quantity)
+        const newFromQuantity = oldFromQuantity - quantity
+        fromStock.quantity = newFromQuantity
+        fromStock.useTransaction(trx)
+        await fromStock.save()
 
         // Tambahkan ke gudang tujuan
         const toStock = await Stock.query({ client: trx })
-          .where('product_id', detail.productId)
-          .andWhere('warehouse_id', transfer.toWarehouseId)
+          .where('product_id', productId)
+          .andWhere('warehouse_id', toWarehouseId)
           .first()
 
         if (toStock) {
-          toStock.quantity += detail.quantity
-          await toStock.useTransaction(trx).save()
+          const oldToQuantity = Number(toStock.quantity)
+          const newToQuantity = oldToQuantity + quantity
+          toStock.quantity = newToQuantity
+          toStock.useTransaction(trx)
+          await toStock.save()
         } else {
           await Stock.create({
-            productId: detail.productId,
-            warehouseId: transfer.toWarehouseId,
-            quantity: detail.quantity,
+            productId: productId,
+            warehouseId: toWarehouseId,
+            quantity: quantity,
           }, { client: trx })
         }
       }
@@ -440,7 +452,8 @@ export default class StockTransfersController {
       transfer.status = 'approved'
       transfer.approvedBy = auth.user!.id
       transfer.approvedAt = DateTime.now()
-      await transfer.useTransaction(trx).save()
+      transfer.useTransaction(trx)
+      await transfer.save()
 
       await trx.commit()
       return response.ok({ message: 'Transfer berhasil di-approve' })
