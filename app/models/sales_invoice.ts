@@ -70,6 +70,9 @@ export default class SalesInvoice extends BaseModel {
   @column()
   declare description: string
 
+  @column()
+  declare ttdDigital: boolean
+
   @belongsTo(() => SalesOrder)
   declare salesOrder: BelongsTo<typeof SalesOrder>
 

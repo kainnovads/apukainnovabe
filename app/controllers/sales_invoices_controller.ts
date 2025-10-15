@@ -460,6 +460,7 @@ export default class SalesInvoicesController {
             paidAmount     : payload.paidAmount || 0,
             remainingAmount: payload.remainingAmount || (payload.total - (payload.paidAmount || 0)),
             description    : payload.description || '',
+            ttdDigital     : payload.ttdDigital || false,
         }, { client: trx })
 
         // ✅ BUAT SALES INVOICE ITEMS dengan validasi
@@ -573,7 +574,8 @@ export default class SalesInvoicesController {
       if (payload.paidAmount !== undefined) updateData.paidAmount = payload.paidAmount
       if (payload.remainingAmount !== undefined) updateData.remainingAmount = payload.remainingAmount
       if (payload.description !== undefined) updateData.description = payload.description
-
+      if (payload.ttdDigital !== undefined) updateData.ttdDigital = payload.ttdDigital
+      
       salesInvoice.merge(updateData)
 
       await salesInvoice.save()

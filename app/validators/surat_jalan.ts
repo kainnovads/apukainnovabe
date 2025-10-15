@@ -9,6 +9,7 @@ export const suratJalanValidator = vine.compile(
     date: vine.date(),
     description: vine.string().optional(),
     alamatPengiriman: vine.string().optional(),
+    ttdDigital: vine.boolean().optional(),
     suratJalanItems: vine.array(
       vine.object({
         salesOrderItemId: vine.string().optional(),
@@ -30,6 +31,7 @@ export const updateSuratJalanValidator = vine.compile(
     date: vine.date().optional(),
     description: vine.string().optional().nullable(),
     alamatPengiriman: vine.string().optional().nullable(),
+    ttdDigital: vine.boolean().optional(),
     suratJalanItems: vine.array(
       vine.object({
         salesOrderItemId: vine.string().optional().nullable(),

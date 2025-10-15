@@ -14,6 +14,7 @@ export default class extends BaseSchema {
       table.date('date').notNullable()
       table.text('description').nullable()
       table.text('alamat_pengiriman').nullable()
+      table.boolean('ttd_digital').defaultTo(false)
       table.integer('created_by').unsigned().references('id').inTable('users').onDelete('CASCADE').onUpdate('CASCADE')
 
       table.timestamp('created_at')

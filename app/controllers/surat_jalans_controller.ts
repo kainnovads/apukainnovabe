@@ -360,6 +360,7 @@ export default class SuratJalansController {
           date            : payload.date,
           description     : payload.description || '',
           alamatPengiriman: payload.alamatPengiriman || '',
+          ttdDigital      : payload.ttdDigital || false,
           createdBy       : user.id,
       }, { client: trx })
 
@@ -408,6 +409,7 @@ export default class SuratJalansController {
       if (payload.picName !== undefined) updateData.picName = payload.picName
       if (payload.penerima !== undefined) updateData.penerima = payload.penerima
       if (payload.date !== undefined) updateData.date = payload.date
+      if (payload.ttdDigital !== undefined) updateData.ttdDigital = payload.ttdDigital
 
       // ✅ PERBAIKAN: Always update these fields if they exist in payload, even if empty
       if ('description' in payload) {
@@ -429,7 +431,7 @@ export default class SuratJalansController {
       suratJalan.useTransaction(trx)
       await suratJalan.save()
 
-                  // ✅ PERBAIKAN: Also use direct query builder as fallback
+      // ✅ PERBAIKAN: Also use direct query builder as fallback
       if (Object.keys(updateData).length > 0) {
         // Convert camelCase to snake_case for database columns
         const dbUpdateData: any = {}
@@ -440,15 +442,13 @@ export default class SuratJalansController {
         if ('date' in updateData) dbUpdateData.date = updateData.date
         if ('description' in updateData) dbUpdateData.description = updateData.description
         if ('alamatPengiriman' in updateData) dbUpdateData.alamat_pengiriman = updateData.alamatPengiriman
+        if ('ttdDigital' in updateData) dbUpdateData.ttd_digital = updateData.ttdDigital
 
         await trx.from('surat_jalans')
           .where('id', suratJalan.id)
           .update(dbUpdateData)
-
         
       }
-
-      
 
       // ✅ UPDATE SURAT JALAN ITEMS - Always update items, even if empty array
       // Hapus item lama terlebih dahulu

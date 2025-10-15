@@ -52,6 +52,9 @@ export default class SuratJalan extends BaseModel {
   @column()
   declare alamatPengiriman: string
 
+  @column()
+  declare ttdDigital: boolean
+
    @belongsTo(() => User, {
     foreignKey: 'createdBy',
   })
