@@ -8,7 +8,7 @@ export const userValidator = vine.compile(
     email: vine.string().email(),
     password: vine.string().minLength(8).maxLength(32),
     isActive: vine.boolean(),
-    role_ids: vine.array(vine.number()),
+    role_ids: vine.array(vine.number()).minLength(1),
   })
 )
 
@@ -19,6 +19,6 @@ export const updateUserValidator = vine.compile(
     email: vine.string().email(),
     password: vine.string().minLength(8).maxLength(32).optional(),
     isActive: vine.boolean(),
-    role_ids: vine.array(vine.number()).optional(),
+    role_ids: vine.array(vine.number()).minLength(1).optional(),
   })
 )

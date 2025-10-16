@@ -70,7 +70,7 @@ export default class UsersController {
         isActive: !!data.isActive,
       })
 
-      if (data.role_ids?.length) {
+      if (data.role_ids && data.role_ids.length > 0) {
         await user.related('roles').attach(data.role_ids)
       }
 
@@ -138,7 +138,7 @@ export default class UsersController {
       await user.save()
 
       // Sync roles jika dikirim
-      if (data.role_ids) {
+      if (data.role_ids && data.role_ids.length > 0) {
         await user.related('roles').sync(data.role_ids)
       }
 
