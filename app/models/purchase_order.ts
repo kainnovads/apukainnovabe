@@ -68,6 +68,9 @@ export default class PurchaseOrder extends BaseModel {
   declare taxPercent: number
 
   @column()
+  declare ttdDigital: boolean
+
+  @column()
   declare createdBy: number | null
 
   @column()

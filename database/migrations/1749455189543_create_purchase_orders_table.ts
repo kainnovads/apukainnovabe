@@ -20,6 +20,7 @@ export default class extends BaseSchema {
       table.decimal('total', 14, 2).notNullable()
       table.decimal('discount_percent', 5, 2).defaultTo(0).notNullable()
       table.decimal('tax_percent', 5, 2).defaultTo(0).notNullable()
+      table.boolean('ttd_digital').defaultTo(false)
       table.integer('created_by').unsigned().references('id').inTable('users').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('approved_by').unsigned().references('id').inTable('users').onDelete('CASCADE').onUpdate('CASCADE')
       table.integer('rejected_by').unsigned().references('id').inTable('users').onDelete('CASCADE').onUpdate('CASCADE')
