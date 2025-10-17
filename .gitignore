@@ -5,6 +5,9 @@ tmp
 uploads
 docs
 scripts
+/build
+/dist
+/node_modules
 
 # Secrets
 .env
