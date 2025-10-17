@@ -30,7 +30,8 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "build/*"
-          target: "/var/www/apukainnovabe/build"
+          target: "/var/www/apukainnovabe"
+          rm: true
 
       - name: Restart app on VM
         uses: appleboy/ssh-action@v1.2.0
@@ -39,5 +40,5 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /var/www/adonis-app
-            pm2 restart adonis-app
+            cd /var/www/apukainnovabe
+            pm2 restart apukainnovabe || pm2 start ./server.js --name apukainnovabe
