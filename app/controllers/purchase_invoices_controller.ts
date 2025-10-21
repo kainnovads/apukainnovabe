@@ -397,7 +397,6 @@ export default class PurchaseInvoicesController {
     // Ambil bulan dan tahun saat ini
     const now   = new Date()
     const bulan = String(now.getMonth() + 1).padStart(2, '0') // 10, 11, 12, etc
-    const tahun = String(now.getFullYear()) // 2025
     const tahunPendek = String(now.getFullYear()).slice(-2) // 25
 
     // Hitung nomor urut invoice tahun ini dengan mengambil nomor urut tertinggi
