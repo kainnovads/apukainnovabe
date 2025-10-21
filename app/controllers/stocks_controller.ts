@@ -16,6 +16,14 @@ export default class StocksController {
       const all         = request.input('all')
 
       let dataQuery = Stock.query()
+        // Filter hanya stock yang memiliki product valid
+        .whereHas('product', (query) => {
+          query.whereNotNull('id')
+        })
+        // Filter hanya stock yang memiliki warehouse valid
+        .whereHas('warehouse', (query) => {
+          query.whereNotNull('id')
+        })
 
       if (productId) {
         const productIdNum = Number(productId)
@@ -268,6 +276,14 @@ export default class StocksController {
       const nmPerusahaan = perusahaan?.nmPerusahaan || ''
 
       let dataQuery = Stock.query()
+        // Filter hanya stock yang memiliki product valid
+        .whereHas('product', (query) => {
+          query.whereNotNull('id')
+        })
+        // Filter hanya stock yang memiliki warehouse valid
+        .whereHas('warehouse', (query) => {
+          query.whereNotNull('id')
+        })
 
       if (productId) {
         dataQuery.where('product_id', productId)
@@ -310,17 +326,17 @@ export default class StocksController {
       const excelData = stocks.map((stock) => ({
         id: stock.id,
         product: {
-          sku: stock.product?.sku || '-',
-          name: stock.product?.name || '-',
+          sku: stock.product?.sku || 'N/A',
+          name: stock.product?.name || 'Product Tidak Ditemukan',
           unit: {
-            name: stock.product?.unit?.name || '-',
+            name: stock.product?.unit?.name || 'N/A',
           },
         },
         warehouse: {
-          code: stock.warehouse?.code || '-',
-          name: stock.warehouse?.name || '-',
+          code: stock.warehouse?.code || 'N/A',
+          name: stock.warehouse?.name || 'Warehouse Tidak Ditemukan',
         },
-        quantity: Math.floor(stock.quantity),
+        quantity: stock.quantity ? Math.floor(stock.quantity) : 0,
         createdAt: stock.createdAt.toFormat('dd/MM/yyyy HH:mm'),
         updatedAt: stock.updatedAt.toFormat('dd/MM/yyyy HH:mm'),
       }))

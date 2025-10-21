@@ -1,6 +1,5 @@
 name: Deploy to GCP VM
 
-# jalan setiap push ke branch main
 on:
   push:
     branches:

@@ -396,29 +396,42 @@ export default class PurchaseInvoicesController {
   async store({ request, response }: HttpContext) {
     // Ambil bulan dan tahun saat ini
     const now   = new Date()
-    const bulan = String(now.getMonth() + 1).padStart(2, '0')
-    const tahun = String(now.getFullYear()).slice(-2)
+    const bulan = String(now.getMonth() + 1).padStart(2, '0') // 10, 11, 12, etc
+    const tahun = String(now.getFullYear()) // 2025
+    const tahunPendek = String(now.getFullYear()).slice(-2) // 25
 
     // Hitung nomor urut invoice tahun ini dengan mengambil nomor urut tertinggi
-    const currentYearPattern = `-${tahun}`
-
-    // Ambil nomor invoice tertinggi untuk tahun ini (tidak berdasarkan bulan)
-    const lastInvoice = await PurchaseInvoice.query()
-      .whereRaw(`no_invoice LIKE '%${currentYearPattern}'`)
-      .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
-      .first()
+    // Format: 0010-1025 (nomor urut - bulan+tahun)
+    // Nomor urut continuous sepanjang tahun, tidak reset per bulan
+    
+    // Ambil semua invoice tahun ini (cek akhiran dengan tahun 2 digit)
+    const allInvoicesThisYear = await PurchaseInvoice.query()
+      .whereRaw(`no_invoice LIKE '%${tahunPendek}'`)
+      .select('no_invoice')
 
     let nextNumber = 1
-    if (lastInvoice && lastInvoice.noInvoice) {
-      // Extract nomor urut dari format 0001-0625
-      const match = lastInvoice.noInvoice.match(/^(\d{4})-/)
-      if (match) {
-        nextNumber = parseInt(match[1], 10) + 1
+    
+    if (allInvoicesThisYear.length > 0) {
+      // Extract semua nomor urut dari invoice yang ada
+      const numbers = allInvoicesThisYear
+        .map(invoice => {
+          // Match format: 0009-0925 atau 0010-1025
+          const match = invoice.noInvoice.match(/^(\d{4})-/)
+          if (match) {
+            return parseInt(match[1], 10)
+          }
+          return 0
+        })
+        .filter(num => num > 0)
+      
+      if (numbers.length > 0) {
+        // Ambil nomor tertinggi dan tambah 1
+        nextNumber = Math.max(...numbers) + 1
       }
     }
 
     const noUrut    = String(nextNumber).padStart(4, '0')
-    const noInvoice = `${noUrut}-${bulan}${tahun}`
+    const noInvoice = `${noUrut}-${bulan}${tahunPendek}` // Format: 0010-1025, 0011-1025, dst
 
     try {
       const payload = await request.validateUsing(purchaseInvoiceValidator)
