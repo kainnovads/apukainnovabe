@@ -572,12 +572,11 @@ export default class SalesController {
         })
         await so.save()
 
-        // ✅ HANYA BUAT INVOICE OTOMATIS jika status berubah ke 'delivered' saja
-        // Invoice untuk 'partial' akan dibuat dari sales_items_controller.ts saat status_partial diubah
-        let createdInvoice = null
-        if (oldStatus !== newStatus && newStatus === 'delivered') {
-          createdInvoice = await this.createInvoiceForNewDelivery(so, newStatus)
-        }
+        // ✅ REMOVED: Automatic invoice creation - Invoice akan dibuat manual oleh user
+        // let createdInvoice = null
+        // if (oldStatus !== newStatus && newStatus === 'delivered') {
+        //   createdInvoice = await this.createInvoiceForNewDelivery(so, newStatus)
+        // }
 
         // ✅ OPTIMIZED: Bulk operations instead of loop
         await SalesOrderItem.query({ client: trx })
@@ -606,10 +605,7 @@ export default class SalesController {
 
         return response.ok({
         message: 'Sales Order berhasil diperbarui',
-        data: {
-            salesOrder: so.serialize(),
-            invoice: createdInvoice ? createdInvoice.serialize() : null
-        }
+        data: so.serialize()
         })
     } catch (error) {
         await trx.rollback()
@@ -759,139 +755,14 @@ export default class SalesController {
     }
   }
 
-  // ✅ UBAH: Fungsi untuk membuat invoice baru untuk setiap delivery
+  // ✅ REMOVED: Automatic invoice creation disabled
+  // Invoice akan dibuat manual oleh user dari halaman Sales Invoice
+  /*
   private async createInvoiceForNewDelivery(salesOrder: SalesOrder, newStatus: string, _allItemsDelivered = false) {
-    // Hanya buat invoice jika status berubah ke 'delivered'
-    // Status 'partial' akan dihandle oleh sales_items_controller.ts
-    if (newStatus !== 'delivered') {
-      return null
-    }
-
-    // ✅ LOAD SEMUA ITEMS
-    await salesOrder.load('salesOrderItems')
-
-    let itemsToInvoice = []
-    let invoiceDescription = ''
-    let deliveredItemsTotal = 0
-
-    // ✅ JIKA STATUS DELIVERED: Cek apakah sudah ada invoice sebelumnya
-    const existingInvoicesCount = await SalesInvoice.query()
-      .where('salesOrderId', salesOrder.id)
-      .count('* as total')
-
-    const totalExistingInvoices = existingInvoicesCount[0]?.$extras.total || 0
-
-    if (totalExistingInvoices > 0) {
-      // Sudah ada invoice partial sebelumnya, tidak perlu buat invoice lagi
-      console.log(`✅ Sales Order #${salesOrder.noSo} sudah memiliki ${totalExistingInvoices} invoice. Tidak membuat invoice baru untuk status ${newStatus}.`)
-      return null
-    } else {
-      // Belum ada invoice sama sekali, buat invoice untuk semua item yang statusPartial = true
-      itemsToInvoice = salesOrder.salesOrderItems.filter(item => item.statusPartial === true)
-
-      if (itemsToInvoice.length === 0) {
-        // Jika belum ada item yang partial, buat invoice untuk semua item
-        itemsToInvoice = salesOrder.salesOrderItems
-        deliveredItemsTotal = Number(salesOrder.total) || 0
-        invoiceDescription = `Invoice untuk semua item SO #${salesOrder.noSo || salesOrder.id} - Status: ${newStatus} (${itemsToInvoice.length} items)`
-      } else {
-        // Ada item yang sudah partial, gunakan total yang sudah dihitung
-        deliveredItemsTotal = Number(salesOrder.total) || 0
-        invoiceDescription = `Invoice untuk semua item SO #${salesOrder.noSo || salesOrder.id} - Status: ${newStatus} (${itemsToInvoice.length} items completed)`
-      }
-    }
-
-    // Validasi: pastikan ada item untuk di-invoice
-    if (itemsToInvoice.length === 0 || deliveredItemsTotal <= 0) {
-      console.warn(`⚠️ Tidak ada item valid untuk di-invoice atau total = 0`)
-      return null
-    }
-
-    // ✅ BUAT INVOICE BARU (SELALU BARU, TIDAK UPDATE EXISTING)
-    try {
-      // Generate nomor invoice
-      const now = new Date()
-      const bulan = String(now.getMonth() + 1).padStart(2, '0')
-      const tahun = String(now.getFullYear()).slice(-2)
-      const currentMonthPattern = `-${bulan}${tahun}`
-
-      // Ambil nomor invoice tertinggi untuk bulan ini
-      const lastInvoice = await SalesInvoice.query()
-        .whereRaw(`no_invoice LIKE '%${currentMonthPattern}'`)
-        .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
-        .first()
-
-      let nextNumber = 1
-      if (lastInvoice && lastInvoice.noInvoice) {
-        const match = lastInvoice.noInvoice.match(/^(\d{4})-/)
-        if (match) {
-          nextNumber = parseInt(match[1], 10) + 1
-        }
-      }
-
-      const noUrut = String(nextNumber).padStart(4, '0')
-      const noInvoice = `${noUrut}-${bulan}${tahun}`
-
-      // ✅ HITUNG TOTAL DENGAN DISCOUNT DAN TAX
-      let finalTotal = 0
-
-              if (newStatus === 'delivered' && itemsToInvoice.length === salesOrder.salesOrderItems.length) {
-          // Jika delivered dan semua item, gunakan total sales order
-          finalTotal = Number(salesOrder.total) || 0
-        } else {
-          // Hitung berdasarkan item yang di-invoice dengan discount dan tax proporsional
-          const subtotalItems = itemsToInvoice.reduce((total, item) => {
-            return total + (Number(item.subtotal) || 0)
-          }, 0)
-
-          const discountPercent = Number(salesOrder.discountPercent) || 0
-          const taxPercent = Number(salesOrder.taxPercent) || 0
-
-          const discountAmount = subtotalItems * (discountPercent / 100)
-          const totalAfterDiscount = subtotalItems - discountAmount
-          const taxAmount = totalAfterDiscount * (taxPercent / 100)
-          finalTotal = totalAfterDiscount + taxAmount
-        }
-
-      // ✅ BUAT INVOICE BARU
-      const invoice = await SalesInvoice.create({
-        noInvoice: noInvoice,
-        salesOrderId: salesOrder.id,
-        customerId: salesOrder.customerId,
-        date: now,
-        dueDate: salesOrder.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        discountPercent: Number(salesOrder.discountPercent) || 0,
-        taxPercent: Number(salesOrder.taxPercent) || 0,
-        total: finalTotal,
-        paidAmount: 0,
-        remainingAmount: finalTotal,
-        status: 'unpaid',
-        description: invoiceDescription,
-      })
-
-      // ✅ BUAT SALES INVOICE ITEMS untuk setiap item yang di-invoice
-      for (const item of itemsToInvoice) {
-        await SalesInvoiceItem.create({
-          salesInvoiceId  : invoice.id,
-          salesOrderItemId: item.id,
-          productId       : Number(item.productId),
-          warehouseId     : Number(item.warehouseId),
-          quantity        : Number(item.deliveredQty || item.quantity),
-          price           : Number(item.price) || 0,
-          subtotal        : Number(item.subtotal) || 0,
-          description     : item.description || '',
-          deliveredQty    : Number(item.deliveredQty || 0),
-          isReturned      : false,
-        })
-      }
-
-      console.log(`✅ NEW Invoice created untuk SO #${salesOrder.noSo}: ${noInvoice} - Total: ${finalTotal} - Items: ${itemsToInvoice.length}`)
-      return invoice
-    } catch (error) {
-      console.error(`❌ Gagal membuat invoice untuk SO #${salesOrder.noSo}:`, error)
-      return null
-    }
+    // Method ini sudah tidak digunakan - invoice akan dibuat manual
+    return null
   }
+  */
 
   async getCabangbyPerusahaan({ request, response }: HttpContext) {
       const perusahaanId = request.input('perusahaanId')
