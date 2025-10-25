@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import SalesOrder from '#models/sales_order'
-import SalesInvoice from '#models/sales_invoice'
-import SalesInvoiceItem from '#models/sales_invoice_item'
+// import SalesInvoice from '#models/sales_invoice' // ✅ REMOVED: Tidak digunakan lagi
+// import SalesInvoiceItem from '#models/sales_invoice_item' // ✅ REMOVED: Tidak digunakan lagi
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import db from '@adonisjs/lucid/services/db'
 import Cabang from '#models/cabang'
@@ -538,8 +538,8 @@ export default class SalesController {
         const tax           = afterDiscount * (payload.taxPercent || 0) / 100
         const total         = afterDiscount + tax
 
-        // Simpan status lama untuk perbandingan
-        const oldStatus = so.status
+        // ✅ REMOVED: oldStatus tidak digunakan lagi karena tidak ada automatic invoice creation
+        // const oldStatus = so.status
         const newStatus = payload.status || 'draft'
 
         // Update SO utama

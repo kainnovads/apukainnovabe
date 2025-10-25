@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import SalesOrderItem from '#models/sales_order_item'
 import SalesOrder from '#models/sales_order'
-import SalesInvoice from '#models/sales_invoice'
-import SalesInvoiceItem from '#models/sales_invoice_item'
+// import SalesInvoice from '#models/sales_invoice' // ✅ REMOVED: Tidak digunakan lagi
+// import SalesInvoiceItem from '#models/sales_invoice_item' // ✅ REMOVED: Tidak digunakan lagi
 import StockOut from '#models/stock_out'
 import StockOutDetail from '#models/stock_out_detail'
 import { DateTime } from 'luxon'
