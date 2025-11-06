@@ -39,6 +39,9 @@ export default class StockTransfer extends BaseModel {
   declare date: Date
 
   @column()
+  declare ttdDigital: boolean
+
+  @column()
   declare transferBy: number
 
   @column()

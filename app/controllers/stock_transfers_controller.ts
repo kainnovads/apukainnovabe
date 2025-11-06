@@ -285,6 +285,7 @@ export default class StockTransfersController {
         toWarehouseId  : payload.toWarehouseId,
         date           : payload.date,
         penerima       : payload.penerima,
+        ttdDigital     : payload.ttdDigital,
         transferBy     : payload.transferBy,
         description    : payload.description,
         status         : payload.status,
@@ -336,7 +337,10 @@ export default class StockTransfersController {
       transfer.date            = payload.date || transfer.date
       transfer.description     = payload.description || ''
       transfer.penerima        = payload.penerima || ''
-
+      if (payload.ttdDigital !== undefined) {
+        transfer.ttdDigital = payload.ttdDigital
+      }
+      
       await transfer.useTransaction(trx).save()
 
       // Hapus semua detail lama
