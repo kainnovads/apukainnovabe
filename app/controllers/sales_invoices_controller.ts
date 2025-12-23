@@ -368,45 +368,6 @@ export default class SalesInvoicesController {
     try {
       const payload = await request.validateUsing(salesInvoiceValidator)
       
-      // ✅ FIX: Validasi perusahaanId harus ada untuk generate nomor invoice
-      if (!payload.perusahaanId) {
-        return response.badRequest({
-          message: 'Perusahaan ID harus diisi untuk generate nomor invoice',
-          error: 'perusahaan_id_required'
-        })
-      }
-
-      // Hitung nomor urut invoice tahun ini dengan mengambil nomor urut tertinggi
-      // ✅ FIX: Dipisahkan berdasarkan perusahaan_id
-      // Cari semua invoice yang berakhiran dengan tahun saat ini (tidak berdasarkan bulan)
-      const currentYearPattern = `-${tahun}`
-      const currentYearPattern4Digit = `-${now.getFullYear()}`
-
-      // Ambil nomor invoice tertinggi untuk tahun ini dari perusahaan yang sama
-      // TIDAK berdasarkan bulan, hanya berdasarkan tahun dan perusahaan_id
-      const lastInvoice = await SalesInvoice.query()
-        .where('perusahaan_id', payload.perusahaanId)
-        .where((query) => {
-          query
-            .whereRaw(`no_invoice LIKE '%${currentYearPattern4Digit}'`) // Format -YYYY
-            .orWhereRaw(`no_invoice LIKE '%${currentYearPattern}'`) // Format -YY (semua bulan dalam tahun yang sama)
-            .orWhereRaw(`no_invoice LIKE '%${tahun}'`) // Format -MMYY (semua bulan dalam tahun yang sama)
-        })
-        .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
-        .first()
-
-      let nextNumber = 1
-      if (lastInvoice && lastInvoice.noInvoice) {
-        // Extract nomor urut dari format apapun (0001-YYYY, 0001-YY, atau 0001-MMYY)
-        const match = lastInvoice.noInvoice.match(/^(\d{4})-/)
-        if (match) {
-          nextNumber = parseInt(match[1], 10) + 1
-        }
-      }
-
-      const noUrut    = String(nextNumber).padStart(4, '0')
-      const noInvoice = `${noUrut}-${bulan}${tahun}`
-
       const items = payload.salesInvoiceItems || []
 
       // ✅ VALIDASI TAMBAHAN: Pastikan data yang diperlukan ada
@@ -431,7 +392,9 @@ export default class SalesInvoicesController {
         })
       }
 
-      // ✅ VALIDASI: Jika ada sales order, pastikan sales order exists
+      // ✅ VALIDASI: Jika ada sales order, pastikan sales order exists dan ambil perusahaanId jika belum ada
+      let finalPerusahaanId = payload.perusahaanId
+      
       if (payload.salesOrderId) {
         const salesOrder = await db.from('sales_orders').where('id', payload.salesOrderId).first()
         if (!salesOrder) {
@@ -440,6 +403,19 @@ export default class SalesInvoicesController {
             error: 'sales_order_not_found'
           })
         }
+        
+        // ✅ FIX: Ambil perusahaanId dari sales order jika belum ada di payload
+        if (!finalPerusahaanId && salesOrder.perusahaan_id) {
+          finalPerusahaanId = salesOrder.perusahaan_id
+        }
+      }
+
+      // ✅ FIX: Validasi final - perusahaanId harus ada
+      if (!finalPerusahaanId) {
+        return response.badRequest({
+          message: 'Perusahaan ID harus diisi. Pilih perusahaan atau pilih Sales Order yang memiliki perusahaan.',
+          error: 'perusahaan_id_required'
+        })
       }
 
       // ✅ VALIDASI: Pastikan customer exists
@@ -451,13 +427,44 @@ export default class SalesInvoicesController {
         })
       }
 
+      // Hitung nomor urut invoice tahun ini dengan mengambil nomor urut tertinggi
+      // ✅ FIX: Dipisahkan berdasarkan perusahaan_id
+      // Cari semua invoice yang berakhiran dengan tahun saat ini (tidak berdasarkan bulan)
+      const currentYearPattern = `-${tahun}`
+      const currentYearPattern4Digit = `-${now.getFullYear()}`
+
+      // Ambil nomor invoice tertinggi untuk tahun ini dari perusahaan yang sama
+      // TIDAK berdasarkan bulan, hanya berdasarkan tahun dan perusahaan_id
+      const lastInvoice = await SalesInvoice.query()
+        .where('perusahaan_id', finalPerusahaanId)
+        .where((query) => {
+          query
+            .whereRaw(`no_invoice LIKE '%${currentYearPattern4Digit}'`) // Format -YYYY
+            .orWhereRaw(`no_invoice LIKE '%${currentYearPattern}'`) // Format -YY (semua bulan dalam tahun yang sama)
+            .orWhereRaw(`no_invoice LIKE '%${tahun}'`) // Format -MMYY (semua bulan dalam tahun yang sama)
+        })
+        .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
+        .first()
+
+      let nextNumber = 1
+      if (lastInvoice && lastInvoice.noInvoice) {
+        // Extract nomor urut dari format apapun (0001-YYYY, 0001-YY, atau 0001-MMYY)
+        const match = lastInvoice.noInvoice.match(/^(\d{4})-/)
+        if (match) {
+          nextNumber = parseInt(match[1], 10) + 1
+        }
+      }
+
+      const noUrut    = String(nextNumber).padStart(4, '0')
+      const noInvoice = `${noUrut}-${bulan}${tahun}`
+
       const trx = await db.transaction()
 
       try {
         const SalesInv = await SalesInvoice.create({
             salesOrderId   : payload.salesOrderId || null,
             customerId     : payload.customerId,
-            perusahaanId   : payload.perusahaanId || null,
+            perusahaanId   : finalPerusahaanId,
             noInvoice      : noInvoice,
             email          : payload.email || '',
             up             : payload.up || '',
