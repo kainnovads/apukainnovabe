@@ -162,7 +162,7 @@ export default class SalesInvoicesController {
         })
       }
 
-      // ✅ OPTIMASI: Efficient sorting dengan proper indexing
+      // ✅ OPTIMASI: Efficient sorting dengan proper indexing untuk mengurutkan data berdasarkan kolom yang ditentukan
       let customOrder = false
       if (sortField && sortOrder) {
         customOrder = true
