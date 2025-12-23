@@ -436,30 +436,113 @@ export default class SalesInvoicesController {
       // Ambil nomor invoice tertinggi untuk tahun ini dari perusahaan yang sama
       // ✅ FIX: Pastikan perusahaan_id selalu di-filter dalam semua kondisi
       // TIDAK berdasarkan bulan, hanya berdasarkan tahun dan perusahaan_id
-      // Gunakan whereRaw dengan perusahaan_id untuk memastikan filter selalu diterapkan
-      const lastInvoice = await SalesInvoice.query()
-        .whereRaw('perusahaan_id = ?', [finalPerusahaanId])
-        .where((query) => {
-          query
-            .whereRaw(`(no_invoice LIKE '%${currentYearPattern4Digit}' OR no_invoice LIKE '%${currentYearPattern}' OR no_invoice LIKE '%${tahun}')`)
-        })
-        .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
-        .first()
+      // Gunakan query builder dengan fallback ke raw SQL untuk kompatibilitas production
+      let lastInvoice: SalesInvoice | null = null
+      
+      try {
+        // ✅ FIX: Coba gunakan query builder dulu (lebih aman dan cross-database compatible)
+        const lastInvoiceQuery = SalesInvoice.query()
+          .where('perusahaan_id', Number(finalPerusahaanId))
+          .where((query) => {
+            query
+              .whereRaw('no_invoice LIKE ?', [`%${currentYearPattern4Digit}`])
+              .orWhereRaw('no_invoice LIKE ?', [`%${currentYearPattern}`])
+              .orWhereRaw('no_invoice LIKE ?', [`%${tahun}`])
+          })
+          .orderByRaw('CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC')
+          .limit(1)
+        
+        lastInvoice = await lastInvoiceQuery.first()
+        
+      } catch (queryBuilderError) {
+        // ✅ FALLBACK: Jika query builder gagal, gunakan raw SQL
+        console.warn('⚠️ Query Builder failed, using raw SQL fallback:', queryBuilderError.message)
+        
+        try {
+          const queryParams = [
+            Number(finalPerusahaanId),
+            `%${currentYearPattern4Digit}`,
+            `%${currentYearPattern}`,
+            `%${tahun}`
+          ]
+          
+          // ✅ DEBUG: Log query parameters
+          console.log('🔍 Raw SQL Query Parameters:', {
+            perusahaanId: queryParams[0],
+            patterns: queryParams.slice(1)
+          })
+          
+          const lastInvoiceResult = await db.rawQuery(`
+            SELECT * FROM sales_invoices
+            WHERE perusahaan_id = ?
+              AND (
+                no_invoice LIKE ? 
+                OR no_invoice LIKE ? 
+                OR no_invoice LIKE ?
+              )
+            ORDER BY CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC
+            LIMIT 1
+          `, queryParams)
 
-      // ✅ DEBUG: Log untuk troubleshooting (bisa dihapus setelah fix)
-      console.log('🔍 Invoice Number Generation Debug:', {
-        perusahaanId: finalPerusahaanId,
-        tahun: tahun,
-        bulan: bulan,
-        lastInvoice: lastInvoice ? {
-          id: lastInvoice.id,
-          noInvoice: lastInvoice.noInvoice,
-          perusahaanId: lastInvoice.perusahaanId
-        } : null
-      })
+          // ✅ FIX: Handle hasil rawQuery (bisa berupa array atau object dengan rows)
+          let lastInvoiceRow = null
+          
+          if (Array.isArray(lastInvoiceResult)) {
+            lastInvoiceRow = lastInvoiceResult.length > 0 ? lastInvoiceResult[0] : null
+          } else if (lastInvoiceResult && typeof lastInvoiceResult === 'object') {
+            // Handle berbagai format response dari database driver
+            if ('rows' in lastInvoiceResult && Array.isArray(lastInvoiceResult.rows)) {
+              lastInvoiceRow = lastInvoiceResult.rows.length > 0 ? lastInvoiceResult.rows[0] : null
+            } else if ('0' in lastInvoiceResult) {
+              lastInvoiceRow = lastInvoiceResult[0]
+            }
+          }
+
+          // ✅ FIX: Validasi tambahan - pastikan perusahaan_id match SEBELUM convert ke model
+          if (lastInvoiceRow) {
+            const rowPerusahaanId = Number(lastInvoiceRow.perusahaan_id || lastInvoiceRow.perusahaanId)
+            if (rowPerusahaanId !== Number(finalPerusahaanId)) {
+              console.error('❌ CRITICAL: Query returned invoice from different perusahaan!', {
+                expected: finalPerusahaanId,
+                got: rowPerusahaanId,
+                invoice: lastInvoiceRow.no_invoice || lastInvoiceRow.noInvoice
+              })
+              lastInvoiceRow = null
+            } else if (lastInvoiceRow.id) {
+              // Convert result ke model instance jika ada dan valid
+              lastInvoice = await SalesInvoice.find(lastInvoiceRow.id)
+            }
+          }
+        } catch (rawQueryError) {
+          console.error('❌ Both query builder and raw SQL failed:', rawQueryError)
+          // Continue dengan lastInvoice = null, akan generate nomor 1
+        }
+      }
+
+      // ✅ FIX: Validasi tambahan - pastikan lastInvoice benar-benar dari perusahaan yang sama
+      if (lastInvoice && Number(lastInvoice.perusahaanId) !== Number(finalPerusahaanId)) {
+        console.error('❌ ERROR: Last invoice perusahaan_id tidak match!', {
+          expected: finalPerusahaanId,
+          actual: lastInvoice.perusahaanId,
+          invoice: lastInvoice.noInvoice
+        })
+        // Reset ke null jika ada masalah
+        lastInvoice = null
+      }
+
+      // ✅ FIX: Validasi tambahan - pastikan lastInvoice benar-benar dari perusahaan yang sama
+      if (lastInvoice && Number(lastInvoice.perusahaanId) !== Number(finalPerusahaanId)) {
+        console.error('❌ ERROR: Last invoice perusahaan_id tidak match!', {
+          expected: finalPerusahaanId,
+          actual: lastInvoice.perusahaanId,
+          invoice: lastInvoice.noInvoice
+        })
+        // Reset ke 1 jika ada masalah
+        lastInvoice = null
+      }
 
       let nextNumber = 1
-      if (lastInvoice && lastInvoice.noInvoice) {
+      if (lastInvoice && lastInvoice.noInvoice && Number(lastInvoice.perusahaanId) === Number(finalPerusahaanId)) {
         // Extract nomor urut dari format apapun (0001-YYYY, 0001-YY, atau 0001-MMYY)
         const match = lastInvoice.noInvoice.match(/^(\d{4})-/)
         if (match) {
@@ -474,7 +557,9 @@ export default class SalesInvoicesController {
       console.log('✅ Generated Invoice Number:', {
         perusahaanId: finalPerusahaanId,
         noInvoice: noInvoice,
-        nextNumber: nextNumber
+        nextNumber: nextNumber,
+        lastInvoiceNo: lastInvoice?.noInvoice || 'none',
+        lastInvoicePerusahaanId: lastInvoice?.perusahaanId || 'none'
       })
 
       const trx = await db.transaction()
