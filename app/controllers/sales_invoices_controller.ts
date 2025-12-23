@@ -434,17 +434,29 @@ export default class SalesInvoicesController {
       const currentYearPattern4Digit = `-${now.getFullYear()}`
 
       // Ambil nomor invoice tertinggi untuk tahun ini dari perusahaan yang sama
+      // ✅ FIX: Pastikan perusahaan_id selalu di-filter dalam semua kondisi
       // TIDAK berdasarkan bulan, hanya berdasarkan tahun dan perusahaan_id
+      // Gunakan whereRaw dengan perusahaan_id untuk memastikan filter selalu diterapkan
       const lastInvoice = await SalesInvoice.query()
-        .where('perusahaan_id', finalPerusahaanId)
+        .whereRaw('perusahaan_id = ?', [finalPerusahaanId])
         .where((query) => {
           query
-            .whereRaw(`no_invoice LIKE '%${currentYearPattern4Digit}'`) // Format -YYYY
-            .orWhereRaw(`no_invoice LIKE '%${currentYearPattern}'`) // Format -YY (semua bulan dalam tahun yang sama)
-            .orWhereRaw(`no_invoice LIKE '%${tahun}'`) // Format -MMYY (semua bulan dalam tahun yang sama)
+            .whereRaw(`(no_invoice LIKE '%${currentYearPattern4Digit}' OR no_invoice LIKE '%${currentYearPattern}' OR no_invoice LIKE '%${tahun}')`)
         })
         .orderByRaw(`CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC`)
         .first()
+
+      // ✅ DEBUG: Log untuk troubleshooting (bisa dihapus setelah fix)
+      console.log('🔍 Invoice Number Generation Debug:', {
+        perusahaanId: finalPerusahaanId,
+        tahun: tahun,
+        bulan: bulan,
+        lastInvoice: lastInvoice ? {
+          id: lastInvoice.id,
+          noInvoice: lastInvoice.noInvoice,
+          perusahaanId: lastInvoice.perusahaanId
+        } : null
+      })
 
       let nextNumber = 1
       if (lastInvoice && lastInvoice.noInvoice) {
@@ -457,6 +469,13 @@ export default class SalesInvoicesController {
 
       const noUrut    = String(nextNumber).padStart(4, '0')
       const noInvoice = `${noUrut}-${bulan}${tahun}`
+
+      // ✅ DEBUG: Log hasil generate (bisa dihapus setelah fix)
+      console.log('✅ Generated Invoice Number:', {
+        perusahaanId: finalPerusahaanId,
+        noInvoice: noInvoice,
+        nextNumber: nextNumber
+      })
 
       const trx = await db.transaction()
 
