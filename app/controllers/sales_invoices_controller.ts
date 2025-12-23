@@ -436,26 +436,38 @@ export default class SalesInvoicesController {
       // Ambil nomor invoice tertinggi untuk tahun ini dari perusahaan yang sama
       // ✅ FIX: Pastikan perusahaan_id selalu di-filter dalam semua kondisi
       // TIDAK berdasarkan bulan, hanya berdasarkan tahun dan perusahaan_id
-      // Gunakan query builder dengan fallback ke raw SQL untuk kompatibilitas production
+      // Gunakan query builder dengan grouping yang eksplisit untuk memastikan filter benar
       let lastInvoice: SalesInvoice | null = null
       
       try {
-        // ✅ FIX: Coba gunakan query builder dulu (lebih aman dan cross-database compatible)
+        // ✅ FIX: Gunakan whereRaw dengan grouping eksplisit untuk memastikan perusahaan_id selalu di-filter
         const lastInvoiceQuery = SalesInvoice.query()
-          .where('perusahaan_id', Number(finalPerusahaanId))
-          .where((query) => {
-            query
-              .whereRaw('no_invoice LIKE ?', [`%${currentYearPattern4Digit}`])
-              .orWhereRaw('no_invoice LIKE ?', [`%${currentYearPattern}`])
-              .orWhereRaw('no_invoice LIKE ?', [`%${tahun}`])
-          })
+          .whereRaw('perusahaan_id = ?', [Number(finalPerusahaanId)])
+          .whereRaw(`(
+            no_invoice LIKE ? 
+            OR no_invoice LIKE ? 
+            OR no_invoice LIKE ?
+          )`, [
+            `%${currentYearPattern4Digit}`,
+            `%${currentYearPattern}`,
+            `%${tahun}`
+          ])
           .orderByRaw('CAST(SUBSTRING(no_invoice, 1, 4) AS INTEGER) DESC')
           .limit(1)
         
         lastInvoice = await lastInvoiceQuery.first()
         
+        // ✅ DEBUG: Log untuk troubleshooting production
+        console.log('🔍 Invoice Query Result:', {
+          perusahaanId: finalPerusahaanId,
+          found: !!lastInvoice,
+          invoiceNo: lastInvoice?.noInvoice || 'none',
+          invoicePerusahaanId: lastInvoice?.perusahaanId || 'none',
+          queryType: 'query_builder'
+        })
+        
       } catch (queryBuilderError) {
-        // ✅ FALLBACK: Jika query builder gagal, gunakan raw SQL
+        // ✅ FALLBACK: Jika query builder gagal, gunakan raw SQL dengan grouping eksplisit
         console.warn('⚠️ Query Builder failed, using raw SQL fallback:', queryBuilderError.message)
         
         try {
@@ -472,6 +484,7 @@ export default class SalesInvoicesController {
             patterns: queryParams.slice(1)
           })
           
+          // ✅ FIX: Gunakan grouping eksplisit dengan parentheses untuk memastikan filter benar
           const lastInvoiceResult = await db.rawQuery(`
             SELECT * FROM sales_invoices
             WHERE perusahaan_id = ?
@@ -511,6 +524,15 @@ export default class SalesInvoicesController {
             } else if (lastInvoiceRow.id) {
               // Convert result ke model instance jika ada dan valid
               lastInvoice = await SalesInvoice.find(lastInvoiceRow.id)
+              
+              // ✅ DEBUG: Log untuk troubleshooting production
+              console.log('🔍 Raw SQL Query Result:', {
+                perusahaanId: finalPerusahaanId,
+                found: !!lastInvoice,
+                invoiceNo: lastInvoice?.noInvoice || 'none',
+                invoicePerusahaanId: lastInvoice?.perusahaanId || 'none',
+                queryType: 'raw_sql'
+              })
             }
           }
         } catch (rawQueryError) {
@@ -527,17 +549,6 @@ export default class SalesInvoicesController {
           invoice: lastInvoice.noInvoice
         })
         // Reset ke null jika ada masalah
-        lastInvoice = null
-      }
-
-      // ✅ FIX: Validasi tambahan - pastikan lastInvoice benar-benar dari perusahaan yang sama
-      if (lastInvoice && Number(lastInvoice.perusahaanId) !== Number(finalPerusahaanId)) {
-        console.error('❌ ERROR: Last invoice perusahaan_id tidak match!', {
-          expected: finalPerusahaanId,
-          actual: lastInvoice.perusahaanId,
-          invoice: lastInvoice.noInvoice
-        })
-        // Reset ke 1 jika ada masalah
         lastInvoice = null
       }
 
