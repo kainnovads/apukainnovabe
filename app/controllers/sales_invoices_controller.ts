@@ -457,15 +457,6 @@ export default class SalesInvoicesController {
         
         lastInvoice = await lastInvoiceQuery.first()
         
-        // ✅ DEBUG: Log untuk troubleshooting production
-        console.log('🔍 Invoice Query Result:', {
-          perusahaanId: finalPerusahaanId,
-          found: !!lastInvoice,
-          invoiceNo: lastInvoice?.noInvoice || 'none',
-          invoicePerusahaanId: lastInvoice?.perusahaanId || 'none',
-          queryType: 'query_builder'
-        })
-        
       } catch (queryBuilderError) {
         // ✅ FALLBACK: Jika query builder gagal, gunakan raw SQL dengan grouping eksplisit
         console.warn('⚠️ Query Builder failed, using raw SQL fallback:', queryBuilderError.message)
@@ -477,12 +468,6 @@ export default class SalesInvoicesController {
             `%${currentYearPattern}`,
             `%${tahun}`
           ]
-          
-          // ✅ DEBUG: Log query parameters
-          console.log('🔍 Raw SQL Query Parameters:', {
-            perusahaanId: queryParams[0],
-            patterns: queryParams.slice(1)
-          })
           
           // ✅ FIX: Gunakan grouping eksplisit dengan parentheses untuk memastikan filter benar
           const lastInvoiceResult = await db.rawQuery(`
@@ -524,15 +509,6 @@ export default class SalesInvoicesController {
             } else if (lastInvoiceRow.id) {
               // Convert result ke model instance jika ada dan valid
               lastInvoice = await SalesInvoice.find(lastInvoiceRow.id)
-              
-              // ✅ DEBUG: Log untuk troubleshooting production
-              console.log('🔍 Raw SQL Query Result:', {
-                perusahaanId: finalPerusahaanId,
-                found: !!lastInvoice,
-                invoiceNo: lastInvoice?.noInvoice || 'none',
-                invoicePerusahaanId: lastInvoice?.perusahaanId || 'none',
-                queryType: 'raw_sql'
-              })
             }
           }
         } catch (rawQueryError) {
@@ -563,15 +539,6 @@ export default class SalesInvoicesController {
 
       const noUrut    = String(nextNumber).padStart(4, '0')
       const noInvoice = `${noUrut}-${bulan}${tahun}`
-
-      // ✅ DEBUG: Log hasil generate (bisa dihapus setelah fix)
-      console.log('✅ Generated Invoice Number:', {
-        perusahaanId: finalPerusahaanId,
-        noInvoice: noInvoice,
-        nextNumber: nextNumber,
-        lastInvoiceNo: lastInvoice?.noInvoice || 'none',
-        lastInvoicePerusahaanId: lastInvoice?.perusahaanId || 'none'
-      })
 
       const trx = await db.transaction()
 
@@ -673,11 +640,40 @@ export default class SalesInvoicesController {
     } catch (validationError) {
       console.error('❌ Validation Error:', validationError)
       
-      // ✅ VineJS Error Structure: Return proper validation errors
+      // ✅ VineJS Error Structure: Return proper validation errors dengan format yang lebih spesifik
+      const errorMessages = validationError.messages || []
+      
+      // Format error messages menjadi lebih user-friendly
+      const formattedErrors = errorMessages.map((err: any) => {
+        if (typeof err === 'object' && err !== null) {
+          // Format: { field: 'customerId', message: 'Field customerId wajib diisi', rule: 'required' }
+          return {
+            field: err.field || err.name || 'unknown',
+            message: err.message || 'Error validasi tidak dikenal',
+            rule: err.rule || 'unknown'
+          }
+        } else if (typeof err === 'string') {
+          return {
+            field: 'unknown',
+            message: err,
+            rule: 'unknown'
+          }
+        }
+        return {
+          field: 'unknown',
+          message: 'Error validasi tidak dikenal',
+          rule: 'unknown'
+        }
+      })
+      
       return response.unprocessableEntity({
-        message: 'Data yang dikirim tidak valid',
+        message: 'Data yang dikirim tidak valid. Silakan periksa kembali form yang diisi.',
         error: 'validation_failed',
-        errors: validationError.messages || []
+        errors: formattedErrors,
+        // Tambahkan summary untuk kemudahan frontend
+        summary: formattedErrors.length > 0 
+          ? `Terdapat ${formattedErrors.length} error validasi yang perlu diperbaiki`
+          : 'Terdapat error validasi'
       })
     }
   }
@@ -747,6 +743,42 @@ export default class SalesInvoicesController {
       
       await trx.rollback()
       console.error('Update Sales Invoice Error:', error)
+
+      // ✅ Handle validation errors
+      if (error.messages && Array.isArray(error.messages)) {
+        const errorMessages = error.messages || []
+        
+        // Format error messages menjadi lebih user-friendly
+        const formattedErrors = errorMessages.map((err: any) => {
+          if (typeof err === 'object' && err !== null) {
+            return {
+              field: err.field || err.name || 'unknown',
+              message: err.message || 'Error validasi tidak dikenal',
+              rule: err.rule || 'unknown'
+            }
+          } else if (typeof err === 'string') {
+            return {
+              field: 'unknown',
+              message: err,
+              rule: 'unknown'
+            }
+          }
+          return {
+            field: 'unknown',
+            message: 'Error validasi tidak dikenal',
+            rule: 'unknown'
+          }
+        })
+        
+        return response.unprocessableEntity({
+          message: 'Data yang dikirim tidak valid. Silakan periksa kembali form yang diisi.',
+          error: 'validation_failed',
+          errors: formattedErrors,
+          summary: formattedErrors.length > 0 
+            ? `Terdapat ${formattedErrors.length} error validasi yang perlu diperbaiki`
+            : 'Terdapat error validasi'
+        })
+      }
 
       if (error.status === 404) {
         return response.notFound({

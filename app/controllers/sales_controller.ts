@@ -10,6 +10,7 @@ import { salesOrderValidator, updateSalesOrderValidator } from '#validators/sale
 import { toRoman } from '#helper/bulan_romawi'
 import { DateTime } from 'luxon';
 import StorageService from '#services/storage_service'
+import { ActivityLogger } from '#helper/activity_log_helper'
 
 export default class SalesController {
   private storageService: StorageService
@@ -298,7 +299,7 @@ export default class SalesController {
     }
   }
 
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     // Fungsi generateNo untuk no_so dengan format 0000/APU/SO/Bulan dalam angka romawi/tahun
     async function generateNo() {
       // Ambil nomor urut terakhir dari SO tahun ini
@@ -454,6 +455,9 @@ export default class SalesController {
       }
 
       await trx.commit()
+
+      // Log activity
+      await ActivityLogger.create({ request, response, auth } as HttpContext, 'sales_order', so.id, so.noSo)
 
       return response.created({
           message: 'Sales Order berhasil dibuat',
@@ -651,6 +655,9 @@ export default class SalesController {
         }
         await so.save()
 
+        // Log activity
+        await ActivityLogger.approve({ request: { input: () => {} } as any, response, auth } as HttpContext, 'sales_order', so.id, so.noSo)
+
         return response.ok({
             message: 'Sales Order berhasil diapprove',
             data: {
@@ -680,6 +687,9 @@ export default class SalesController {
             so.rejectedBy = auth.user.id
         }
         await so.save()
+
+        // Log activity
+        await ActivityLogger.reject({ request: { input: () => {} } as any, response, auth } as HttpContext, 'sales_order', so.id, so.noSo)
 
         return response.ok({ message: 'Sales Order berhasil direject' })
     } catch (error) {

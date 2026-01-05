@@ -3,6 +3,7 @@ import { productValidator } from '#validators/product'
 import Product from '#models/product'
 import StorageService from '#services/storage_service'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
+import { ActivityLogger } from '#helper/activity_log_helper'
 export default class ProductsController {
     private storageService: StorageService
 
@@ -290,6 +291,9 @@ export default class ProductsController {
         createdBy: auth?.user?.id || null,
       })
 
+      // Log activity
+      await ActivityLogger.create({ request, response, auth } as HttpContext, 'product', product.id, product.name)
+
       return response.created(product)
     } catch (error) {
       // Handle validation errors specifically
@@ -306,7 +310,7 @@ export default class ProductsController {
     }
   }
 
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
     try {
       const product = await Product.find(params.id)
       if (!product) {
@@ -418,6 +422,8 @@ export default class ProductsController {
       
       await product.save()
       
+      // Log activity
+      await ActivityLogger.update({ request, response, auth } as HttpContext, 'product', product.id, product.name)
       
       return response.ok(product)
     } catch (error) {
@@ -444,13 +450,21 @@ export default class ProductsController {
     }
   }
 
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, response, auth }: HttpContext) {
     try {
       const product = await Product.find(params.id)
       if (!product) {
         return response.notFound({ message: 'Product tidak ditemukan' })
       }
+      
+      const productName = product.name
+      const productId = product.id
+      
       await product.delete()
+      
+      // Log activity
+      await ActivityLogger.delete({ request: { input: () => {} } as any, response, auth } as HttpContext, 'product', productId, productName)
+      
       return response.ok({ message: 'Product berhasil dihapus' })
     } catch (error) {
       return response.internalServerError({

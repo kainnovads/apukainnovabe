@@ -5,6 +5,7 @@ import { MultipartFile } from "@adonisjs/core/bodyparser"
 import db from '@adonisjs/lucid/services/db'
 import ProductCustomer from '#models/product_customer'
 import StorageService from '#services/storage_service'
+import { ActivityLogger } from '#helper/activity_log_helper'
 
 export default class CustomersController {
   private storageService: StorageService
@@ -104,7 +105,7 @@ export default class CustomersController {
     }
   }
 
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     const payload = await request.validateUsing(customerValidator)
     const items = payload.customerProducts || []
 
@@ -204,6 +205,9 @@ export default class CustomersController {
 
       await trx.commit()
 
+      // Log activity
+      await ActivityLogger.create({ request, response, auth } as HttpContext, 'customer', customer.id, customer.name)
+
       return response.created({
         message: 'Customer berhasil dibuat',
         data: customer,
@@ -217,7 +221,7 @@ export default class CustomersController {
     }
   }
 
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
     const payload = await request.validateUsing(customerValidator)
     const items = payload.customerProducts || []
 
@@ -334,6 +338,9 @@ export default class CustomersController {
 
       await trx.commit()
 
+      // Log activity
+      await ActivityLogger.update({ request, response, auth } as HttpContext, 'customer', customer.id, customer.name)
+
       // Reload customer dengan products untuk response yang lengkap
       const updatedCustomer = await Customer.query()
         .where('id', customer.id)
@@ -380,13 +387,21 @@ export default class CustomersController {
     }
   }
 
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, response, auth }: HttpContext) {
     try {
       const customer = await Customer.find(params.id)
       if (!customer) {
         return response.notFound({ message: 'Customer tidak ditemukan' })
       }
+      
+      const customerName = customer.name
+      const customerId = customer.id
+      
       await customer.delete()
+      
+      // Log activity
+      await ActivityLogger.delete({ request: { input: () => {} } as any, response, auth } as HttpContext, 'customer', customerId, customerName)
+      
       return response.ok({ message: 'Customer berhasil dihapus' })
     } catch (error) {
       return response.internalServerError({

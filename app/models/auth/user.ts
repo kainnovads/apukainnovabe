@@ -16,6 +16,7 @@ import StockTransfer from '#models/stock_transfer'
 import SalesReturn from '#models/sales_return'
 import SuratJalan from '#models/surat_jalan'
 import Quotation from '#models/quotation'
+import ActivityLog from '#models/activity_log'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email', 'username'],
@@ -169,6 +170,11 @@ export default class User extends compose(BaseModel, AuthFinder) {
     foreignKey: 'rejectedBy',
   })
   declare rejectedQuotations: HasMany<typeof Quotation>
+
+  @hasMany(() => ActivityLog, {
+    foreignKey: 'userId',
+  })
+  declare activityLogs: HasMany<typeof ActivityLog>
 
   static accessTokens = DbAccessTokensProvider.forModel(User)
 }

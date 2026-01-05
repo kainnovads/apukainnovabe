@@ -44,6 +44,7 @@ import SalesInvoicesController from '#controllers/sales_invoices_controller'
 import SuratJalansController from '#controllers/surat_jalans_controller'
 import QuotationsController from '#controllers/quotations_controller'
 import UserSessionsController from '#controllers/user_sessions_controller'
+import ActivityLogsController from '#controllers/activity_logs_controller'
 import ImportController from '#controllers/import_controller'
 import StorageController from '#controllers/storage_controller'
 
@@ -480,6 +481,17 @@ router
   .prefix('/api')
   .use(middleware.auth())
   .use(middleware.hasRole(['superadmin', 'admin']))
+
+  // Activity Log Router - untuk tracking aktivitas user
+  router.group(() => {
+    router.get('/activity-logs', [ActivityLogsController, 'index'])
+    router.get('/activity-logs/:id', [ActivityLogsController, 'show'])
+    router.post('/activity-logs', [ActivityLogsController, 'store'])
+    router.delete('/activity-logs/:id', [ActivityLogsController, 'destroy'])
+    router.get('/activity-logs/user/:id', [ActivityLogsController, 'getByUserId'])
+  })
+  .prefix('/api')
+  .use(middleware.auth())
 
   // Bank Accounts Router
   router.group(() => {
