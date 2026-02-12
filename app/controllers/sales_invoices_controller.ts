@@ -83,6 +83,8 @@ export default class SalesInvoicesController {
       const sortOrder    = request.input('sortOrder')
       const customerId   = request.input('customerId')
       const status       = request.input('status')
+      const dateFrom     = request.input('dateFrom') // YYYY-MM-DD
+      const dateTo       = request.input('dateTo')   // YYYY-MM-DD
 
       // ✅ OPTIMASI: Efficient base query dengan minimal preloading
       let dataQuery = SalesInvoice.query()
@@ -131,6 +133,12 @@ export default class SalesInvoicesController {
       }
       if (status) {
         dataQuery.where('status', status)
+      }
+      if (dateFrom) {
+        dataQuery.whereRaw('DATE(sales_invoices.date) >= ?', [dateFrom])
+      }
+      if (dateTo) {
+        dataQuery.whereRaw('DATE(sales_invoices.date) <= ?', [dateTo])
       }
 
       if (searchValue) {
@@ -252,6 +260,12 @@ export default class SalesInvoicesController {
         }
         if (status) {
           fallbackQuery.where('status', status)
+        }
+        if (dateFrom) {
+          fallbackQuery.whereRaw('DATE(sales_invoices.date) >= ?', [dateFrom])
+        }
+        if (dateTo) {
+          fallbackQuery.whereRaw('DATE(sales_invoices.date) <= ?', [dateTo])
         }
         if (searchValue) {
           const lowerSearch = searchValue.toLowerCase()
