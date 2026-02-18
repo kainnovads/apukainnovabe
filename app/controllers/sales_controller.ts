@@ -108,35 +108,39 @@ export default class SalesController {
         }
       }
 
-      if (searchValue) {
-        // ✅ OPTIMASI: Menggunakan exists() untuk relationship search
-        const lowerSearch = searchValue.toLowerCase()
+      if (searchValue && searchValue.trim() !== '') {
+        // Escape karakter khusus LIKE (%, _, \) agar tidak diinterpretasikan sebagai wildcard
+        const escapeLike = (s: string) => String(s).replace(/[%_\\]/g, '\\$&')
+        const lowerSearch = searchValue.toLowerCase().trim()
+        const likePattern = `%${escapeLike(lowerSearch)}%`
         dataQuery = dataQuery.where((query) => {
           query
-              .whereRaw('LOWER(no_so) LIKE ?', [`%${lowerSearch}%`])
-              .orWhereRaw('LOWER(status) LIKE ?', [`%${lowerSearch}%`])
-              .orWhereRaw('LOWER(description) LIKE ?', [`%${lowerSearch}%`])
-              // ✅ Tambah: cari produk berdasarkan SKU, NAME, atau NO_INTERCHANGE
+              .whereRaw('LOWER(sales_orders.no_so) LIKE ? ESCAPE ?', [likePattern, '\\'])
+              .orWhereRaw('LOWER(sales_orders.status) LIKE ? ESCAPE ?', [likePattern, '\\'])
+              .orWhereRaw('LOWER(sales_orders.description) LIKE ? ESCAPE ?', [likePattern, '\\'])
+              // ✅ Cari produk berdasarkan SKU, NAME, atau NO_INTERCHANGE (condition digroup agar OR precedence benar)
               .orWhereExists((itemQuery) => {
                 itemQuery
                   .from('sales_order_items as soi')
                   .leftJoin('products as p', 'soi.product_id', 'p.id')
                   .whereColumn('soi.sales_order_id', 'sales_orders.id')
-                  .whereRaw('LOWER(p.sku) LIKE ?', [`%${lowerSearch}%`])
-                  .orWhereRaw('LOWER(p.name) LIKE ?', [`%${lowerSearch}%`])
-                  .orWhereRaw('LOWER(p.no_interchange) LIKE ?', [`%${lowerSearch}%`])
+                  .where((q) => {
+                    q.whereRaw('LOWER(p.sku) LIKE ? ESCAPE ?', [likePattern, '\\'])
+                      .orWhereRaw('LOWER(p.name) LIKE ? ESCAPE ?', [likePattern, '\\'])
+                      .orWhereRaw('LOWER(p.no_interchange) LIKE ? ESCAPE ?', [likePattern, '\\'])
+                  })
               })
               .orWhereExists((customerQuery) => {
                 customerQuery
                   .from('customers')
                   .whereColumn('customers.id', 'sales_orders.customer_id')
-                  .whereRaw('LOWER(customers.name) LIKE ?', [`%${lowerSearch}%`])
+                  .whereRaw('LOWER(customers.name) LIKE ? ESCAPE ?', [likePattern, '\\'])
               })
               .orWhereExists((userQuery) => {
                 userQuery
                   .from('users')
                   .whereColumn('users.id', 'sales_orders.created_by')
-                  .whereRaw('LOWER(users.fullName) LIKE ?', [`%${lowerSearch}%`])
+                  .whereRaw('LOWER(users.full_name) LIKE ? ESCAPE ?', [likePattern, '\\'])
               })
         })
       }
