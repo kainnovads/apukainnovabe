@@ -29,17 +29,15 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/apukainnovabe
-            echo "Pull latest code..."
             git fetch --all
             git reset --hard origin/main
 
-            echo "Install dependencies..."
             npm ci
-
-            echo "Build project..."
             node ace build
 
-            echo "Restart PM2..."
-            pm2 restart adonis-app --update-env
+            cp .env build/.env
 
-            echo "Deploy completed ✅"
+            cd build
+            npm ci --omit=dev
+
+            pm2 restart adonis-app || pm2 start bin/server.js --name adonis-app
