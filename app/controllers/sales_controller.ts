@@ -23,14 +23,7 @@ export default class SalesController {
   async index({ request, response }: HttpContext) {
     try {
       const page         = parseInt(request.input('page', '1'), 10) || 1
-      let limit          = parseInt(request.input('rows', '10'), 10) || 10
-      
-      // ✅ FIX: Batasi maksimal rows untuk keamanan dan performa (maksimal 1000 untuk dropdown)
-      // Ini mencegah abuse dan improve performance
-      const maxRows = 1000
-      if (limit > maxRows) {
-        limit = maxRows
-      }
+      const limit        = parseInt(request.input('rows', '10'), 10) || 10
       const search       = request.input('search', '')
       const searchValue  = search || request.input('search.value', '')
       const sortField    = request.input('sortField')
