@@ -41,22 +41,17 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
-  | Variables for configuring Google Cloud Storage
+  | Public URL for link ke file di public/uploads (Docker / reverse proxy)
   |----------------------------------------------------------
   */
-  GCP_PROJECT_ID: Env.schema.string.optional(),
-  GCP_CLIENT_EMAIL: Env.schema.string.optional(),
-  GCP_PRIVATE_KEY: Env.schema.string.optional(),
-  GCP_KEY_FILE: Env.schema.string.optional(),
-  GCP_BUCKET_NAME: Env.schema.string.optional(),
-  GCP_REGION: Env.schema.string.optional(),
+  APP_URL: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
-  | Variables for configuring storage configuration
+  | Storage: hanya local (public/uploads, persisten via volume)
   |----------------------------------------------------------
   */
-  STORAGE_DRIVER: Env.schema.enum(['local', 'gcs'] as const),
+  STORAGE_DRIVER: Env.schema.enum(['local'] as const),
 
   /*
   |----------------------------------------------------------

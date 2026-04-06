@@ -64,25 +64,17 @@ router.get('/', async () => {
   return { message: 'Welcome to your API! Get your CSRF token here.' }
 })
 
-/// Test route
-router.get('/test/gcs', async ({ response }) => {
+/// Test route (penyimpanan lokal)
+router.get('/test/storage', async ({ response }) => {
   try {
-    const GCSService = (await import('#services/gcs_service')).default
     const StorageService = (await import('#services/storage_service')).default
-    
-    const gcsService = new GCSService()
     const storageService = new StorageService()
-
-    const config = gcsService.getConfigInfo()
-    const isConnected = await gcsService.testConnection()
     const testResult = await storageService.testStorage()
 
     return response.ok({
-      config,
-      connection: isConnected,
-      storage: testResult
+      storage: testResult,
     })
-  } catch (error) {
+  } catch (error: any) {
     return response.badRequest({ error: error.message })
   }
 })

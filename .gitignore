@@ -12,7 +12,7 @@ scripts
 # Secrets
 .env
 .env.local
-.env.production.local
+.env.prod
 .env.development.local
 
 # Frontend assets compiled code
@@ -37,8 +37,6 @@ finance_flowchart_final.pdf
 database_schema_diagram.md
 finance_flowchart.py
 
-# GCS
-commands/test_gcs.ts
 ecosystem.config.cjs
 
 # Security: Environment files with credentials

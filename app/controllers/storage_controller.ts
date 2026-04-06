@@ -9,16 +9,16 @@ export default class StorageController {
   }
 
   /**
-   * Test storage service dan CORS configuration
+   * Test storage service (lokal)
    */
   async testStorage({ response }: HttpContext) {
     try {
       const testResult = await this.storageService.testStorage()
-      
+
       return response.ok({
         message: 'Storage test completed',
         data: testResult,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       return response.internalServerError({
@@ -29,7 +29,7 @@ export default class StorageController {
   }
 
   /**
-   * Konfigurasi CORS untuk GCS
+   * Info CORS: penyimpanan lokal — CORS dikonfigurasi di app / Nginx
    */
   async configureCors({ response }: HttpContext) {
     try {
