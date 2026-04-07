@@ -25,6 +25,7 @@ server.errorHandler(() => import('#exceptions/handler'))
  */
 server.use([
   () => import('#middleware/container_bindings_middleware'),
+  () => import('#middleware/serve_tmp_uploads_middleware'),
   () => import('#middleware/force_json_response_middleware'),
   () => import('#middleware/database_monitor_middleware'),
   () => import('#middleware/performance_monitor_middleware'), // ✅ TAMBAHAN: Performance monitoring

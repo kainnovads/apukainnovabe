@@ -256,7 +256,7 @@ export default class SalesReturnsController {
     if (payload.attachment && payload.attachment instanceof MultipartFile) {
       try {
         const fileName = `${Date.now()}_${payload.attachment.clientName}`
-        await payload.attachment.move(app.publicPath('uploads/sales_returns'), {
+        await payload.attachment.move(app.makePath('tmp', 'uploads', 'sales_returns'), {
           name     : fileName,
           overwrite: true,
         })
@@ -350,7 +350,7 @@ export default class SalesReturnsController {
         let attachmentPath = sr.attachment
         if (payload.attachment && payload.attachment instanceof MultipartFile) {
             const fileName = `${Date.now()}_${payload.attachment.clientName}`
-            await payload.attachment.move(app.publicPath('uploads/sales_returns'), {
+            await payload.attachment.move(app.makePath('tmp', 'uploads', 'sales_returns'), {
                 name: fileName,
                 overwrite: true,
             })

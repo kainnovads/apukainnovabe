@@ -1,10 +1,11 @@
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
+import { absoluteTmpUploadPath, tmpUploadSubdir } from '#helper/upload_paths'
 
 export default class StorageService {
   /**
-   * Basis URL untuk file di `public/uploads` (sama dengan pendekatan bind-mount Docker).
+   * Basis URL untuk file di /uploads/... (disajikan dari tmp/uploads via middleware).
    */
   private publicFileBaseUrl(): string {
     const explicit = env.get('APP_URL', '')
@@ -29,7 +30,7 @@ export default class StorageService {
   }
 
   /**
-   * Upload file ke direktori public (public/uploads/...)
+   * Upload file ke tmp/uploads/... (bind-mount Docker: ./storage/apukainnova-uploads → tmp/uploads)
    */
   async uploadFile(
     file: MultipartFile,
@@ -37,7 +38,7 @@ export default class StorageService {
     _isPublic: boolean = true
   ): Promise<{ url: string; path: string }> {
     const fileName = `${Date.now()}_${file.clientName}`
-    const uploadPath = app.publicPath(`uploads/${folder}`)
+    const uploadPath = tmpUploadSubdir(folder)
 
     try {
       const fs = await import('node:fs/promises')
@@ -61,11 +62,11 @@ export default class StorageService {
   }
 
   /**
-   * Hapus file dari public path relatif (mis. uploads/foo/bar.jpg)
+   * Hapus file; path DB biasanya uploads/subfolder/file
    */
   async deleteFile(path: string): Promise<boolean> {
     const fs = await import('node:fs/promises')
-    const fullPath = app.publicPath(path)
+    const fullPath = absoluteTmpUploadPath(path)
 
     try {
       await fs.unlink(fullPath)
@@ -78,21 +79,15 @@ export default class StorageService {
     }
   }
 
-  /**
-   * URL publik untuk path relatif di bawah public/
-   */
   getFileUrl(path: string): string {
     return this.buildPublicUrl(path)
   }
 
-  /**
-   * Tes akses direktori upload lokal
-   */
   async testStorage(): Promise<{ local: boolean; driver: string; message: string }> {
     let localTest = false
     try {
       const fs = await import('node:fs/promises')
-      const testPath = app.publicPath('uploads/test')
+      const testPath = app.makePath('tmp', 'uploads', 'test')
       await fs.access(testPath).catch(() => fs.mkdir(testPath, { recursive: true }))
       localTest = true
     } catch (error) {
@@ -102,18 +97,15 @@ export default class StorageService {
     return {
       local: localTest,
       driver: 'local',
-      message: localTest ? 'Penyimpanan lokal siap (public/uploads)' : 'Gagal mengakses public/uploads',
+      message: localTest ? 'Penyimpanan siap (tmp/uploads, URL /uploads/...)' : 'Gagal mengakses tmp/uploads',
     }
   }
 
-  /**
-   * File disajikan dari disk aplikasi; CORS diatur di Adonis / reverse proxy, bukan di object storage.
-   */
   async configureCors(): Promise<{ success: boolean; message: string }> {
     return {
       success: true,
       message:
-        'Penyimpanan lokal tidak memerlukan CORS bucket. Atur CORS di @adonisjs/cors atau Nginx bila perlu.',
+        'File dilayani dari aplikasi; CORS di @adonisjs/cors atau Nginx. Volume: tmp/uploads → host storage.',
     }
   }
 }

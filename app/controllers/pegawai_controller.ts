@@ -241,7 +241,7 @@ export default class PegawaiController {
 
       if (avatar) {
         const fileName = `${cuid()}.${avatar.extname}`
-        await avatar.move(app.publicPath('uploads'), {
+        await avatar.move(app.makePath('tmp', 'uploads'), {
           name: fileName,
           overwrite: true,
         })

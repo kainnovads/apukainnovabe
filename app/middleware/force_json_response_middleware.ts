@@ -8,6 +8,12 @@ import type { NextFn } from '@adonisjs/core/types/http'
  */
 export default class ForceJsonResponseMiddleware {
   async handle({ request }: HttpContext, next: NextFn) {
+    const rawUrl = request.url(true)
+    const pathname = rawUrl.split('?')[0] ?? rawUrl
+    if (pathname.startsWith('/uploads/')) {
+      return next()
+    }
+
     const headers = request.headers()
     headers.accept = 'application/json'
 
