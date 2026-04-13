@@ -120,11 +120,17 @@ export default class ProductsController {
        }
 
       const payload = product.toJSON() as { data?: unknown[]; [key: string]: unknown }
+      // data berisi instance Model Lucid — spread {...row} tidak menyalin kolom; wajib toJSON() dulu
       if (Array.isArray(payload.data)) {
-        payload.data = payload.data.map((row: any) => ({
-          ...row,
-          image: resolveStoredUploadUrl(row.image),
-        }))
+        payload.data = payload.data.map((row: any) => {
+          const base =
+            row && typeof row.toJSON === 'function' ? row.toJSON() : { ...(row as object) }
+
+          return {
+            ...base,
+            image: resolveStoredUploadUrl((base as { image?: string }).image),
+          }
+        })
       }
 
       return response.ok({
