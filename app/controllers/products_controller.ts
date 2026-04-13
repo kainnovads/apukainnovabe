@@ -4,6 +4,7 @@ import Product from '#models/product'
 import StorageService from '#services/storage_service'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { ActivityLogger } from '#helper/activity_log_helper'
+import { resolveStoredUploadUrl } from '#helper/public_file_url'
 export default class ProductsController {
     private storageService: StorageService
 
@@ -118,8 +119,16 @@ export default class ProductsController {
          console.warn(`🐌 Slow Query Alert: Products took ${queryTime}ms`)
        }
 
+      const payload = product.toJSON() as { data?: unknown[]; [key: string]: unknown }
+      if (Array.isArray(payload.data)) {
+        payload.data = payload.data.map((row: any) => ({
+          ...row,
+          image: resolveStoredUploadUrl(row.image),
+        }))
+      }
+
       return response.ok({
-        ...product.toJSON(),
+        ...payload,
         _meta: {
           queryTime: queryTime,
           totalQueries: 'optimized',
@@ -172,9 +181,12 @@ export default class ProductsController {
         return response.notFound({ message: 'Product tidak ditemukan' })
       }
 
+      const row = product.toJSON() as Record<string, unknown>
+
       // ✅ OPTIMASI: Tambahkan metadata performa
       return response.ok({
-        ...product.toJSON(),
+        ...row,
+        image: resolveStoredUploadUrl(row.image as string),
         _meta: {
           queryTime: queryTime,
           stocksLoaded: product.stocks?.length || 0,
@@ -272,7 +284,7 @@ export default class ProductsController {
             true // public
           )
 
-          imagePath = uploadResult.url
+          imagePath = uploadResult.path
 
         } catch (err) {
           console.error('Image upload failed:', err)
@@ -283,7 +295,7 @@ export default class ProductsController {
         }
       }
 
-      // Tambahkan path image ke payload jika ada
+      // Tambahkan path relatif image ke payload jika ada (URL publik di-resolve saat response)
       const product = await Product.create({
         ...payload,
         name: payload.name.toUpperCase(), // Konversi nama ke huruf kapital
@@ -294,7 +306,12 @@ export default class ProductsController {
       // Log activity
       await ActivityLogger.create({ request, response, auth } as HttpContext, 'product', product.id, product.name)
 
-      return response.created(product)
+      const createdJson = product.toJSON() as Record<string, unknown>
+
+      return response.created({
+        ...createdJson,
+        image: resolveStoredUploadUrl(createdJson.image as string),
+      })
     } catch (error) {
       // Handle validation errors specifically
       if ((error as any).messages) {
@@ -402,7 +419,7 @@ export default class ProductsController {
             true // public
           )
 
-          imagePath = uploadResult.url
+          imagePath = uploadResult.path
 
         } catch (err) {
           console.error('Image upload failed:', err)
@@ -424,8 +441,13 @@ export default class ProductsController {
       
       // Log activity
       await ActivityLogger.update({ request, response, auth } as HttpContext, 'product', product.id, product.name)
-      
-      return response.ok(product)
+
+      const updatedJson = product.toJSON() as Record<string, unknown>
+
+      return response.ok({
+        ...updatedJson,
+        image: resolveStoredUploadUrl(updatedJson.image as string),
+      })
     } catch (error) {
       // Cek error duplikat SKU
       if ((error as any).code === '23505' && (error as any).detail && (error as any).detail.includes('products_sku_unique')) {

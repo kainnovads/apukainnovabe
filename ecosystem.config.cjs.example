@@ -9,6 +9,7 @@ module.exports = {
           HOST: "0.0.0.0",
           PORT: "3333",
           APP_URL: "https://your-api-domain.example.com",
+          ASSET_URL: "https://your-api-domain.example.com",
           STORAGE_DRIVER: "local",
           APP_KEY: "EKZQ0Zuo8qV3BuZE8XYt7h-PmATvURU8",
           LOG_LEVEL: "info",

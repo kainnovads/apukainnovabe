@@ -1,29 +1,11 @@
-import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { absoluteTmpUploadPath, tmpUploadSubdir } from '#helper/upload_paths'
+import { publicFilesBaseUrl } from '#helper/public_file_url'
 
 export default class StorageService {
-  /**
-   * Basis URL untuk file di /uploads/... (disajikan dari tmp/uploads via middleware).
-   */
-  private publicFileBaseUrl(): string {
-    const explicit = env.get('APP_URL', '')
-    if (explicit) {
-      return explicit.replace(/\/$/, '')
-    }
-
-    const port = env.get('PORT')
-    const host = env.get('HOST')
-    if (host === '0.0.0.0') {
-      return `http://127.0.0.1:${port}`
-    }
-
-    return `http://${host}:${port}`
-  }
-
   private buildPublicUrl(relativePath: string): string {
-    const base = this.publicFileBaseUrl()
+    const base = publicFilesBaseUrl()
     const path = relativePath.replace(/^\//, '')
 
     return `${base}/${path}`

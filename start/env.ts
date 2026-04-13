@@ -41,10 +41,16 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
-  | Public URL for link ke file di public/uploads (Docker / reverse proxy)
+  | URL publik aplikasi & file upload (Docker / reverse proxy)
   |----------------------------------------------------------
   */
   APP_URL: Env.schema.string.optional(),
+
+  /**
+   * Opsional: URL dasar khusus untuk /uploads/... (override APP_URL).
+   * Contoh: https://backendapu.kainnovadigital.com
+   */
+  ASSET_URL: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
