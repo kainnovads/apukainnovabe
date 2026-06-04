@@ -1,6 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column, hasMany, manyToMany, beforeSave } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type { ModelObject } from '@adonisjs/lucid/types/model'
+import { resolveStoredUploadUrl } from '#helper/public_file_url'
 import Unit from '#models/unit'
 import Category from '#models/category'
 import StockInDetail from '#models/stock_in_detail'
@@ -97,5 +99,19 @@ export default class Product extends BaseModel {
     if (product.name) {
       product.name = product.name.toUpperCase()
     }
+  }
+
+  /**
+   * URL gambar publik — satu titik resolusi untuk index, show, preload stock/POS, dll.
+   * Tidak menambah query DB (transform string in-memory).
+   */
+  serialize(): ModelObject {
+    const serialized = super.serialize() as ModelObject
+
+    if (typeof serialized.image === 'string' && serialized.image) {
+      serialized.image = resolveStoredUploadUrl(serialized.image)
+    }
+
+    return serialized
   }
 }

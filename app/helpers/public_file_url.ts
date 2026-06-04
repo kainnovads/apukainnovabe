@@ -24,6 +24,51 @@ export function publicFilesBaseUrl(): string {
   return `http://${host}:${port}`
 }
 
+const UPLOAD_FOLDER_PATTERN =
+  /^(products|customers|vendors|perusahaan|pegawai|sales|purchases|attachments|users)\//
+
+/**
+ * Normalisasi nilai di DB ke path relatif uploads/... (tanpa leading slash).
+ */
+export function normalizeStoredUploadPath(stored: string): string {
+  let path = stored.trim().replace(/^\//, '')
+
+  if (path.startsWith('api/uploads/')) {
+    path = path.slice('api/'.length)
+  }
+
+  if (path.startsWith('uploads/')) {
+    return path
+  }
+
+  if (UPLOAD_FOLDER_PATTERN.test(path)) {
+    return `uploads/${path}`
+  }
+
+  return path
+}
+
+/**
+ * Ekstrak path uploads/... dari URL absolut (localhost, /api/uploads/, dll.).
+ */
+function uploadPathFromAbsoluteUrl(url: URL): string | null {
+  let path = url.pathname.replace(/^\//, '')
+
+  if (path.startsWith('api/uploads/')) {
+    path = path.slice('api/'.length)
+  }
+
+  if (path.startsWith('uploads/')) {
+    return path
+  }
+
+  return null
+}
+
+function isLocalDevHost(hostname: string): boolean {
+  return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '0.0.0.0'
+}
+
 /**
  * Nilai di DB: path relatif (uploads/...) atau URL absolut lama.
  * Perbaiki URL localhost/127.0.0.1 agar pakai basis publik saat ini.
@@ -43,11 +88,10 @@ export function resolveStoredUploadUrl(stored: string | null | undefined): strin
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     try {
       const u = new URL(trimmed)
-      const isLocalDevHost =
-        u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '0.0.0.0'
-      const path = u.pathname.replace(/^\//, '')
-      if (isLocalDevHost && path.startsWith('uploads/')) {
-        return `${base}/${path}`
+      const uploadPath = uploadPathFromAbsoluteUrl(u)
+
+      if (uploadPath && isLocalDevHost(u.hostname)) {
+        return `${base}/${uploadPath}`
       }
     } catch {
       /* biarkan URL apa adanya */
@@ -56,5 +100,7 @@ export function resolveStoredUploadUrl(stored: string | null | undefined): strin
     return trimmed
   }
 
-  return `${base}/${trimmed.replace(/^\//, '')}`
+  const normalized = normalizeStoredUploadPath(trimmed)
+
+  return `${base}/${normalized}`
 }

@@ -4,7 +4,6 @@ import Product from '#models/product'
 import StorageService from '#services/storage_service'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { ActivityLogger } from '#helper/activity_log_helper'
-import { resolveStoredUploadUrl } from '#helper/public_file_url'
 export default class ProductsController {
     private storageService: StorageService
 
@@ -120,18 +119,6 @@ export default class ProductsController {
        }
 
       const payload = product.toJSON() as { data?: unknown[]; [key: string]: unknown }
-      // data berisi instance Model Lucid — spread {...row} tidak menyalin kolom; wajib toJSON() dulu
-      if (Array.isArray(payload.data)) {
-        payload.data = payload.data.map((row: any) => {
-          const base =
-            row && typeof row.toJSON === 'function' ? row.toJSON() : { ...(row as object) }
-
-          return {
-            ...base,
-            image: resolveStoredUploadUrl((base as { image?: string }).image),
-          }
-        })
-      }
 
       return response.ok({
         ...payload,
@@ -187,12 +174,8 @@ export default class ProductsController {
         return response.notFound({ message: 'Product tidak ditemukan' })
       }
 
-      const row = product.toJSON() as Record<string, unknown>
-
-      // ✅ OPTIMASI: Tambahkan metadata performa
       return response.ok({
-        ...row,
-        image: resolveStoredUploadUrl(row.image as string),
+        ...product.toJSON(),
         _meta: {
           queryTime: queryTime,
           stocksLoaded: product.stocks?.length || 0,
@@ -290,7 +273,7 @@ export default class ProductsController {
             true // public
           )
 
-          imagePath = uploadResult.path
+          imagePath = uploadResult.url
 
         } catch (err) {
           console.error('Image upload failed:', err)
@@ -301,7 +284,7 @@ export default class ProductsController {
         }
       }
 
-      // Tambahkan path relatif image ke payload jika ada (URL publik di-resolve saat response)
+      // Simpan URL publik (konsisten dengan customer, perusahaan, vendor)
       const product = await Product.create({
         ...payload,
         name: payload.name.toUpperCase(), // Konversi nama ke huruf kapital
@@ -312,12 +295,7 @@ export default class ProductsController {
       // Log activity
       await ActivityLogger.create({ request, response, auth } as HttpContext, 'product', product.id, product.name)
 
-      const createdJson = product.toJSON() as Record<string, unknown>
-
-      return response.created({
-        ...createdJson,
-        image: resolveStoredUploadUrl(createdJson.image as string),
-      })
+      return response.created(product.toJSON())
     } catch (error) {
       // Handle validation errors specifically
       if ((error as any).messages) {
@@ -425,7 +403,7 @@ export default class ProductsController {
             true // public
           )
 
-          imagePath = uploadResult.path
+          imagePath = uploadResult.url
 
         } catch (err) {
           console.error('Image upload failed:', err)
@@ -448,12 +426,7 @@ export default class ProductsController {
       // Log activity
       await ActivityLogger.update({ request, response, auth } as HttpContext, 'product', product.id, product.name)
 
-      const updatedJson = product.toJSON() as Record<string, unknown>
-
-      return response.ok({
-        ...updatedJson,
-        image: resolveStoredUploadUrl(updatedJson.image as string),
-      })
+      return response.ok(product.toJSON())
     } catch (error) {
       // Cek error duplikat SKU
       if ((error as any).code === '23505' && (error as any).detail && (error as any).detail.includes('products_sku_unique')) {
