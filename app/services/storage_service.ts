@@ -1,14 +1,24 @@
 import app from '@adonisjs/core/services/app'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { absoluteTmpUploadPath, tmpUploadSubdir } from '#helper/upload_paths'
-import { publicFilesBaseUrl } from '#helper/public_file_url'
+import { encodePublicUploadUrl, publicFilesBaseUrl } from '#helper/public_file_url'
 
 export default class StorageService {
+  /**
+   * Hindari spasi/karakter ilegal di nama file agar URL aman di browser.
+   */
+  private sanitizeFileName(clientName: string): string {
+    return clientName
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .replace(/\s+/g, '_')
+      .replace(/_+/g, '_')
+  }
+
   private buildPublicUrl(relativePath: string): string {
     const base = publicFilesBaseUrl()
     const path = relativePath.replace(/^\//, '')
 
-    return `${base}/${path}`
+    return encodePublicUploadUrl(`${base}/${path}`)
   }
 
   /**
@@ -19,7 +29,7 @@ export default class StorageService {
     folder: string,
     _isPublic: boolean = true
   ): Promise<{ url: string; path: string }> {
-    const fileName = `${Date.now()}_${file.clientName}`
+    const fileName = `${Date.now()}_${this.sanitizeFileName(file.clientName)}`
     const uploadPath = tmpUploadSubdir(folder)
 
     try {

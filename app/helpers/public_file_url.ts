@@ -70,6 +70,49 @@ function isLocalDevHost(hostname: string): boolean {
 }
 
 /**
+ * Encode setiap segmen path agar spasi/karakter khusus aman di browser (<img src>).
+ */
+export function encodePublicUploadUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    parsed.pathname = parsed.pathname
+      .split('/')
+      .map((segment) => {
+        if (!segment) {
+          return segment
+        }
+        try {
+          return encodeURIComponent(decodeURIComponent(segment))
+        } catch {
+          return encodeURIComponent(segment)
+        }
+      })
+      .join('/')
+
+    return parsed.toString()
+  } catch {
+    return trimmed
+      .split('/')
+      .map((segment) => {
+        if (!segment) {
+          return segment
+        }
+        try {
+          return encodeURIComponent(decodeURIComponent(segment))
+        } catch {
+          return encodeURIComponent(segment)
+        }
+      })
+      .join('/')
+  }
+}
+
+/**
  * Nilai di DB: path relatif (uploads/...) atau URL absolut lama.
  * Perbaiki URL localhost/127.0.0.1 agar pakai basis publik saat ini.
  */
@@ -84,6 +127,7 @@ export function resolveStoredUploadUrl(stored: string | null | undefined): strin
   }
 
   const base = publicFilesBaseUrl()
+  let resolved = trimmed
 
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     try {
@@ -91,16 +135,15 @@ export function resolveStoredUploadUrl(stored: string | null | undefined): strin
       const uploadPath = uploadPathFromAbsoluteUrl(u)
 
       if (uploadPath && isLocalDevHost(u.hostname)) {
-        return `${base}/${uploadPath}`
+        resolved = `${base}/${uploadPath}`
       }
     } catch {
       /* biarkan URL apa adanya */
     }
-
-    return trimmed
+  } else {
+    const normalized = normalizeStoredUploadPath(trimmed)
+    resolved = `${base}/${normalized}`
   }
 
-  const normalized = normalizeStoredUploadPath(trimmed)
-
-  return `${base}/${normalized}`
+  return encodePublicUploadUrl(resolved)
 }

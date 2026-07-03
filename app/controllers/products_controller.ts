@@ -119,10 +119,12 @@ export default class ProductsController {
          console.warn(`🐌 Slow Query Alert: Products took ${queryTime}ms`)
        }
 
-      const payload = product.toJSON() as { data?: unknown[]; [key: string]: unknown }
+      // Paginator.toJSON() mengembalikan instance Model di `data` — wajib serialize() per baris
+      const rows = product.all().map((row) => row.serialize())
 
       return response.ok({
-        ...payload,
+        meta: product.getMeta(),
+        data: rows,
         _meta: {
           queryTime: queryTime,
           totalQueries: 'optimized',
