@@ -10,8 +10,8 @@ export const productValidator = vine.compile(
     priceSell: vine.number(),
     isService: vine.boolean(),
     image: vine.file({
-      size: '2mb',
-      extnames: ['jpg', 'jpeg', 'png'],
+      size: '5mb',
+      extnames: ['jpg', 'jpeg', 'jfif', 'png', 'gif', 'webp', 'svg'],
     }).optional(),
     berat: vine.number().optional(),
     kondisi: vine.enum(['baru', 'bekas', 'rusak', 'servis']),

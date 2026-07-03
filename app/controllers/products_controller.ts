@@ -4,6 +4,7 @@ import Product from '#models/product'
 import StorageService from '#services/storage_service'
 import { MultipartFile } from '@adonisjs/core/bodyparser'
 import { ActivityLogger } from '#helper/activity_log_helper'
+import { validateProductImageFile } from '#helper/image_upload_helper'
 export default class ProductsController {
     private storageService: StorageService
 
@@ -231,41 +232,7 @@ export default class ProductsController {
       // Upload file jika ada - ubah cara mengambil file untuk konsistensi dengan customer
       if (payload.image && payload.image instanceof MultipartFile) {
         try {
-          // Validasi file tidak kosong
-          if (!payload.image.size || payload.image.size === 0) {
-            throw new Error('File gambar kosong atau tidak valid')
-          }
-
-          // Validasi file adalah image
-          const fileType = payload.image.type || ''
-          const fileExtension = payload.image.clientName?.split('.').pop()?.toLowerCase() || ''
-
-          const allowedMimeTypes = [
-            'image/jpeg',
-            'image/jpg',
-            'image/png',
-            'image/x-png',
-            'image/gif',
-            'image/webp',
-            'image/svg+xml',
-          ]
-
-          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-
-          const isValidMimeType = allowedMimeTypes.includes(fileType)
-          const isValidExtension = allowedExtensions.includes(fileExtension)
-
-          if (!isValidMimeType && !isValidExtension) {
-            throw new Error(
-              `File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`,
-            )
-          }
-
-          // Validasi file size
-          const maxSize = 5 * 1024 * 1024 // 5MB
-          if (payload.image.size > maxSize) {
-            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
-          }
+          validateProductImageFile(payload.image)
 
           const uploadResult = await this.storageService.uploadFile(
             payload.image,
@@ -361,41 +328,7 @@ export default class ProductsController {
       // Upload file jika ada - ubah cara mengambil file untuk konsistensi dengan customer
       if (payload.image && payload.image instanceof MultipartFile) {
         try {
-          // Validasi file tidak kosong
-          if (!payload.image.size || payload.image.size === 0) {
-            throw new Error('File gambar kosong atau tidak valid')
-          }
-
-          // Validasi file adalah image
-          const fileType = payload.image.type || ''
-          const fileExtension = payload.image.clientName?.split('.').pop()?.toLowerCase() || ''
-
-          const allowedMimeTypes = [
-            'image/jpeg',
-            'image/jpg',
-            'image/png',
-            'image/x-png',
-            'image/gif',
-            'image/webp',
-            'image/svg+xml',
-          ]
-
-          const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-
-          const isValidMimeType = allowedMimeTypes.includes(fileType)
-          const isValidExtension = allowedExtensions.includes(fileExtension)
-
-          if (!isValidMimeType && !isValidExtension) {
-            throw new Error(
-              `File harus berupa gambar (JPEG, PNG, GIF, WebP). Detected: MIME=${fileType}, Ext=${fileExtension}`,
-            )
-          }
-
-          // Validasi file size
-          const maxSize = 5 * 1024 * 1024 // 5MB
-          if (payload.image.size > maxSize) {
-            throw new Error('Ukuran file terlalu besar (maksimal 5MB)')
-          }
+          validateProductImageFile(payload.image)
 
           const uploadResult = await this.storageService.uploadFile(
             payload.image,
